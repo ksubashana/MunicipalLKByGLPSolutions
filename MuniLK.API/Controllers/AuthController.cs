@@ -22,7 +22,7 @@ namespace MuniLK.API.Controllers
         //dotnet ef migrations add CommiteeReviewV2Changes --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
         //dotnet ef database update --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
         //dotnet ef migrations remove --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-
+        //Test
         /// <summary>
         /// Registers a new user.
         /// </summary>
