@@ -1,6 +1,5 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.Documents.DTOs
-@using MuniLK.Application.Generic.Services
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
@@ -148,9 +147,9 @@
                                 <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="100" />
                                 <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="80" />
                                 <GridColumn HeaderText="Actions" Width="100" TextAlign="TextAlign.Center">
-                                    <Template>
+                                    <Template Context="docContext">
                                         @{
-                                            var doc = (context as DocumentLinkResponse);
+                                            var doc = (docContext as DocumentLinkResponse);
                                         }
                                         <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" 
                                                   @onclick="() => PreviewDocument(doc)" />
@@ -334,27 +333,27 @@
 <SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
     <DialogTemplates>
         <Header>
-            <div>Document Preview - @(PreviewDocument?.FileName)</div>
+            <div>Document Preview - @(SelectedPreviewDocument?.FileName)</div>
         </Header>
         <Content>
-            @if (PreviewDocument != null)
+            @if (SelectedPreviewDocument != null)
             {
                 <div class="row">
                     <div class="col-8">
-                        @if (IsImageFile(PreviewDocument.FileExtension))
+                        @if (IsImageFile(SelectedPreviewDocument.FileExtension))
                         {
-                            <img src="@GetDocumentPreviewUrl(PreviewDocument.DocumentId)" class="img-fluid" alt="@PreviewDocument.FileName" />
+                            <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
                         }
-                        else if (IsPdfFile(PreviewDocument.FileExtension))
+                        else if (IsPdfFile(SelectedPreviewDocument.FileExtension))
                         {
-                            <iframe src="@GetDocumentPreviewUrl(PreviewDocument.DocumentId)" width="100%" height="500px"></iframe>
+                            <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" width="100%" height="500px"></iframe>
                         }
                         else
                         {
                             <div class="text-center p-4">
                                 <i class="fas fa-file fa-3x text-muted mb-3"></i>
                                 <p>Preview not available for this file type.</p>
-                                <SfButton @onclick="() => DownloadDocument(PreviewDocument)">
+                                <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)">
                                     <i class="fas fa-download me-2"></i>Download File
                                 </SfButton>
                             </div>
@@ -363,13 +362,13 @@
                     <div class="col-4">
                         <h6>Document Information</h6>
                         <table class="table table-sm">
-                            <tr><td><strong>Filename:</strong></td><td>@PreviewDocument.FileName</td></tr>
-                            <tr><td><strong>Type:</strong></td><td>@PreviewDocument.DocumentTypeName</td></tr>
-                            <tr><td><strong>Size:</strong></td><td>@FormatFileSize(PreviewDocument.FileSize)</td></tr>
-                            <tr><td><strong>Uploaded:</strong></td><td>@PreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
-                            <tr><td><strong>Uploaded By:</strong></td><td>@PreviewDocument.UploadedBy</td></tr>
+                            <tr><td><strong>Filename:</strong></td><td>@SelectedPreviewDocument.FileName</td></tr>
+                            <tr><td><strong>Type:</strong></td><td>@SelectedPreviewDocument.DocumentTypeName</td></tr>
+                            <tr><td><strong>Size:</strong></td><td>@FormatFileSize(SelectedPreviewDocument.FileSize)</td></tr>
+                            <tr><td><strong>Uploaded:</strong></td><td>@SelectedPreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
+                            <tr><td><strong>Uploaded By:</strong></td><td>@SelectedPreviewDocument.UploadedBy</td></tr>
                         </table>
-                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(PreviewDocument)">
+                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(SelectedPreviewDocument)">
                             <i class="fas fa-download me-2"></i>Download
                         </SfButton>
                     </div>
@@ -441,7 +440,7 @@
     // Document management variables
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;
-    private DocumentLinkResponse? PreviewDocument = null;
+    private DocumentLinkResponse? SelectedPreviewDocument = null;
     private Guid ModuleId = Guid.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -508,7 +507,7 @@
 
     private void PopulateFormFromExistingReview(PlanningCommitteeReviewResponse review)
     {
-        ReviewForm.MeetingDate = review.MeetingDate ?? DateTime.Today;
+        ReviewForm.MeetingDate = review.MeetingDate;
         ReviewForm.CommitteeType = review.CommitteeType;
         ReviewForm.MeetingReferenceNo = review.MeetingReferenceNo ?? string.Empty;
         ReviewForm.ChairpersonName = review.ChairpersonName ?? string.Empty;
@@ -604,7 +603,7 @@
     // Document management methods
     private void PreviewDocument(DocumentLinkResponse document)
     {
-        PreviewDocument = document;
+        SelectedPreviewDocument = document;
         IsPreviewDialogVisible = true;
     }
 

@@ -1,8 +1,7 @@
 // MuniLK.Application.Documents.Queries/GetLinkedDocumentsQueryHandler.cs
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using MuniLK.Application.Documents.DTOs;
-using MuniLK.Infrastructure.Data;
+using MuniLK.Application.Documents.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,30 +15,22 @@ namespace MuniLK.Application.Documents.Queries
     /// </summary>
     public class GetLinkedDocumentsQueryHandler : IRequestHandler<GetLinkedDocumentsQuery, List<DocumentLinkResponse>>
     {
-        private readonly MuniLKDbContext _context;
+        private readonly IDocumentLinkRepository _documentLinkRepository;
 
-        public GetLinkedDocumentsQueryHandler(MuniLKDbContext context)
+        public GetLinkedDocumentsQueryHandler(IDocumentLinkRepository documentLinkRepository)
         {
-            _context = context;
+            _documentLinkRepository = documentLinkRepository;
         }
 
         public async Task<List<DocumentLinkResponse>> Handle(GetLinkedDocumentsQuery request, CancellationToken cancellationToken)
         {
-            var query = _context.DocumentLinks
-                .Include(dl => dl.Document)
-                .ThenInclude(d => d.DocumentType)
-                .Include(dl => dl.Document.DocumentStatus)
-                .Where(dl => dl.ModuleId == request.ModuleId && dl.EntityId == request.EntityId);
+            var documentLinks = await _documentLinkRepository.GetLinksForEntityAsync(request.ModuleId, request.EntityId);
 
             // Optional filter by LinkContext
             if (!string.IsNullOrWhiteSpace(request.LinkContext))
             {
-                query = query.Where(dl => dl.LinkContext == request.LinkContext);
+                documentLinks = documentLinks.Where(dl => dl.LinkContext == request.LinkContext).ToList();
             }
-
-            var documentLinks = await query
-                .OrderByDescending(dl => dl.LinkedDate)
-                .ToListAsync(cancellationToken);
 
             return documentLinks.Select(dl => new DocumentLinkResponse
             {
@@ -56,9 +47,9 @@ namespace MuniLK.Application.Documents.Queries
                 LinkedBy = dl.LinkedBy,
                 UploadedDate = dl.Document.UploadedDate,
                 UploadedBy = dl.Document.UploadedBy,
-                DocumentTypeName = dl.Document.DocumentType?.DisplayName ?? dl.Document.DocumentType?.Name,
-                DocumentStatusName = dl.Document.DocumentStatus?.DisplayName ?? dl.Document.DocumentStatus?.Name
-            }).ToList();
+                DocumentTypeName = dl.Document.DocumentType?.Value,
+                DocumentStatusName = dl.Document.DocumentStatus?.Value
+            }).OrderByDescending(dl => dl.LinkedDate).ToList();
         }
     }
 }
