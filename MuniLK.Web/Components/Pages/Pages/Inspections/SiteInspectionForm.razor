@@ -1,11 +1,13 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Documents.DTOs
 @using MuniLK.Domain.Constants.Flows
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Calendars
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Inputs
 @using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Grids
 @using Microsoft.JSInterop
 @using System.Net.Http.Json
 @inject IHttpClientFactory HttpClientFactory
@@ -280,6 +282,39 @@
                     </div>
                 </div>
 
+                <!-- Documents Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">📄 Application Documents</h6>
+                        @if (ApplicationDocuments?.Any() == true)
+                        {
+                            <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" 
+                                    AllowPaging="false" AllowSorting="true" Height="300px">
+                                <GridColumns>
+                                    <GridColumn Field="FileName" HeaderText="Document" Width="200" />
+                                    <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="120" />
+                                    <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="100" />
+                                    <GridColumn HeaderText="Actions" Width="120" TextAlign="TextAlign.Center">
+                                        <Template Context="docContext">
+                                            @{
+                                                var doc = (docContext as DocumentLinkResponse);
+                                            }
+                                            <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" 
+                                                      @onclick="() => PreviewDocument(doc)" />
+                                            <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" 
+                                                      @onclick="() => DownloadDocument(doc)" />
+                                        </Template>
+                                    </GridColumn>
+                                </GridColumns>
+                            </SfGrid>
+                        }
+                        else
+                        {
+                            <p class="text-muted">No documents available for this application.</p>
+                        }
+                    </div>
+                </div>
+
                 <!-- Submit Button -->
                 <div class="row">
                     <div class="col-12">
@@ -294,6 +329,55 @@
     </div>
 </div>
 
+<!-- Document Preview Dialog -->
+<SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>
+            <div>Document Preview - @(SelectedPreviewDocument?.FileName)</div>
+        </Header>
+        <Content>
+            @if (SelectedPreviewDocument != null)
+            {
+                <div class="row">
+                    <div class="col-8">
+                        @if (IsImageFile(SelectedPreviewDocument.FileExtension))
+                        {
+                            <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
+                        }
+                        else if (IsPdfFile(SelectedPreviewDocument.FileExtension))
+                        {
+                            <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" width="100%" height="500px"></iframe>
+                        }
+                        else
+                        {
+                            <div class="text-center p-4">
+                                <i class="fas fa-file fa-3x text-muted mb-3"></i>
+                                <p>Preview not available for this file type.</p>
+                                <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)">
+                                    <i class="fas fa-download me-2"></i>Download File
+                                </SfButton>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-4">
+                        <h6>Document Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Filename:</strong></td><td>@SelectedPreviewDocument.FileName</td></tr>
+                            <tr><td><strong>Type:</strong></td><td>@SelectedPreviewDocument.DocumentTypeName</td></tr>
+                            <tr><td><strong>Size:</strong></td><td>@FormatFileSize(SelectedPreviewDocument.FileSize)</td></tr>
+                            <tr><td><strong>Uploaded:</strong></td><td>@SelectedPreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
+                            <tr><td><strong>Uploaded By:</strong></td><td>@SelectedPreviewDocument.UploadedBy</td></tr>
+                        </table>
+                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(SelectedPreviewDocument)">
+                            <i class="fas fa-download me-2"></i>Download
+                        </SfButton>
+                    </div>
+                </div>
+            }
+        </Content>
+    </DialogTemplates>
+</SfDialog>
+
 @code {
     [Parameter] public Guid ApplicationId { get; set; }
     [Parameter] public string? ApplicationNumber { get; set; }
@@ -302,6 +386,12 @@
 
     private SiteInspectionRequest Model = new();
     private bool IsSubmitting = false;
+
+    // Document management variables
+    private List<DocumentLinkResponse> ApplicationDocuments = new();
+    private bool IsPreviewDialogVisible = false;
+    private DocumentLinkResponse? SelectedPreviewDocument = null;
+    private Guid ModuleId = Guid.Empty;
 
     // Inspector multi-select support
     private List<InspectorOption> InspectorOptions = new();
@@ -350,6 +440,7 @@
         Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
         Model.ClearancesRequired = new List<ClearanceType>();
         await LoadInspectorsAsync();
+        await LoadExistingApplicationAsync(ApplicationId);
     }
 
     private async Task LoadInspectorsAsync()
@@ -392,6 +483,164 @@
         {
             IsSubmitting = false;
         }
+    }
+
+    private async Task LoadExistingApplicationAsync(Guid applicationId)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            
+            // Get the Building and Planning module ID
+            var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
+            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
+            {
+                ModuleId = parsedModuleId;
+            }
+
+            // Load existing site inspection if exists
+            try
+            {
+                var existingInspection = await client.GetFromJsonAsync<SiteInspectionResponse>(
+                    $"api/BuildingPlans/{applicationId}/site-inspection");
+                if (existingInspection != null)
+                {
+                    PopulateFormFromExistingInspection(existingInspection);
+                }
+            }
+            catch
+            {
+                // No existing inspection found, continue with empty form
+            }
+
+            // Load documents
+            if (ModuleId != Guid.Empty)
+            {
+                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>(
+                    $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
+                ApplicationDocuments = documents ?? new List<DocumentLinkResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing application: {ex.Message}");
+            ApplicationDocuments = new List<DocumentLinkResponse>();
+        }
+    }
+
+    private void PopulateFormFromExistingInspection(SiteInspectionResponse inspection)
+    {
+        Model.Status = inspection.Status;
+        Model.InspectionDate = inspection.InspectionDate;
+        Model.OfficersPresent = inspection.OfficersPresent ?? string.Empty;
+        Model.GpsCoordinates = inspection.GpsCoordinates ?? string.Empty;
+        Model.Remarks = inspection.Remarks ?? string.Empty;
+        
+        // Site conditions - need to map from SiteConditionResult list
+        var siteConditions = inspection.SiteConditions ?? new List<SiteConditionResult>();
+        var accessRoad = siteConditions.FirstOrDefault(sc => sc.Name == "AccessRoadWidth");
+        Model.AccessRoadWidthCondition = accessRoad?.Result;
+        Model.AccessRoadWidthNotes = accessRoad?.Notes ?? string.Empty;
+        
+        var boundary = siteConditions.FirstOrDefault(sc => sc.Name == "BoundaryVerification");
+        Model.BoundaryVerification = boundary?.Result;
+        Model.BoundaryVerificationNotes = boundary?.Notes ?? string.Empty;
+        
+        var topography = siteConditions.FirstOrDefault(sc => sc.Name == "Topography");
+        Model.Topography = topography?.Result;
+        Model.TopographyNotes = topography?.Notes ?? string.Empty;
+        
+        var structures = siteConditions.FirstOrDefault(sc => sc.Name == "ExistingStructures");
+        Model.ExistingStructures = structures?.Result;
+        Model.ExistingStructuresNotes = structures?.Notes ?? string.Empty;
+        
+        var encroachments = siteConditions.FirstOrDefault(sc => sc.Name == "Encroachments");
+        Model.EncroachmentsReservations = encroachments?.Result;
+        Model.EncroachmentsReservationsNotes = encroachments?.Notes ?? string.Empty;
+        
+        // Compliance checks - need to map from ComplianceCheckResult list
+        var complianceChecks = inspection.ComplianceChecks ?? new List<ComplianceCheckResult>();
+        var surveyPlan = complianceChecks.FirstOrDefault(cc => cc.Name == "MatchesSurveyPlan");
+        Model.MatchesSurveyPlan = surveyPlan?.Result;
+        Model.MatchesSurveyPlanNotes = surveyPlan?.Notes ?? string.Empty;
+        
+        var zoning = complianceChecks.FirstOrDefault(cc => cc.Name == "ZoningCompatible");
+        Model.ZoningCompatible = zoning?.Result;
+        Model.ZoningCompatibleNotes = zoning?.Notes ?? string.Empty;
+        
+        var setbacks = complianceChecks.FirstOrDefault(cc => cc.Name == "SetbacksObserved");
+        Model.SetbacksObserved = setbacks?.Result;
+        Model.SetbacksObservedNotes = setbacks?.Notes ?? string.Empty;
+        
+        var frontSetback = complianceChecks.FirstOrDefault(cc => cc.Name == "FrontSetback");
+        Model.FrontSetback = frontSetback?.Result ?? false;
+        
+        var rearSetback = complianceChecks.FirstOrDefault(cc => cc.Name == "RearSetback");
+        Model.RearSetback = rearSetback?.Result ?? false;
+        
+        var sideSetbacks = complianceChecks.FirstOrDefault(cc => cc.Name == "SideSetbacks");
+        Model.SideSetbacks = sideSetbacks?.Result ?? false;
+        
+        var environmental = complianceChecks.FirstOrDefault(cc => cc.Name == "EnvironmentalConcerns");
+        Model.EnvironmentalConcerns = environmental?.Result;
+        Model.EnvironmentalConcernsNotes = environmental?.Notes ?? string.Empty;
+        
+        // Decision support
+        Model.RequiredModifications = inspection.RequiredModifications ?? string.Empty;
+        Model.ClearancesRequired = inspection.ClearancesRequired ?? new List<ClearanceType>();
+        Model.FinalRecommendation = inspection.FinalRecommendation;
+    }
+
+    // Document management methods
+    private void PreviewDocument(DocumentLinkResponse document)
+    {
+        SelectedPreviewDocument = document;
+        IsPreviewDialogVisible = true;
+    }
+
+    private async Task DownloadDocument(DocumentLinkResponse document)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var downloadUrl = $"api/Documents/{document.DocumentId}/download";
+            
+            // Open download in new tab
+            await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading document: {ex.Message}");
+        }
+    }
+
+    private string GetDocumentPreviewUrl(Guid documentId)
+    {
+        return $"api/Documents/{documentId}/preview";
+    }
+
+    private bool IsImageFile(string extension)
+    {
+        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+        return imageExtensions.Contains(extension.ToLowerInvariant());
+    }
+
+    private bool IsPdfFile(string extension)
+    {
+        return extension.ToLowerInvariant() == ".pdf";
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number = number / 1024;
+            counter++;
+        }
+        return $"{number:n1} {suffixes[counter]}";
     }
 
     public class InspectionStatusOption
