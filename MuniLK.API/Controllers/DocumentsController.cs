@@ -141,6 +141,40 @@ namespace MuniLK.API.Controllers
         }
 
         /// <summary>
+        /// Retrieves documents linked to a specific entity (Building Plan Application).
+        /// </summary>
+        /// <param name="moduleId">The Module ID (e.g., Building and Planning)</param>
+        /// <param name="entityId">The Entity ID (e.g., Application ID)</param>
+        /// <param name="linkContext">Optional: Filter by link context</param>
+        /// <returns>List of linked documents</returns>
+        [HttpGet("linked")]
+        [ProducesResponseType(typeof(List<DocumentLinkResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetLinkedDocuments(
+            [FromQuery] Guid moduleId, 
+            [FromQuery] Guid entityId, 
+            [FromQuery] string? linkContext = null)
+        {
+            var query = new GetLinkedDocumentsQuery(moduleId, entityId, linkContext);
+            var documents = await _mediator.Send(query);
+            return Ok(documents);
+        }
+
+        /// <summary>
+        /// Gets a preview URL for a document (same as download for now).
+        /// </summary>
+        /// <param name="id">The unique ID of the document to preview.</param>
+        /// <returns>The file stream for preview if found, otherwise NotFound.</returns>
+        [HttpGet("{id}/preview")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> PreviewDocument(Guid id)
+        {
+            // For now, preview is the same as download
+            // In the future, you might want to return thumbnails or embedded viewer URLs
+            return await DownloadDocument(id);
+        }
+
+        /// <summary>
         /// Deletes a document and its associated file from storage by ID.
         /// </summary>
         /// <param name="id">The ID of the document to delete.</param>

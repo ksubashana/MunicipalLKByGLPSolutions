@@ -1,12 +1,18 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Documents.DTOs
+@using MuniLK.Application.Generic.Services
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Inputs
 @using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Popups
+@using Microsoft.JSInterop
 @inject IHttpClientFactory HttpClientFactory
 @inject CustomAuthStateProvider AuthenticationStateProvider
+@inject IJSRuntime JS
 
 <style>
     /* Container spacing & visual alignment */
@@ -126,6 +132,41 @@
                     }
                 </div>
             </div>
+
+            <!-- Documents Section -->
+            <div class="card mt-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">ðŸ“„ Application Documents</h6>
+                </div>
+                <div class="card-body p-2">
+                    @if (ApplicationDocuments?.Any() == true)
+                    {
+                        <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" 
+                                AllowPaging="false" AllowSorting="true" Height="300px">
+                            <GridColumns>
+                                <GridColumn Field="FileName" HeaderText="Document" Width="150" />
+                                <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="100" />
+                                <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="80" />
+                                <GridColumn HeaderText="Actions" Width="100" TextAlign="TextAlign.Center">
+                                    <Template>
+                                        @{
+                                            var doc = (context as DocumentLinkResponse);
+                                        }
+                                        <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" 
+                                                  @onclick="() => PreviewDocument(doc)" />
+                                        <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" 
+                                                  @onclick="() => DownloadDocument(doc)" />
+                                    </Template>
+                                </GridColumn>
+                            </GridColumns>
+                        </SfGrid>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-0">No documents available</p>
+                    }
+                </div>
+            </div>
         </div>
 
         <!-- RIGHT FORM -->
@@ -175,7 +216,7 @@
                                                         title="Remove member"
                                                         @onclick="() => RemoveMember(member)"
                                                         disabled="@(ReviewForm.MembersPresent.Count==1)">
-                                                    ×
+                                                    ï¿½
                                                 </button>
                                             </div>
                                         </div>
@@ -289,6 +330,55 @@
     </div>
 </div>
 
+<!-- Document Preview Dialog -->
+<SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>
+            <div>Document Preview - @(PreviewDocument?.FileName)</div>
+        </Header>
+        <Content>
+            @if (PreviewDocument != null)
+            {
+                <div class="row">
+                    <div class="col-8">
+                        @if (IsImageFile(PreviewDocument.FileExtension))
+                        {
+                            <img src="@GetDocumentPreviewUrl(PreviewDocument.DocumentId)" class="img-fluid" alt="@PreviewDocument.FileName" />
+                        }
+                        else if (IsPdfFile(PreviewDocument.FileExtension))
+                        {
+                            <iframe src="@GetDocumentPreviewUrl(PreviewDocument.DocumentId)" width="100%" height="500px"></iframe>
+                        }
+                        else
+                        {
+                            <div class="text-center p-4">
+                                <i class="fas fa-file fa-3x text-muted mb-3"></i>
+                                <p>Preview not available for this file type.</p>
+                                <SfButton @onclick="() => DownloadDocument(PreviewDocument)">
+                                    <i class="fas fa-download me-2"></i>Download File
+                                </SfButton>
+                            </div>
+                        }
+                    </div>
+                    <div class="col-4">
+                        <h6>Document Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Filename:</strong></td><td>@PreviewDocument.FileName</td></tr>
+                            <tr><td><strong>Type:</strong></td><td>@PreviewDocument.DocumentTypeName</td></tr>
+                            <tr><td><strong>Size:</strong></td><td>@FormatFileSize(PreviewDocument.FileSize)</td></tr>
+                            <tr><td><strong>Uploaded:</strong></td><td>@PreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
+                            <tr><td><strong>Uploaded By:</strong></td><td>@PreviewDocument.UploadedBy</td></tr>
+                        </table>
+                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(PreviewDocument)">
+                            <i class="fas fa-download me-2"></i>Download
+                        </SfButton>
+                    </div>
+                </div>
+            }
+        </Content>
+    </DialogTemplates>
+</SfDialog>
+
 @code {
     [Parameter] public BuildingPlanApplicationDto? Model { get; set; }
 
@@ -348,6 +438,12 @@
     private bool CanSubmitClarify => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
     private bool CanSubmitReject => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
 
+    // Document management variables
+    private List<DocumentLinkResponse> ApplicationDocuments = new();
+    private bool IsPreviewDialogVisible = false;
+    private DocumentLinkResponse? PreviewDocument = null;
+    private Guid ModuleId = Guid.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         CanUserTakeAction = await AuthenticationStateProvider.IsInRoleAsync("CommitteeMember")
@@ -358,10 +454,74 @@
             ReviewForm.MembersPresent.Add(new CommitteeMember());
 
         if (Model != null)
+        {
             ReviewForm.ApplicationId = Model.Id;
+            await LoadExistingApplicationAsync(Model.Id);
+        }
 
         ReviewForm.MeetingDate = DateTime.Today;
         ReviewForm.CommitteeDecision = CommitteeDecision.Pending;
+    }
+
+    private async Task LoadExistingApplicationAsync(Guid applicationId)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            
+            // Get the Building and Planning module ID
+            var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
+            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
+            {
+                ModuleId = parsedModuleId;
+            }
+
+            // Load existing committee review if exists
+            try
+            {
+                var existingReview = await client.GetFromJsonAsync<PlanningCommitteeReviewResponse>(
+                    $"api/BuildingPlans/{applicationId}/committee-review");
+                if (existingReview != null)
+                {
+                    PopulateFormFromExistingReview(existingReview);
+                }
+            }
+            catch
+            {
+                // No existing review found, continue with empty form
+            }
+
+            // Load documents
+            if (ModuleId != Guid.Empty)
+            {
+                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>(
+                    $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
+                ApplicationDocuments = documents ?? new List<DocumentLinkResponse>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading existing application: {ex.Message}");
+            ApplicationDocuments = new List<DocumentLinkResponse>();
+        }
+    }
+
+    private void PopulateFormFromExistingReview(PlanningCommitteeReviewResponse review)
+    {
+        ReviewForm.MeetingDate = review.MeetingDate ?? DateTime.Today;
+        ReviewForm.CommitteeType = review.CommitteeType;
+        ReviewForm.MeetingReferenceNo = review.MeetingReferenceNo ?? string.Empty;
+        ReviewForm.ChairpersonName = review.ChairpersonName ?? string.Empty;
+        ReviewForm.MembersPresent = review.MembersPresent ?? new List<CommitteeMember> { new() };
+        ReviewForm.DocumentsReviewed = review.DocumentsReviewed ?? new List<string>();
+        ReviewForm.ApplicantRepresented = review.ApplicantRepresented;
+        ReviewForm.ExternalAgenciesConsulted = review.ExternalAgenciesConsulted ?? new List<string>();
+        ReviewForm.CommitteeDiscussionsSummary = review.CommitteeDiscussionsSummary ?? string.Empty;
+        ReviewForm.CommitteeDecision = review.CommitteeDecision;
+        ReviewForm.ConditionsImposed = review.ConditionsImposed ?? string.Empty;
+        ReviewForm.ReasonForRejectionOrDeferral = review.ReasonForRejectionOrDeferral ?? string.Empty;
+        ReviewForm.RecordedByOfficer = review.RecordedByOfficer ?? string.Empty;
+        DigitalSignaturesText = string.Join("\n", review.DigitalSignatures ?? new List<string>());
     }
 
     private void AddMember() => ReviewForm.MembersPresent.Add(new CommitteeMember());
@@ -440,6 +600,58 @@
         };
 
     private Task HandleValidSubmit() => SaveDraft();
+
+    // Document management methods
+    private void PreviewDocument(DocumentLinkResponse document)
+    {
+        PreviewDocument = document;
+        IsPreviewDialogVisible = true;
+    }
+
+    private async Task DownloadDocument(DocumentLinkResponse document)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var downloadUrl = $"api/Documents/{document.DocumentId}/download";
+            
+            // Open download in new tab
+            await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error downloading document: {ex.Message}");
+        }
+    }
+
+    private string GetDocumentPreviewUrl(Guid documentId)
+    {
+        return $"api/Documents/{documentId}/preview";
+    }
+
+    private bool IsImageFile(string extension)
+    {
+        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
+        return imageExtensions.Contains(extension.ToLowerInvariant());
+    }
+
+    private bool IsPdfFile(string extension)
+    {
+        return extension.ToLowerInvariant() == ".pdf";
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number = number / 1024;
+            counter++;
+        }
+        return $"{number:n1} {suffixes[counter]}";
+    }
 
     // Helper classes
     private class DropdownOption { public object Value { get; set; } = default!; public string DisplayName { get; set; } = default!; }
