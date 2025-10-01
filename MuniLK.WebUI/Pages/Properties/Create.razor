@@ -1,0 +1,194 @@
+﻿@page "/properties/create"
+@using System.ComponentModel.DataAnnotations
+@using MuniLK.Application.PropertiesLK.DTOs
+@using MuniLK.Application.Services.DTOs
+@using Syncfusion.Blazor
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using Microsoft.AspNetCore.Components
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<EditForm Model="@PropertyModel" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="e-card p-4">
+        <h3 class="mb-3">Create New Property</h3>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <SfTextBox Placeholder="Address" @bind-Value="PropertyModel.Address" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => PropertyModel.Address)" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid" TItem="LookupDto" DataSource="@PropertyTypes"
+                                @bind-Value="PropertyModel.PropertyTypeId" Placeholder="Select Property Type"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => PropertyModel.PropertyTypeId)" />
+            </div>
+
+            <div class="col-md-6">
+                <SfNumericTextBox TValue="decimal" @bind-Value="PropertyModel.AssessmentValue"
+                                  Placeholder="Assessment Value" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => PropertyModel.AssessmentValue)" />
+            </div>
+
+            <div class="col-md-6">
+                <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.WardNumber"
+                                  Placeholder="Ward Number" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@Zones"
+                                @bind-Value="PropertyModel.ZoneId" Placeholder="Select Zone"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfNumericTextBox TValue="decimal?" @bind-Value="PropertyModel.LandAreaInSqMeters"
+                                  Placeholder="Land Area (sq.m)" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@LandExtentUnits"
+                                @bind-Value="PropertyModel.LandExtentId" Placeholder="Land Extent Unit"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfTextBox Placeholder="Title Deed Number" @bind-Value="PropertyModel.TitleDeedNumber"
+                           FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@OwnershipTypes"
+                                @bind-Value="PropertyModel.OwnershipTypeId" Placeholder="Ownership Type"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use" />
+            </div>
+
+            <div class="col-md-6">
+                <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.NumberOfBuildings"
+                                  Placeholder="Number of Buildings" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ConstructionTypes"
+                                @bind-Value="PropertyModel.ConstructionTypeId" Placeholder="Construction Type"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@RoadAccessTypes"
+                                @bind-Value="PropertyModel.RoadAccessTypeId" Placeholder="Road Access Type"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@GSDivisions"
+                                @bind-Value="PropertyModel.GSDivisionId" Placeholder="GS Division"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ElectoralDivisions"
+                                @bind-Value="PropertyModel.ElectoralDivisionId" Placeholder="Electoral Division"
+                                Fields="@LookupFields" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfCheckBox @bind-Checked="PropertyModel.WaterConnection" Label="Water Connection" />
+            </div>
+
+            <div class="col-md-6">
+                <SfCheckBox @bind-Checked="PropertyModel.ElectricityConnection" Label="Electricity Connection" />
+            </div>
+
+            <div class="col-md-6">
+                <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.LastAssessmentYear"
+                                  Placeholder="Last Assessment Year" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfCheckBox @bind-Checked="PropertyModel.IsDisputed" Label="Disputed Property" />
+            </div>
+
+            <div class="col-md-6">
+                <SfTextBox Placeholder="Photo URL" @bind-Value="PropertyModel.PhotoUrl" FloatLabelType="FloatLabelType.Auto" />
+            </div>
+
+            <div class="col-md-6">
+                <SfTextBox Placeholder="Coordinates (lat,lng)" @bind-Value="PropertyModel.LocationCoordinates"
+                           FloatLabelType="FloatLabelType.Auto" />
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <SfButton Type="Submit" CssClass="e-primary">Submit</SfButton>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private CreatePropertyRequest PropertyModel = new();
+
+    private List<LookupDto> PropertyTypes = new();
+    private List<LookupDto> Zones = new();
+    private List<LookupDto> LandExtentUnits = new();
+    private List<LookupDto> OwnershipTypes = new();
+    private List<LookupDto> ConstructionTypes = new();
+    private List<LookupDto> RoadAccessTypes = new();
+    private List<LookupDto> GSDivisions = new();
+    private List<LookupDto> ElectoralDivisions = new();
+
+    private object LookupFields => new { Value = "Id", Text = "Value" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        PropertyTypes = await LoadLookupAsync("PropertyTypes");
+        Zones = await LoadLookupAsync("Zone");
+        LandExtentUnits = await LoadLookupAsync("LandExtentUnit");
+        OwnershipTypes = await LoadLookupAsync("PropertyOwnershipType");
+        ConstructionTypes = await LoadLookupAsync("ConstructionType");
+        RoadAccessTypes = await LoadLookupAsync("RoadAccessType");
+        GSDivisions = await LoadLookupAsync("GSDivision");
+        ElectoralDivisions = await LoadLookupAsync("ElectoralDivision");
+    }
+
+    private async Task<List<LookupDto>> LoadLookupAsync(string category)
+    {
+        try
+        {
+            Console.WriteLine($"Fetching lookups for: {category}");
+            var result = await Http.GetFromJsonAsync<List<LookupDto>>($"api/lookups/values/byname/{category}");
+            return result ?? new List<LookupDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading {category}: {ex.Message}");
+            return new List<LookupDto>();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var response = await Http.PostAsJsonAsync("api/properties/create", PropertyModel);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/properties");
+        }
+        else
+        {
+            // TODO: Show validation or error message
+        }
+    }
+
+
+}

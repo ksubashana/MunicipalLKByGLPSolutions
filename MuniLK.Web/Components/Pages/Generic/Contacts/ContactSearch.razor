@@ -1,0 +1,71 @@
+﻿@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Web.Components.Pages.Notifications
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Data
+
+@inject IHttpClientFactory HttpClientFactory
+<AlertToast @ref="MyToast" />
+
+<SfAutoComplete 
+    TValue="ContactResponse" 
+    TItem="ContactResponse"
+    Placeholder="@Placeholder"
+    MinLength="2"
+    AllowFiltering="true"
+                @bind-Value="SelectedContact">
+    <SfDataManager Url="http://localhost:5164/api/Contact/search" CrossDomain="true" Adaptor="Syncfusion.Blazor.Adaptors.UrlAdaptor"></SfDataManager>
+    <AutoCompleteEvents TItem="ContactResponse" TValue="ContactResponse" OnValueSelect="@OnValueSelecthandler"></AutoCompleteEvents>
+    <AutoCompleteFieldSettings Value="NationalId" />
+</SfAutoComplete>
+
+<SfButton CssClass="e-link" OnClick="@(() => CreateContactRequested.InvokeAsync())">
+    Create New Contact
+</SfButton>
+
+@code {
+    [Parameter] public string Placeholder { get; set; } = "Search Contact...";
+    [Parameter] public EventCallback<ContactResponse?> SelectedContactChanged { get; set; }
+    [Parameter] public EventCallback CreateContactRequested { get; set; }
+
+    private Guid SelectedContactId;
+    private ContactResponse? SelectedContact;
+    private List<ContactResponse> FilteredContacts = new();
+    private AlertToast? MyToast;
+
+    private async Task OnContactChanged(Guid selectedId)
+    {
+        SelectedContact = FilteredContacts.FirstOrDefault(c => c.Id == selectedId);
+        await SelectedContactChanged.InvokeAsync(SelectedContact);
+    }
+
+    private async void OnValueSelecthandler(SelectEventArgs<ContactResponse> args)
+    {
+        await SelectedContactChanged.InvokeAsync(args.ItemData);
+    }
+    private async Task OnFiltering(FilteringEventArgs args)
+    {
+        await MyToast.ShowToastAsync("Contact already exists with the same NIC, Email, or Phone Number", AlertToast.ToastType.Error);
+
+        if (string.IsNullOrWhiteSpace(args.Text) || args.Text.Length < 2)
+        {
+            FilteredContacts = new();
+            return;
+        }
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+            var result = await client.GetFromJsonAsync<List<ContactResponse>>($"api/contacts/search?query={args.Text}");
+            FilteredContacts = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading contacts: {ex.Message}");
+            FilteredContacts = new();
+        }
+    }
+}

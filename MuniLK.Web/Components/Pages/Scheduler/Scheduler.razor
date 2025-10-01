@@ -1,0 +1,257 @@
+@page "/scheduler"
+@rendermode InteractiveServer
+@using Syncfusion.Blazor.Schedule
+@using Syncfusion.Blazor.Data
+@using Syncfusion.Blazor.Buttons
+@using MuniLK.Application.ScheduleAppointment.DTOs
+@using System.Net.Http.Json
+@using System.Security.Claims
+@using MuniLK.Application.Users.DTOs
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageBreadcrumb Title="Schedule Management" SubTitle="Appointment Scheduler" />
+
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="card-title mb-0">
+                            @if (ShowAllUsers)
+                            {
+                                <text>All Users Scheduler</text>
+                            }
+                            else
+                            {
+                                <text>My Scheduler</text>
+                            }
+                        </h4>
+                        @if (!string.IsNullOrEmpty(CurrentUserName))
+                        {
+                            <small class="text-muted">
+                                Logged in as: <strong>@CurrentUserName</strong>
+                                @if (!string.IsNullOrEmpty(CurrentUserRole))
+                                {
+                                    <span class="badge bg-primary ms-2">@CurrentUserRole</span>
+                                }
+                            </small>
+                        }
+                    </div>
+                    <div>
+                        <SfButton @onclick="ToggleView" CssClass="btn btn-outline-primary">
+                            @if (ShowAllUsers)
+                            {
+                                <text>Switch to My Schedule</text>
+                            }
+                            else
+                            {
+                                <text>View All Users</text>
+                            }
+                        </SfButton>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (IsLoading)
+                {
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <SfSchedule TValue="SchedulerAppointmentData" 
+                               Height="600px" 
+                               @bind-SelectedDate="SelectedDate"
+                               CurrentView="View.Month">
+                        
+                        <SfDataManager Url="http://localhost:5164/api/scheduleappointments/scheduler-data" 
+                                      CrudUrl="http://localhost:5164/api/scheduleappointments/scheduler-crud"
+                                      Adaptor="Adaptors.WebApiAdaptor">
+                            <SfDataManagerParams Name="allUsers" Value="@ShowAllUsers.ToString().ToLower()" />
+                        </SfDataManager>
+
+                        <ScheduleFieldSettings TValue="SchedulerAppointmentData"
+                                             Id="Id"
+                                             Subject="Subject"
+                                             StartTime="StartTime"
+                                             EndTime="EndTime"
+                                             Location="Location"
+                                             Description="Description"
+                                             IsAllDay="IsAllDay"
+                                             IsReadonly="IsReadonly"
+                                             RecurrenceRule="RecurrenceRule"
+                                             RecurrenceException="RecurrenceException"
+                                             RecurrenceID="RecurrenceID"
+                                             StartTimezone="StartTimezone"
+                                             EndTimezone="EndTimezone" />
+
+                        <ScheduleViews>
+                            <ScheduleView Option="View.Day"></ScheduleView>
+                            <ScheduleView Option="View.Week"></ScheduleView>
+                            <ScheduleView Option="View.WorkWeek"></ScheduleView>
+                            <ScheduleView Option="View.Month"></ScheduleView>
+                            <ScheduleView Option="View.Agenda"></ScheduleView>
+                        </ScheduleViews>
+
+                        <ScheduleEventSettings TValue="SchedulerAppointmentData">
+                        </ScheduleEventSettings>
+
+                        <ScheduleEvents TValue="SchedulerAppointmentData"
+                                      Created="OnScheduleCreated" />
+@* 
+                        <ScheduleResources>
+                            <ScheduleResource Field="UserId"
+                                              Title="Users"
+                                              Name="Users"
+                                              DataSource="@Users"
+                                              TextField="UserName"
+                                              IdField="Id"
+                                              ColorField="Role">
+                            </ScheduleResource>
+                        </ScheduleResources> *@
+
+                    </SfSchedule>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool ShowAllUsers = false;
+    private bool IsLoading = true;
+    private DateTime SelectedDate = DateTime.Today;
+    private string CurrentUserName = "";
+    private string CurrentUserRole = "";
+    private HttpClient? _httpClient;
+    private List<UserResponse> Users = new();
+
+    public class SchedulerAppointmentData
+    {
+        public int Id { get; set; }
+        public string Subject { get; set; } = "";
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Location { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool IsAllDay { get; set; }
+        public bool IsReadonly { get; set; }
+        public string RecurrenceRule { get; set; } = "";
+        public string RecurrenceException { get; set; } = "";
+        public int? RecurrenceID { get; set; }
+        public string StartTimezone { get; set; } = "";
+        public string EndTimezone { get; set; } = "";
+        public string CategoryColor { get; set; } = "";
+        public Guid? OwnerId { get; set; }
+        public string OwnerName { get; set; } = "";
+        public string OwnerRole { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpClientFactory.CreateClient("AuthorizedClient");
+        await LoadUserInfo();
+
+        var http = HttpClientFactory.CreateClient("AuthorizedClient");
+        var resp = await http.GetFromJsonAsync<List<UserResponse>>("api/users/GetUsersByTenant");
+        Users = resp ?? new List<UserResponse>();
+
+        IsLoading = false;
+    }
+
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User?.Identity?.IsAuthenticated == true)
+            {
+                CurrentUserName = authState.User.FindFirst(ClaimTypes.Name)?.Value 
+                                ?? authState.User.FindFirst(ClaimTypes.Email)?.Value 
+                                ?? "Unknown User";
+
+                var roles = authState.User.FindAll(ClaimTypes.Role).Select(c => c.Value);
+                CurrentUserRole = string.Join(", ", roles);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleView()
+    {
+        ShowAllUsers = !ShowAllUsers;
+        StateHasChanged();
+    }
+
+    private void OnScheduleCreated()
+    {
+        Console.WriteLine("Schedule component created successfully");
+    }
+
+    private void OnActionBegin(ActionEventArgs<SchedulerAppointmentData> args)
+    {
+        // You can add validation or custom logic here before actions
+        if (args.ActionType == ActionType.EventCreate)
+        {
+            Console.WriteLine($"Creating appointment: {args.AddedRecords?.FirstOrDefault()?.Subject}");
+        }
+        else if (args.ActionType == ActionType.EventChange)
+        {
+            Console.WriteLine($"Updating appointment: {args.ChangedRecords?.FirstOrDefault()?.Subject}");
+        }
+        else if (args.ActionType == ActionType.EventRemove)
+        {
+            Console.WriteLine($"Deleting appointment: {args.DeletedRecords?.FirstOrDefault()?.Subject}");
+        }
+    }
+
+    private void OnActionComplete(ActionEventArgs<SchedulerAppointmentData> args)
+    {
+        if (args.ActionType == ActionType.EventCreate)
+        {
+            Console.WriteLine("Appointment created successfully");
+        }
+        else if (args.ActionType == ActionType.EventChange)
+        {
+            Console.WriteLine("Appointment updated successfully");
+        }
+        else if (args.ActionType == ActionType.EventRemove)
+        {
+            Console.WriteLine("Appointment deleted successfully");
+        }
+    }
+}
+
+<style>
+    .template-wrap {
+        padding: 2px 4px;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+
+    .template-wrap .subject {
+        font-weight: bold;
+        margin-bottom: 2px;
+    }
+
+    .template-wrap .location,
+    .template-wrap .owner,
+    .template-wrap .role {
+        font-size: 11px;
+        color: #666;
+        margin-bottom: 1px;
+    }
+
+    .e-schedule .e-appointment {
+        border-radius: 4px;
+    }
+</style>

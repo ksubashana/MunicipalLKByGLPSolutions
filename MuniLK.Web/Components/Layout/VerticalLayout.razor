@@ -1,0 +1,44 @@
+﻿@using MuniLK.Web.Interfaces
+@using MuniLK.Web.Services
+@inherits LayoutComponentBase
+@inject ILanguageService LanguageService
+
+
+<div class="wrapper">
+
+	<Topbar />
+
+	<LeftSidebar />
+
+	<div class="content-page">
+
+		<div class="content">
+
+			<div class="container-fluid">
+				@Body
+			</div>
+
+		</div>
+
+		<Footer />
+
+	</div>
+
+</div>
+
+<RightSidebar />
+
+@code {
+	private bool _initialized;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	
+	{
+		if (firstRender && !_initialized)
+		{
+			await LanguageService.InitializeAsync();
+			_initialized = true;
+			StateHasChanged();
+		}
+	}
+}

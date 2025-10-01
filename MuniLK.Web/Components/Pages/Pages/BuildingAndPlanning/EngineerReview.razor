@@ -1,0 +1,419 @@
+@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Generic.Interfaces
+@using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Components.Pages.Generic.Documents
+@using MuniLK.Web.Services
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@using System.ComponentModel.DataAnnotations
+@inject CustomAuthStateProvider AuthenticationStateProvider;
+
+@*
+    EngineerReview.razor
+    Handles the engineer review step in the building plan workflow.
+    Parameters: BuildingPlanApplicationDto Model, EventCallbacks for save draft and advance step
+    Provides UI for structural compliance, utilities feasibility, and technical review.
+*@
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Column: Previous Review Summary -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Previous Reviews</h6>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model?.PlanningReport))
+                    {
+                        <div class="mb-3">
+                            <h6 class="text-muted"><i class="fas fa-map-marked-alt me-1"></i>Planning Officer Comments</h6>
+                            <div class="bg-light p-2 rounded">
+                                <small>@Model.PlanningReport</small>
+                            </div>
+                        </div>
+                    }
+
+                    @if (Model?.PropertySummary != null)
+                    {
+                        <div class="mb-3">
+                            <h6 class="text-muted">Property Details</h6>
+                            <p class="mb-1"><strong>Location:</strong> @Model.PropertySummary.Address</p>
+                            <p class="mb-1"><strong>Floors:</strong> @Model.NoOfFloors</p>
+                            <p class="mb-1"><strong>Purpose:</strong> @Model.BuildingPurpose</p>
+                        </div>
+                    }
+
+                    @if (Model?.Documents?.Any() == true)
+                    {
+                        <div class="mb-3">
+                            <h6 class="text-muted">Structural Documents</h6>
+                            @foreach (var doc in Model.Documents.Where(d => d.DocumentType?.Contains("Structural") == true || d.DocumentType?.Contains("Engineering") == true).Take(3))
+                            {
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    <small>@doc.DocumentType</small>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Engineering Review Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-hard-hat me-2"></i>Engineering Review</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="ReviewForm" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
+
+                        <div class="row">
+                            <!-- Structural Compliance -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Structural Compliance <span class="text-danger">*</span></label>
+                                <SfDropDownList TValue="StructuralCompliance?" TItem="ComplianceOption"
+                                                @bind-Value="ReviewForm.StructuralCompliance"
+                                                DataSource="ComplianceOptions"
+                                                Placeholder="Select compliance status">
+                                    <DropDownListFieldSettings Text="DisplayName" Value="Value" />
+                                </SfDropDownList>
+                            </div>
+
+                            <!-- Technical Clarifications -->
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" @bind="ReviewForm.TechnicalClarificationsRequested" id="clarificationsRequired">
+                                    <label class="form-check-label" for="clarificationsRequired">Technical Clarifications Required</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Structural Remarks -->
+                        <div class="mb-3">
+                            <label class="form-label">Structural Review Remarks</label>
+                            <SfTextArea @bind-Value="ReviewForm.StructuralRemarks" Rows="4"
+                                        Placeholder="Enter structural compliance comments, requirements, or observations..." />
+                        </div>
+
+                        <!-- Utilities Feasibility -->
+                        <div class="mb-3">
+                            <label class="form-label">Utilities Feasibility Assessment</label>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="ReviewForm.WaterFeasible" id="waterFeasible">
+                                        <label class="form-check-label" for="waterFeasible">
+                                            <i class="fas fa-tint text-primary me-1"></i>Water Supply
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="ReviewForm.ElectricityFeasible" id="electricityFeasible">
+                                        <label class="form-check-label" for="electricityFeasible">
+                                            <i class="fas fa-bolt text-warning me-1"></i>Electricity
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="ReviewForm.SewageFeasible" id="sewageFeasible">
+                                        <label class="form-check-label" for="sewageFeasible">
+                                            <i class="fas fa-drain text-secondary me-1"></i>Sewage
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="ReviewForm.RoadAccessFeasible" id="roadAccessFeasible">
+                                        <label class="form-check-label" for="roadAccessFeasible">
+                                            <i class="fas fa-road text-dark me-1"></i>Road Access
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Engineering Report -->
+                        <div class="mb-4">
+                            <label class="form-label">Upload Engineering Report (Optional)</label>
+                            <DocumentUploader Label="Engineering Analysis Report"
+                                              DocumentTypeId="@EngineeringReportDocTypeId"
+                                              ModuleId="@BuildingPlanModuleId"
+                                              EntityId="@ResolvedApplicationId"
+                                              LinkContext="EngineeringReport"
+                                              AllowedExtensions=".pdf,.doc,.docx"
+                                              Enabled="true" />
+                        </div>
+
+                        <!-- Action Buttons -->         
+                        @if (CanUserTakeAction)
+                        {
+                            <div class="d-flex gap-2 flex-wrap">
+                                <SfButton IsPrimary="false" CssClass="btn-outline-secondary"
+                                          @onclick="SaveDraft" Disabled="@IsSubmitting">
+                                    <i class="fas fa-save me-1"></i>Save Draft
+                                </SfButton>
+
+                                <SfButton IsPrimary="true" CssClass="btn-success"
+                                          @onclick="() => ShowConfirmDialog(ReviewDecision.Approved)"
+                                          Disabled="@(IsSubmitting || !IsFormValid() || ReviewForm.StructuralCompliance != StructuralCompliance.Pass)">
+                                    <i class="fas fa-check me-1"></i>Approve (Pass)
+                                </SfButton>
+
+                                <SfButton IsPrimary="false" CssClass="btn-warning"
+                                          @onclick="() => ShowConfirmDialog(ReviewDecision.ClarificationRequired)"
+                                          Disabled="@(IsSubmitting || !IsFormValid())">
+                                    <i class="fas fa-question-circle me-1"></i>Request Clarification
+                                </SfButton>
+
+                                <SfButton IsPrimary="false" CssClass="btn-danger"
+                                          @onclick="() => ShowConfirmDialog(ReviewDecision.Rejected)"
+                                          Disabled="@(IsSubmitting || !IsFormValid() || ReviewForm.StructuralCompliance != StructuralCompliance.Fail)">
+                                    <i class="fas fa-times me-1"></i>Fail & Reject
+                                </SfButton>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                You do not have permission to take action on this application.
+                            </div>
+                        }
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<SfDialog @bind-Visible="ShowConfirmationDialog" Width="400px" ShowCloseIcon="true" IsModal="true">
+    <DialogTemplates>
+        <Header>
+            <div class="d-flex align-items-center">
+                @if (PendingDecision == ReviewDecision.Approved)
+                {
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                }
+                else if (PendingDecision == ReviewDecision.Rejected)
+                {
+                    <i class="fas fa-times-circle text-danger me-2"></i>
+                }
+                else
+                {
+                    <i class="fas fa-question-circle text-warning me-2"></i>
+                }
+                Confirm Engineering Decision
+            </div>
+        </Header>
+        <Content>
+            <p>Are you sure you want to <strong>@GetDecisionText(PendingDecision)</strong> this application?</p>
+            
+            @if (PendingDecision == ReviewDecision.Rejected)
+            {
+                <div class="mt-3">
+                    <label class="form-label">Failure Reason <span class="text-danger">*</span></label>
+                    <SfTextArea @bind-Value="FailureReason" Rows="3" 
+                                Placeholder="Please provide specific technical reasons for failure..." />
+                </div>
+            }
+
+            <div class="mt-3">
+                <small class="text-muted">
+                    <strong>Structural Compliance:</strong> @ReviewForm.StructuralCompliance<br>
+                    <strong>Utilities Check:</strong> 
+                    @(ReviewForm.WaterFeasible ? "Water ✓ " : "")
+                    @(ReviewForm.ElectricityFeasible ? "Electricity ✓ " : "")
+                    @(ReviewForm.SewageFeasible ? "Sewage ✓ " : "")
+                    @(ReviewForm.RoadAccessFeasible ? "Road ✓" : "")
+                </small>
+            </div>
+        </Content>
+    </DialogTemplates>
+    <DialogButtons>
+        <DialogButton Content="Cancel" OnClick="HideConfirmDialog" />
+        <DialogButton Content="Confirm" IsPrimary="true" OnClick="ConfirmDecision" />
+    </DialogButtons>
+</SfDialog>
+
+@code {
+    [Parameter] public BuildingPlanApplicationDto Model { get; set; } = default!;
+    [Parameter] public EventCallback<BuildingPlanApplicationDto> OnSaveDraft { get; set; }
+    [Parameter] public EventCallback<AdvanceStepRequestDto> OnAdvanceStep { get; set; }
+
+    // New: allow parent to pass EntityId (from BuildingAndPlanningCreate)
+    [Parameter] public Guid EntityId { get; set; }
+
+    // Prefer Model.Id when available; otherwise use the value from parent.
+    private Guid ResolvedApplicationId => (Model?.Id != Guid.Empty ? Model.Id : Guid.Empty) != Guid.Empty
+        ? Model!.Id
+        : EntityId;
+
+    private EngineeringReviewForm ReviewForm = new();
+    private bool IsSubmitting = false;
+    private bool ShowConfirmationDialog = false;
+    private ReviewDecision PendingDecision;
+    private string FailureReason = string.Empty;
+
+    // These should be configured or injected in a real application
+    private Guid EngineeringReportDocTypeId = Guid.NewGuid();
+    private Guid BuildingPlanModuleId = Guid.NewGuid();
+    private bool CanUserTakeAction = false;
+
+    private List<ComplianceOption> ComplianceOptions = new()
+    {
+        new() { Value = StructuralCompliance.Pass, DisplayName = "Pass", CssClass = "text-success" },
+        new() { Value = StructuralCompliance.Conditional, DisplayName = "Conditional", CssClass = "text-warning" },
+        new() { Value = StructuralCompliance.Fail, DisplayName = "Fail", CssClass = "text-danger" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await IsInProperRole();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Model != null)
+        {
+            ReviewForm.StructuralRemarks = Model.EngineerReport ?? string.Empty;
+        }
+    }
+
+    private async Task IsInProperRole()
+    {
+        CanUserTakeAction = await AuthenticationStateProvider.IsInRoleAsync("PlanningOfficer")
+            || await AuthenticationStateProvider.IsInRoleAsync("Administrator");
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool IsFormValid()
+    {
+        return ReviewForm.StructuralCompliance.HasValue;
+    }
+
+    private string GetDecisionText(ReviewDecision decision)
+    {
+        return decision switch
+        {
+            ReviewDecision.Approved => "pass and approve",
+            ReviewDecision.Rejected => "fail and reject",
+            ReviewDecision.ClarificationRequired => "request clarification for",
+            _ => decision.ToString().ToLower()
+        };
+    }
+
+    private async Task SaveDraft()
+    {
+        IsSubmitting = true;
+        try
+        {
+            if (Model != null)
+            {
+                Model.EngineerReport = ReviewForm.StructuralRemarks;
+                await OnSaveDraft.InvokeAsync(Model);
+            }
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private void ShowConfirmDialog(ReviewDecision decision)
+    {
+        // Validate that decision matches structural compliance
+        if (decision == ReviewDecision.Approved && ReviewForm.StructuralCompliance != StructuralCompliance.Pass)
+        {
+            return; // Cannot approve if not Pass
+        }
+        if (decision == ReviewDecision.Rejected && ReviewForm.StructuralCompliance != StructuralCompliance.Fail)
+        {
+            return; // Cannot reject unless it's a Fail
+        }
+
+        PendingDecision = decision;
+        FailureReason = string.Empty;
+        ShowConfirmationDialog = true;
+    }
+
+    private void HideConfirmDialog()
+    {
+        ShowConfirmationDialog = false;
+    }
+
+    private async Task ConfirmDecision()
+    {
+        if (PendingDecision == ReviewDecision.Rejected && string.IsNullOrWhiteSpace(FailureReason))
+        {
+            return; // Don't proceed without failure reason
+        }
+
+        IsSubmitting = true;
+        ShowConfirmationDialog = false;
+
+        try
+        {
+            var comments = PendingDecision == ReviewDecision.Rejected ? FailureReason : ReviewForm.StructuralRemarks;
+
+            var request = new AdvanceStepRequestDto
+            {
+                ApplicationId = ResolvedApplicationId,
+                Decision = PendingDecision,
+                Comments = comments,
+                PerformedByUserId = (await AuthenticationStateProvider.GetUserIdAsync()) ?? string.Empty,
+                PerformedByRole = "Engineer"
+            };
+
+            await OnAdvanceStep.InvokeAsync(request);
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        await Task.CompletedTask;
+    }
+
+    public enum StructuralCompliance
+    {
+        Pass = 1,
+        Conditional = 2,
+        Fail = 3
+    }
+
+    public class EngineeringReviewForm
+    {
+        [Required(ErrorMessage = "Structural compliance assessment is required")]
+        public StructuralCompliance? StructuralCompliance { get; set; }
+
+        public string StructuralRemarks { get; set; } = string.Empty;
+
+        public bool WaterFeasible { get; set; }
+        public bool ElectricityFeasible { get; set; }
+        public bool SewageFeasible { get; set; }
+        public bool RoadAccessFeasible { get; set; }
+
+        public bool TechnicalClarificationsRequested { get; set; }
+    }
+
+    public class ComplianceOption
+    {
+        public StructuralCompliance Value { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string CssClass { get; set; } = string.Empty;
+    }
+}

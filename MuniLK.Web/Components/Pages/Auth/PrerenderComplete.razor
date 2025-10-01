@@ -1,0 +1,24 @@
+﻿@using MuniLK.Web.Services
+@inject CustomAuthStateProvider AuthStateProvider
+@implements IDisposable
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // This is the correct way to notify the provider that prerendering is over.
+            // The provider itself will then handle the state change.
+            AuthStateProvider.NotifyPrerenderComplete();
+
+            // Then, trigger a re-evaluation of the authentication state.
+            // The framework will automatically re-render the components.
+            await AuthStateProvider.GetAuthenticationStateAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        // No unsubscription is needed here in this simplified example.
+    }
+}

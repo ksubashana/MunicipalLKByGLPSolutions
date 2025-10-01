@@ -1,0 +1,426 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Domain.Constants.Flows
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@using Microsoft.JSInterop
+@using System.Net.Http.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
+
+<div class="container-xxl py-3">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">Site Inspection Report</h5>
+            <div class="d-flex align-items-center gap-2">
+                @if (!string.IsNullOrWhiteSpace(ApplicationNumber))
+                {
+                    <span class="badge bg-primary-subtle text-primary">App No: @ApplicationNumber</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <!-- Core Inspection Details -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">📋 Inspection Overview</h6>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Inspection Status <span class="text-danger">*</span></label>
+                        <SfDropDownList TValue="InspectionStatus" TItem="InspectionStatusOption" 
+                                      @bind-Value="Model.Status" DataSource="@InspectionStatusOptions" 
+                                      Placeholder="Select Status" CssClass="form-control">
+                            <DropDownListFieldSettings Value="Value" Text="Text" />
+                        </SfDropDownList>
+                        <ValidationMessage For="@(() => Model.Status)" />
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Inspection Date <span class="text-danger">*</span></label>
+                        <SfDatePicker TValue="DateTime" @bind-Value="Model.InspectionDate" 
+                                    CssClass="form-control" />
+                        <ValidationMessage For="@(() => Model.InspectionDate)" />
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Officers Present</label>
+                        <!-- Multi-select of inspectors; selected names joined into Model.OfficersPresent -->
+                        <SfMultiSelect TValue="List<string>" TItem="InspectorOption"
+                                       @bind-Value="SelectedInspectorIds"
+                                       DataSource="InspectorOptions"
+                                       Placeholder="Select officers present"
+                                       Mode="@VisualMode.CheckBox"
+                                       ShowSelectAll="true"
+                                       ClosePopupOnSelect="false"
+                                       CssClass="form-control">
+                            <MultiSelectFieldSettings Value="Id" Text="Name" />
+                        </SfMultiSelect>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">GPS Coordinates</label>
+                        <SfTextBox @bind-Value="Model.GpsCoordinates" 
+                                 Placeholder="Latitude, Longitude" CssClass="form-control" />
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <label class="form-label">General Remarks</label>
+                        <SfTextBox @bind-Value="Model.Remarks" Multiline="true" 
+                                 CssClass="form-control" Placeholder="General inspection notes" />
+                    </div>
+                </div>
+
+                <!-- Site Conditions Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">🏗️ Site Conditions Verification</h6>
+                    </div>
+                    
+                    <!-- Access Road Width -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Access Road Width Condition</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.AccessRoadWidthCondition" 
+                                         Value="true" Name="accessRoad" Label="Yes" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.AccessRoadWidthCondition" 
+                                         Value="false" Name="accessRoad" Label="No" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.AccessRoadWidthNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Boundary Verification -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Boundary Verification</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.BoundaryVerification" 
+                                         Value="true" Name="boundary" Label="Yes" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.BoundaryVerification" 
+                                         Value="false" Name="boundary" Label="No" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.BoundaryVerificationNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Topography -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Topography</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.Topography" 
+                                         Value="true" Name="topography" Label="Suitable" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.Topography" 
+                                         Value="false" Name="topography" Label="Unsuitable" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.TopographyNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Existing Structures -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Existing Structures</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.ExistingStructures" 
+                                         Value="true" Name="structures" Label="Present" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.ExistingStructures" 
+                                         Value="false" Name="structures" Label="None" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.ExistingStructuresNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Encroachments -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Encroachments/Reservations</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.EncroachmentsReservations" 
+                                         Value="true" Name="encroachments" Label="Present" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.EncroachmentsReservations" 
+                                         Value="false" Name="encroachments" Label="None" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.EncroachmentsReservationsNotes" CssClass="form-control" />
+                    </div>
+                </div>
+
+                <!-- Compliance Checks Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">✅ Compliance Checks</h6>
+                    </div>
+                    
+                    <!-- Matches Survey Plan -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Matches Survey Plan</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.MatchesSurveyPlan" 
+                                         Value="true" Name="survey" Label="Yes" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.MatchesSurveyPlan" 
+                                         Value="false" Name="survey" Label="No" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.MatchesSurveyPlanNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Zoning Compatible -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Zoning Compatible</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.ZoningCompatible" 
+                                         Value="true" Name="zoning" Label="Yes" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.ZoningCompatible" 
+                                         Value="false" Name="zoning" Label="No" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.ZoningCompatibleNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Setbacks -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Setbacks Observed</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.SetbacksObserved" 
+                                         Value="true" Name="setbacks" Label="Yes" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.SetbacksObserved" 
+                                         Value="false" Name="setbacks" Label="No" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.SetbacksObservedNotes" CssClass="form-control" />
+                    </div>
+
+                    <!-- Detailed Setbacks -->
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Specific Setbacks</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <SfCheckBox @bind-Checked="Model.FrontSetback" Label="Front Setback" />
+                            </div>
+                            <div class="col-md-4">
+                                <SfCheckBox @bind-Checked="Model.RearSetback" Label="Rear Setback" />
+                            </div>
+                            <div class="col-md-4">
+                                <SfCheckBox @bind-Checked="Model.SideSetbacks" Label="Side Setbacks" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Environmental Concerns -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Environmental Concerns</label>
+                        <div class="d-flex gap-3">
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.EnvironmentalConcerns" 
+                                         Value="true" Name="environmental" Label="Present" />
+                            <SfRadioButton TChecked="bool?" @bind-Checked="Model.EnvironmentalConcerns" 
+                                         Value="false" Name="environmental" Label="None" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Notes</label>
+                        <SfTextBox @bind-Value="Model.EnvironmentalConcernsNotes" CssClass="form-control" />
+                    </div>
+                </div>
+
+                <!-- Decision Support Section -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">📋 Decision Support</h6>
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Required Modifications</label>
+                        <SfTextBox @bind-Value="Model.RequiredModifications" Multiline="true" 
+                                 CssClass="form-control" Placeholder="Describe any required modifications" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Clearances Required</label>
+                        <SfMultiSelect TValue="List<ClearanceType>" TItem="ClearanceTypeOption" 
+                                     @bind-Value="Model.ClearancesRequired" DataSource="@ClearanceTypeOptions" 
+                                     Placeholder="Select required clearances" CssClass="form-control"
+                                     Mode="@VisualMode.CheckBox">
+                            <MultiSelectFieldSettings Value="Value" Text="Text" />
+                        </SfMultiSelect>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Final Recommendation <span class="text-danger">*</span></label>
+                        <SfDropDownList TValue="FinalRecommendation" TItem="FinalRecommendationOption" 
+                                      @bind-Value="Model.FinalRecommendation" DataSource="@FinalRecommendationOptions" 
+                                      Placeholder="Select Recommendation" CssClass="form-control">
+                            <DropDownListFieldSettings Value="Value" Text="Text" />
+                        </SfDropDownList>
+                        <ValidationMessage For="@(() => Model.FinalRecommendation)" />
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="row">
+                    <div class="col-12">
+                        <SfButton IsPrimary="true" type="submit" Disabled="@IsSubmitting" CssClass="me-2">
+                            @(IsSubmitting ? "Submitting..." : "Submit Site Inspection")
+                        </SfButton>
+                        <SfButton type="button" OnClick="@(() => OnCancel.InvokeAsync())" Disabled="@IsSubmitting">Cancel</SfButton>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Guid ApplicationId { get; set; }
+    [Parameter] public string? ApplicationNumber { get; set; }
+    [Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private SiteInspectionRequest Model = new();
+    private bool IsSubmitting = false;
+
+    // Inspector multi-select support
+    private List<InspectorOption> InspectorOptions = new();
+    private List<string> _selectedInspectorIds = new();
+    private List<string> SelectedInspectorIds
+    {
+        get => _selectedInspectorIds;
+        set
+        {
+            _selectedInspectorIds = value ?? new();
+            var names = InspectorOptions.Where(o => _selectedInspectorIds.Contains(o.Id)).Select(o => o.Name);
+            Model.OfficersPresent = string.Join(", ", names);
+        }
+    }
+
+    private List<InspectionStatusOption> InspectionStatusOptions = new()
+    {
+        new() { Value = InspectionStatus.Pending, Text = "Pending" },
+        new() { Value = InspectionStatus.Approve, Text = "Approve" },
+        new() { Value = InspectionStatus.Reject, Text = "Reject" },
+        new() { Value = InspectionStatus.ReInspectionRequired, Text = "Re-Inspection Required" }
+    };
+
+    private List<FinalRecommendationOption> FinalRecommendationOptions = new()
+    {
+        new() { Value = FinalRecommendation.ApproveAsSubmitted, Text = "Approve As Submitted" },
+        new() { Value = FinalRecommendation.ApproveWithModifications, Text = "Approve With Modifications" },
+        new() { Value = FinalRecommendation.Reject, Text = "Reject" },
+        new() { Value = FinalRecommendation.ReInspectionRequired, Text = "Re-Inspection Required" }
+    };
+
+    private List<ClearanceTypeOption> ClearanceTypeOptions = new()
+    {
+        new() { Value = ClearanceType.CEA, Text = "CEA" },
+        new() { Value = ClearanceType.CoastConservation, Text = "Coast Conservation" },
+        new() { Value = ClearanceType.NBRO, Text = "NBRO" },
+        new() { Value = ClearanceType.FireDept, Text = "Fire Department" },
+        new() { Value = ClearanceType.Other, Text = "Other" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model.ApplicationId = ApplicationId;
+        Model.InspectionDate = DateTime.Today;
+        Model.Status = InspectionStatus.Pending;
+        Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
+        Model.ClearancesRequired = new List<ClearanceType>();
+        await LoadInspectorsAsync();
+    }
+
+    private async Task LoadInspectorsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var list = await client.GetFromJsonAsync<List<InspectorDto>>("api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
+            InspectorOptions = list?.Select(x => new InspectorOption { Id = x.Id.ToString(), Name = x.FullName })?.ToList() ?? new();
+        }
+        catch
+        {
+            InspectorOptions = new();
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        IsSubmitting = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var url = $"api/BuildingPlans/{ApplicationId}/complete-site-inspection";
+            var resp = await client.PostAsJsonAsync(url, Model);
+            if (resp.IsSuccessStatusCode)
+            {
+                if (OnSubmit.HasDelegate)
+                {
+                    await OnSubmit.InvokeAsync(Model);
+                }
+                await JS.InvokeVoidAsync("console.log", "Site inspection submitted successfully");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("console.error", $"Failed to submit site inspection: {error}");
+            }
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    public class InspectionStatusOption
+    {
+        public InspectionStatus Value { get; set; }
+        public string Text { get; set; } = "";
+    }
+
+    public class FinalRecommendationOption
+    {
+        public FinalRecommendation Value { get; set; }
+        public string Text { get; set; } = "";
+    }
+
+    public class ClearanceTypeOption
+    {
+        public ClearanceType Value { get; set; }
+        public string Text { get; set; } = "";
+    }
+
+    private class InspectorOption
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class InspectorDto
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+	<resheader name="resmimetype">
+		<value>text/microsoft-resx</value>
+	</resheader>
+	<resheader name="version">
+		<value>2.0</value>
+	</resheader>
+	<resheader name="reader">
+		<value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+	<resheader name="writer">
+		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+	</resheader>
+
+	<data name="FullName" xml:space="preserve">
+    <value>සම්පූර්ණ නම</value>
+  </data>
+	<data name="NIC" xml:space="preserve">
+    <value>ජා. හැඳුනුම්පත</value>
+  </data>
+	<data name="Email" xml:space="preserve">
+    <value>ඊමේල් ලිපිනය</value>
+  </data>
+	<data name="PhoneNumber" xml:space="preserve">
+    <value>දුරකථන අංකය</value>
+  </data>
+	<data name="AddressLine1" xml:space="preserve">
+    <value>ලිපිනය පළමු පේළිය</value>
+  </data>
+	<data name="AddressLine2" xml:space="preserve">
+    <value>ලිපිනය දෙවන පේළිය</value>
+  </data>
+	<data name="City" xml:space="preserve">
+    <value>නගරය</value>
+  </data>
+	<data name="District" xml:space="preserve">
+    <value>දිස්ත්‍රික්කය</value>
+  </data>
+	<data name="Province" xml:space="preserve">
+    <value>පළාත</value>
+  </data>
+	<data name="PostalCode" xml:space="preserve">
+    <value>තැපැල් කේතය</value>
+  </data>
+	<data name="SaveContact" xml:space="preserve">
+    <value>සුරකින්න</value>
+  </data>
+</root>

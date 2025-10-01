@@ -1,0 +1,89 @@
+﻿@rendermode InteractiveServer
+@using MuniLK.Web.Services
+@using Syncfusion.Blazor.Inputs
+@* @inject IHttpClientFactory HttpClientFactory*@
+ @inject HttpClient httpClient; 
+@inject AuthenticationStateProvider AuthenticationStateProvider;
+@inject TokenProvider TokenProvider;
+
+<div class="mb-3">
+    @if (!string.IsNullOrEmpty(Label))
+    {
+        <label class="form-label">@Label</label>
+    }
+
+    <div class="upload-target border p-2">
+        <SfUploader AutoUpload="true"
+                    AllowedExtensions="@AllowedExtensions"
+                    MaxFileSize="@MaxFileSize"
+                    DropArea=".upload-target"
+                    ShowFileList="true"
+                    AllowMultiple="true"
+                    Enabled="@Enabled"
+        HttpClientInstance="@httpClient">
+            <UploaderAsyncSettings SaveUrl="@SaveUrl" RemoveUrl="@RemoveUrl"></UploaderAsyncSettings>
+            <UploaderEvents Progressing="@ProgressingHandler" Success="OnUploadSuccess" OnRemove="HandleRemove"></UploaderEvents>
+            
+        </SfUploader>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string SaveUrl { get; set; } = "http://localhost:5164/api/Documents/Upload";
+    [Parameter] public string RemoveUrl { get; set; } = "/api/Documents/Delete";
+    [Parameter] public string AllowedExtensions { get; set; } = ".pdf,.jpg,.jpeg,.png,.doc, .docx, .xls, .xlsx";
+    [Parameter] public int MaxFileSize { get; set; } = 10485760; // 10MB
+    [Parameter] public bool Multiple { get; set; } = true;
+    [Parameter] public string Label { get; set; } = "Upload Documents";
+    [Parameter] public Guid DocumentTypeId { get; set; }
+    [Parameter] public string DocumentType { get; set; } = "";
+    [Parameter] public Guid ModuleId { get; set; }
+    [Parameter] public Guid EntityId { get; set; }
+    [Parameter] public string LinkContext { get; set; }="";
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public bool Enabled { get; set; } = false;
+    [Parameter] public EventCallback<string> OnUploaded { get; set; }
+
+    private async Task OnUploadSuccess(SuccessEventArgs args)
+    {
+        // args.File contains info about the uploaded file
+        var fileName = args.File.Name;
+
+        if (OnUploaded.HasDelegate)
+        {
+            await OnUploaded.InvokeAsync(fileName);
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var accessToken = "";
+        var tenantIdClaim = "";
+        if (user.Identity.IsAuthenticated)
+        {
+             accessToken = TokenProvider.GetToken();
+             tenantIdClaim = user.FindFirst("tenantid")?.Value;
+
+        }
+        httpClient.DefaultRequestHeaders.Add("Authorization_Token", Convert.ToString(accessToken));
+        httpClient.DefaultRequestHeaders.Add("DocumentTypeId", Convert.ToString(DocumentTypeId));
+        httpClient.DefaultRequestHeaders.Add("DocumentType", Convert.ToString(DocumentType));
+        httpClient.DefaultRequestHeaders.Add("TenantIdClaim", Convert.ToString(tenantIdClaim));
+        httpClient.DefaultRequestHeaders.Add("EntityId", Convert.ToString(EntityId));
+        httpClient.DefaultRequestHeaders.Add("ModuleId", Convert.ToString(ModuleId));
+        httpClient.DefaultRequestHeaders.Add("LinkContext", Convert.ToString(LinkContext));
+
+        await base.OnInitializedAsync();
+    }
+    private void ProgressingHandler(Syncfusion.Blazor.Inputs.ProgressEventArgs args)
+    {
+        // Here, you can customize your code.
+    }
+
+    private Task HandleRemove(RemovingEventArgs args)
+    {
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Compile Remove="Migrations\20250809045954_WorkFlowLogErrorFix.cs" />
+    <Compile Remove="Migrations\20250809045954_WorkFlowLogErrorFix.Designer.cs" />
+    <Compile Remove="Migrations\20250809050707_WorkFlowLogErrorFix2.cs" />
+    <Compile Remove="Migrations\20250809050707_WorkFlowLogErrorFix2.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MuniLK.Application\MuniLK.Application.csproj" />
+    <ProjectReference Include="..\MuniLK.Domain\MuniLK.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+    <PackageReference Include="Syncfusion.Blazor.Data" Version="30.1.42" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

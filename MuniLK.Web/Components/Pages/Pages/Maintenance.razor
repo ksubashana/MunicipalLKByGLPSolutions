@@ -1,0 +1,32 @@
+﻿@page "/pages-maintenance"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime;
+@using MuniLK.Web.Components.Layout
+@layout AuthLayout
+
+
+<div class="row justify-content-center">
+	<div class="col-lg-5 col-md-6 col-12">
+		<div class="mb-4">
+			<img src="images/svg/under_maintenance.png" alt="" class="img-fluid">
+		</div>
+		<div class="text-center">
+			<h2 class="mb-3 text-muted">Sorry we are under maintenance</h2>
+			<p class="text-dark-emphasis fs-15 mb-1">Our website currently undergoing maintenance.</p>
+			<p class="text-dark-emphasis fs-15 mb-4">We should be a back shotly. thankyou for patience.</p>
+		</div>
+	</div>
+</div>
+
+
+@code {
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("updateBodyAttributes", "class", "authentication-bg position-relative");
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+			await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+}

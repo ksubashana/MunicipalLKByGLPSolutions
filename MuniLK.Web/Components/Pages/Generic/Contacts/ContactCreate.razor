@@ -1,0 +1,137 @@
+﻿@using Localization.Forms
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Localization
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.Generic.Result
+@using MuniLK.Web.Components.Pages.Notifications
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.Popups
+@inject IStringLocalizer<ContactForm> localizer
+@inject IHttpClientFactory HttpClientFactory
+
+<AlertToast @ref="MyToast" />
+
+
+@if (RenderAsPopup)
+{
+    <SfDialog Width="400px" IsModal="true" ShowCloseIcon="true" @bind-Visible="IsVisible">
+        <DialogTemplates>
+            <Content>
+                @RenderForm()
+            </Content>
+        </DialogTemplates>
+    </SfDialog>
+}
+else
+{
+    <div class="contact-form-inline">
+        @RenderForm()
+    </div>
+}
+
+@code {
+    private RenderFragment RenderForm() => @<EditForm Model="NewContact" OnValidSubmit="CreateContactAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <h3 class="mb-3">Create New Contact</h3>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.FullName" Placeholder="@localizer["FullName"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.FullName)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.NIC" Placeholder="@localizer["NIC"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.NIC)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.Email" Placeholder="@localizer["Email"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.Email)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.PhoneNumber" Placeholder="@localizer["PhoneNumber"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.PhoneNumber)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.AddressLine1" Placeholder="@localizer["AddressLine1"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.AddressLine1)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.AddressLine2" Placeholder="@localizer["AddressLine2"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.AddressLine2)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.City" Placeholder="@localizer["City"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.City)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.District" Placeholder="@localizer["District"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.District)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.Province" Placeholder="@localizer["Province"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.Province)" />
+            </div>
+            <div class="col-md-6">
+                <SfTextBox @bind-Value="NewContact.PostalCode" Placeholder="@localizer["PostalCode"]" FloatLabelType="FloatLabelType.Auto" />
+                <ValidationMessage For="@(() => NewContact.PostalCode)" />
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <SfButton Type="Submit" CssClass="e-primary">@localizer["SaveContact"]</SfButton>
+        </div>
+    </EditForm>;
+}
+
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public EventCallback<ContactResponse> OnContactCreated { get; set; }
+
+    [Parameter] public bool RenderAsPopup { get; set; } = true; // default true
+
+    private CreateContactRequest NewContact = new();
+    private AlertToast? MyToast;
+    private ContactResponse SelectedContact;
+
+    private async Task CreateContactAsync()
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+        var response = await client.PostAsJsonAsync("api/contact/CreateContact", NewContact);
+        var result = await response.Content.ReadFromJsonAsync<Result<ContactResponse>>();
+
+        if (result is not null)
+        {
+            if (result.Succeeded && result.Data != null)
+            {
+                // ✅ New contact created
+                SelectedContact = result.Data;
+                await OnContactCreated.InvokeAsync(result.Data);
+                await IsVisibleChanged.InvokeAsync(false);
+            }
+            else if (!result.Succeeded && result.ExistingData != null)
+            {
+                // ⚠️ Duplicate found → use existing contact
+                SelectedContact = result.ExistingData;
+                // Optional: show toast/alert
+                await MyToast.ShowToastAsync("Contact already exists with the same NIC, Email, or Phone Number. Using existing contact.", AlertToast.ToastType.Error);
+
+            }
+            else
+            {
+                // ❌ Error without existing data
+                await MyToast.ShowToastAsync("An error occurred while creating contact.", AlertToast.ToastType.Error);
+
+            }
+            await OnContactCreated.InvokeAsync(SelectedContact);
+
+        }
+
+    }
+
+}

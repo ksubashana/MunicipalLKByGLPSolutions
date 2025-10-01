@@ -1,0 +1,642 @@
+﻿@page "/buildingplan/submit"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using MediatR
+@using MuniLK.Application.BuildingAndPlanning.Commands
+@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.BuildingAndPlanning.Queries
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.Generic.Interfaces
+@using MuniLK.Application.PropertiesLK.DTOs
+@using MuniLK.Application.PropertyOwners.DTOs
+@using MuniLK.Domain.Constants
+@using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Components.Pages.Flows
+@using MuniLK.Web.Components.Pages.Generic
+@using MuniLK.Web.Components.Pages.Generic.Documents
+@using MuniLK.Web.Components.Pages.Notifications
+@using MuniLK.Web.Interfaces
+@using MuniLK.Web.Pages
+@using MuniLK.Web.Services
+@using Syncfusion.Blazor.Grids
+@using System.Net.Http.Json
+@using MuniLK.Application.BuildingAndPlanning.Mappings
+@inject IHttpClientFactory HttpClientFactory
+@inject ILookupService LookupService
+@inject IModuleService ModuleService
+@inject IJSRuntime JS
+@* @inject IMediator Mediator *@
+@* @inject ICurrentUserService CurrentUserService *@
+
+<AuthorizeView>
+    <Authorized>
+        <StepHeader Title="Submit Building Plan"
+                    FeatureId="@(GeneratedFeatureId ?? string.Empty)"
+                    HelperText="Save this number for future tracking." />
+
+        <div class="container-xxl">
+            <StepperFlow Steps="@buildingSteps"
+                         CurrentStep="@CurrentStep"
+                         Linear="true" CssClass="mb-4" />
+
+        @switch (CurrentStep)
+        {
+            case 0:
+                <div class="container-xxl py-3">
+
+                    <h4 class="mb-3">Application – Link Property & Applicant</h4>
+                    <p class="text-muted mb-4">
+                        Choose whether to <strong>Search</strong> or <strong>Create</strong> a Property and an Applicant.
+                        Once both are selected, you can upload the Building Plan.
+                    </p>
+
+                    <!-- PROPERTY SECTION -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h5 class="mb-0">Property</h5>
+                                @if (SelectedProperty is not null)
+                                {
+                                    <span class="badge bg-success">Selected</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Not selected</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-body">
+
+                            <!-- Tabs: Search | Create -->
+                            <ul class="nav nav-tabs" id="propertyTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link @(PropertyMode == "search" ? "active" : "")"
+                                            @onclick="SetPropertySearchMode" type="button" role="tab">
+                                        Search
+                                    </button>
+
+
+
+
+
+
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link @(PropertyMode == "create" ? "active" : "")"
+                                            @onclick="SetPropertyCreateMode" type="button" role="tab">
+                                        Create New
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content pt-3">
+                                <div class="tab-pane fade @(PropertyMode == "search" ? "show active" : "")" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">Find an existing property</label>
+                                        <MuniLK.Web.Components.Pages.Generic.Property.PropertySearch Placeholder="Search by address, deed no., or ID..."
+                                                                                                     SelectedPropertyChanged="OnPropertySelected"
+                                                                                                     CreatePropertyRequested="@(() => PropertyMode = "create")" />
+                                        <div class="form-text">
+                                            Tip: Press Enter to search. You can switch to <em>Create New</em> anytime.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade @(PropertyMode == "create" ? "show active" : "")" role="tabpanel">
+                                    <label class="form-label">Create a new property</label>
+                                    <MuniLK.Web.Components.Pages.Generic.Property.PropertyCreate RenderAsPopup=false IsVisible="true"
+                                                                                                 IsVisibleChanged="OnDialogVisibilityChanged"
+                                                                                                 OnPropertyCreated="OnPropertyCreated" />
+                                </div>
+                            </div>
+
+                            @if (SelectedProperty != null)
+                            {
+                                <hr />
+                                <div class="row g-3">
+                                    <div class="col-lg-4">
+                                        <h6 class="mb-2">Property Information</h6>
+                                        <ul class="list-group list-group-flush better-list">
+                                            <li class="list-group-item px-0"><span class="label">Property ID</span><span class="value">@SelectedProperty.PropertyId</span></li>
+                                            <li class="list-group-item px-0"><span class="label">Address</span><span class="value">@SelectedProperty.Address</span></li>
+                                            <li class="list-group-item px-0"><span class="label">Title Deed No.</span><span class="value">@SelectedProperty.TitleDeedNumber</span></li>
+                                            <li class="list-group-item px-0"><span class="label">Assessment Value</span><span class="value">@SelectedProperty.AssessmentValue</span></li>
+                                            <li class="list-group-item px-0"><span class="label">Commercial Use</span><span class="value">@(SelectedProperty.IsCommercialUse ? "Yes" : "No")</span></li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="col-lg-8">
+                                        <h6 class="mb-2">Linked Owners</h6>
+                                        <SfGrid DataSource="@OwnerList" AllowPaging="true" RowSelected="OnOwnerSelected">
+                                            <GridEvents OnRecordClick="RecordClickHandler" TValue="PropertyOwnerResponse"></GridEvents>
+                                            <GridColumns>
+                                                <GridColumn Field="FullName" HeaderText="Full Name" Width="150" />
+                                                <GridColumn Field="NIC" HeaderText="NIC" Width="120" />
+                                                <GridColumn Field="Email" HeaderText="Email" Width="180" />
+                                                <GridColumn Field="Phone" HeaderText="Phone" Width="130" />
+                                                <GridColumn Field="OwnershipType" HeaderText="Ownership Type" Width="150" />
+                                            </GridColumns>
+                                        </SfGrid>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-info mt-3 mb-0">
+                                    No property selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- CONTACT SECTION (ONLY VISIBLE AFTER PROPERTY SELECTED) -->
+                    @if (SelectedProperty != null)
+                    {
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-light">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h5 class="mb-0">Applicant (Contact)</h5>
+                                    @if (SelectedContact is not null)
+                                    {
+                                        <span class="badge bg-success">Selected</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Not selected</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="card-body">
+
+                                <!-- Tabs: Search | Create -->
+                                <ul class="nav nav-tabs" id="contactTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link @(ContactMode == "search" ? "active" : "")"
+                                                @onclick="SetContactSearchMode" type="button" role="tab">
+                                            Search
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link @(ContactMode == "create" ? "active" : "")"
+                                                @onclick="SetContactCreateMode" type="button" role="tab">
+                                            Create New
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content pt-3">
+                                    <div class="tab-pane fade @(ContactMode == "search" ? "show active" : "")" role="tabpanel">
+                                        <div class="mb-3">
+                                            <label class="form-label">Find an existing applicant</label>
+                                            <MuniLK.Web.Components.Pages.Generic.Contacts.ContactSearch Placeholder="Search by name, NIC, email or phone..."
+                                                                                                        SelectedContactChanged="OnContactSelected"
+                                                                                                        CreateContactRequested="@(() => ContactMode = "create")" />
+                                            <div class="form-text">Switch to <em>Create New</em> if the applicant doesn’t exist.</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-pane fade @(ContactMode == "create" ? "show active" : "")" role="tabpanel">
+                                        <label class="form-label">Create a new applicant</label>
+                                        <MuniLK.Web.Components.Pages.Generic.Contacts.ContactCreate RenderAsPopup="false"
+                                                                                                    OnContactCreated="OnContactCreated" />
+                                    </div>
+                                </div>
+
+                                @if (SelectedContact != null)
+                                {
+                                    <hr />
+                                    <div class="row g-3">
+                                        <div class="col-lg-6">
+                                            <h6 class="mb-2">Contact Information</h6>
+                                            <ul class="list-group list-group-flush better-list">
+                                                <li class="list-group-item px-0"><span class="label">Full Name</span><span class="value">@SelectedContact.FullName</span></li>
+                                                <li class="list-group-item px-0"><span class="label">Address</span><span class="value">@SelectedContact.Address</span></li>
+                                                <li class="list-group-item px-0"><span class="label">National ID</span><span class="value">@SelectedContact.NationalId</span></li>
+                                                <li class="list-group-item px-0"><span class="label">Email</span><span class="value">@SelectedContact.Email</span></li>
+                                                <li class="list-group-item px-0"><span class="label">Phone</span><span class="value">@SelectedContact.PhoneNumber</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info mt-3 mb-0">
+                                        No applicant selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3 mb-0">
+                            Please select a Property before selecting a Contact.
+                        </div>
+                    }
+
+                    <!-- DOCUMENT UPLOAD -->
+                    <div class="card shadow-sm position-relative">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Building Plan Upload</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">
+                                Upload the Building Plan PDF once both a Property and an Applicant are selected.
+                            </p>
+
+                            <div class="uploader-wrapper @(CanUploadDocument ? "" : "disabled")">
+                                @if (EntityId != Guid.Empty && ModuleId != Guid.Empty && DocumentCategory != Guid.Empty)
+                                {
+                                    <DocumentUploader Label="Building Plan (PDF)"
+                                                      Required="true"
+                                                      OnUploaded="OnPlanUploaded"
+                                                      ModuleId="@ModuleId"
+                                                      EntityId="@EntityId"
+                                                      LinkContext="Building and Planning"
+                                                      DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()"
+                                                      DocumentTypeId="@DocumentTypeId"
+                                                      Enabled="@CanUploadDocument" />
+                                }
+                                else
+                                {
+                                    <p>Loading document uploader...</p>
+                                }
+                            </div>
+
+                            @if (!CanUploadDocument)
+                            {
+                                <div class="text-danger mt-2">
+                                    Please select both a Property and an Applicant first.
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Application Details - New UI Block -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Application Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Building Purpose</label>
+                                    <InputText class="form-control" @bind-Value="BuildingPurposeInput" placeholder="Residential / Commercial / Mixed..." />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Number of Floors</label>
+                                    <InputNumber class="form-control" @bind-Value="NoOfFloorsInput" Min="1" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Architect Name</label>
+                                    <InputText class="form-control" @bind-Value="ArchitectNameInput" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Engineer Name</label>
+                                    <InputText class="form-control" @bind-Value="EngineerNameInput" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Remarks</label>
+                                    <InputTextArea class="form-control" @bind-Value="RemarksInput" />
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-success" disabled="@(IsApplicationCreated || !CanSubmitApplication)" @onclick="SubmitBuildingPlanAsync">
+                                    @(IsApplicationCreated ? "Submitted" : "Submit Application")
+                                </button>
+                                @if (!IsDocumentUploaded)
+                                {
+                                    <span class="text-muted ms-2">Upload the Building Plan PDF to enable submission.</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                break;
+
+
+
+            case 1:
+
+                @* <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId" EntityId="EntityId" /> *@
+                    <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId" ApplicationNumber="GeneratedFeatureId" />
+
+
+                break;
+                case 2:
+                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
+
+
+
+                    break;
+                case 3:
+
+                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview EntityId="@EntityId" Model="@BuildingPlanSummery" />
+
+                    break;
+                case 4:
+
+                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.CommissionerApproval />
+
+
+                    break;
+                case 5:
+
+                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.WorkflowHistory />
+
+
+                    break;
+                // Add more steps as needed
+        }
+        <div class="container-xxl py-3">
+
+            <div class="card shadow-sm position-relative">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Go to the Next Step</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-lg-12">
+                            <div class="d-flex justify-content-between mt-3">
+                                @if (CurrentStep > 0)
+                                {
+                                    <button class="btn btn-secondary" @onclick="MoveToPreviousStep">Back</button>
+                                }
+
+                                @if (CurrentStep < buildingSteps.Count - 1)
+                                {
+                                    <button class="btn btn-primary" @onclick="MoveToNextStep" >Next</button> 
+                                    @* disabled="@(!CanMoveToNextStep)" *@
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <button class="btn btn-primary" @onclick="MoveToNextStep2">Next</button>
+
+        <hr />
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin/>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private const string LocalStorageFeatureKey = "bp.featureId";
+    [Parameter][SupplyParameterFromQuery(Name = "id")] public Guid? QueryApplicationId { get; set; } 
+
+    private bool IsContactDialogVisible = false;
+    private BuildingPlanApplicationDto BuildingPlanSummery;
+    private ContactResponse? SelectedContact;
+    private PropertyResponse? SelectedProperty;
+    private List<PropertyOwnerResponse> OwnerList = new();
+    private int CurrentStep = 0;
+    private List<string> buildingSteps = EnumHelper.GetDisplayNames<BuildingAndPlanSteps>();
+    private Guid DocumentCategory;
+    private Guid DocumentTypeId;
+    private Guid ModuleId;
+    private Guid EntityId;
+    private bool CanUploadDocument => SelectedProperty != null && SelectedContact != null;
+    private string PropertyMode { get; set; } = "search";
+    private string ContactMode { get; set; } = "search";
+
+    private string? GeneratedFeatureId;
+    private bool IsDocumentUploaded { get; set; } = false;
+    private bool CanMoveToNextStep => IsDocumentUploaded;
+
+    private string? BuildingPurposeInput { get; set; }
+    private int? NoOfFloorsInput { get; set; }
+    private string? ArchitectNameInput { get; set; }
+    private string? EngineerNameInput { get; set; }
+    private string? RemarksInput { get; set; }
+
+    private bool IsApplicationCreated { get; set; } = false;
+
+    void SetPropertySearchMode() => PropertyMode = "search";
+    void SetPropertyCreateMode() => PropertyMode = "create";
+    void SetContactSearchMode() => ContactMode = "search";
+    void SetContactCreateMode() => ContactMode = "create";
+
+    private bool CanSubmitApplication =>
+        IsDocumentUploaded
+        && SelectedProperty?.Id is not null
+        && SelectedContact?.Id is not null
+        && !string.IsNullOrWhiteSpace(BuildingPurposeInput)
+        && (NoOfFloorsInput ?? 0) > 0;
+
+    private async Task SubmitBuildingPlanAsync()
+    {
+        if (!CanSubmitApplication) return;
+
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+        var request = new MuniLK.Application.BuildingAndPlanning.DTOs.SubmitBuildingPlanRequest
+        {
+            ApplicationId = EntityId,
+            ApplicantContactId = SelectedContact!.Id!.Value,
+            PropertyId = SelectedProperty!.Id!.Value,
+            BuildingPurpose = BuildingPurposeInput!,
+            NoOfFloors = NoOfFloorsInput!.Value,
+            ArchitectName = ArchitectNameInput,
+            EngineerName = EngineerNameInput,
+            Remarks = RemarksInput
+        };
+
+        var resp = await client.PostAsJsonAsync("api/BuildingPlans/Submit", request);
+        if (resp.IsSuccessStatusCode)
+        {
+            IsApplicationCreated = true;
+            var raw = await resp.Content.ReadAsStringAsync();
+            GeneratedFeatureId = raw?.Trim('"');
+
+            // persist banner across refresh
+            await JS.InvokeVoidAsync("localStorage.setItem", LocalStorageFeatureKey, GeneratedFeatureId ?? string.Empty);
+
+            // go to next step
+            MoveToNextStep();
+        }
+        else
+        {
+            var error = await resp.Content.ReadAsStringAsync();
+        }
+    }
+
+    private async Task LoadExistingApplicationAsync(Guid id)
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+        // 1) Load the application (contains ApplicantContactId and PropertyId)
+        var summary = await client.GetFromJsonAsync<MuniLK.Application.BuildingAndPlanning.DTOs.BuildingPlanResponse>(
+            $"api/BuildingPlans/{id}/summary");
+        if (summary is null) return;
+
+        // Banner + identity
+        GeneratedFeatureId = summary.ApplicationNumber;
+        await JS.InvokeVoidAsync("localStorage.setItem", LocalStorageFeatureKey, GeneratedFeatureId ?? string.Empty);
+
+        // Use the application id as EntityId for linking
+        EntityId = summary.Id;
+
+        // 2) Load applicant details
+        var contact = await client.GetFromJsonAsync<MuniLK.Application.Contact.DTOs.ContactResponse>(
+            $"api/Contact/{summary.ApplicantContactId}");
+        if (contact is not null)
+        {
+            SelectedContact = new ContactResponse
+            {
+                Id = contact.Id,
+                FullName = contact.FullName,
+                NationalId = contact.NationalId,
+                Email = contact.Email,
+                PhoneNumber = contact.PhoneNumber,
+                Address = contact.Address
+            };
+        }
+
+        // 3) Load property details
+        var property = await client.GetFromJsonAsync<MuniLK.Application.PropertiesLK.DTOs.PropertyResponse>(
+            $"api/Properties/{summary.PropertyId}");
+        if (property is not null)
+        {
+            SelectedProperty = new PropertyResponse
+            {
+                Id = property.Id,
+                PropertyId = property.PropertyId,
+                Address = property.Address,
+                TitleDeedNumber = property.TitleDeedNumber,
+                AssessmentValue = property.AssessmentValue,
+                IsCommercialUse = property.IsCommercialUse
+            };
+
+            if (SelectedProperty.Id is not null)
+            {
+                await LoadPropertyOwners(SelectedProperty.Id);
+            }
+        }
+
+        // 4) Build the DTO to pass to EngineerReview.Model
+        BuildingPlanSummery = summary.ToApplicationDto(SelectedContact, SelectedProperty);
+
+        // Enable next step
+        IsApplicationCreated = true;
+        IsDocumentUploaded = true;
+        CurrentStep = 1; // jump to Assign Inspector
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        DocumentCategory = await LookupService.GetLookupCategoryIdAsync(LookupCategoryNames.DocumentType.ToString());
+        DocumentTypeId = await LookupService.GetLookupIdAsync(DocumentCategory, MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString());
+        ModuleId = await ModuleService.GetModuleIdByCodeAsync(ModuleNames.BLD_PLAN.ToString());
+        EntityId = EntityId == Guid.Empty ? Guid.NewGuid() : EntityId;
+
+        if (QueryApplicationId.HasValue)
+        {
+            await LoadExistingApplicationAsync(QueryApplicationId.Value);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // restore banner after refresh
+            var stored = await JS.InvokeAsync<string>("localStorage.getItem", LocalStorageFeatureKey);
+            if (!string.IsNullOrWhiteSpace(stored))
+            {
+                GeneratedFeatureId = stored;
+                StateHasChanged();
+            }
+        }
+    }
+
+    public void RecordClickHandler(RecordClickEventArgs<PropertyOwnerResponse> args)
+    {
+        if (args.RowData != null)
+        {
+            SelectedContact = new ContactResponse
+            {
+                Id = args.RowData.ContactId,
+                FullName = args.RowData.FullName,
+                NationalId = args.RowData.NIC,
+                Email = args.RowData.Email,
+                PhoneNumber = args.RowData.Phone,
+                Address = args.RowData.Address
+            };
+        }
+    }
+
+    private Task OnDialogVisibilityChanged(bool value)
+    {
+        IsContactDialogVisible = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnContactSelected(ContactResponse? contact)
+    {
+        SelectedContact = contact;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnPropertySelected(PropertyResponse? property)
+    {
+        SelectedProperty = property;
+        PropertyMode = "search";
+        if (SelectedProperty?.Id != null)
+        {
+            await LoadPropertyOwners(SelectedProperty.Id);
+        }
+    }
+
+    private async Task OnContactCreated(ContactResponse created)
+    {
+        SelectedContact = created;
+    }
+
+    private async Task OnPropertyCreated(PropertyResponse created)
+    {
+        SelectedProperty = created;
+        if (created.Id != null)
+        {
+            await LoadPropertyOwners(created.Id.Value);
+        }
+    }
+
+    private async Task LoadPropertyOwners(Guid? propertyId)
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var response = await client.GetFromJsonAsync<List<PropertyOwnerResponse>>($"api/PropertyOwners/GetByProperty?propertyId={propertyId}");
+        OwnerList = response ?? new List<PropertyOwnerResponse>();
+    }
+
+    private void MoveToNextStep()
+    {
+        if (CurrentStep < buildingSteps.Count - 1)
+            CurrentStep++;
+    }
+    private void MoveToNextStep2()
+    {
+            CurrentStep++;
+    }
+    private void MoveToPreviousStep()
+    {
+        if (CurrentStep > 0)
+            CurrentStep--;
+    }
+
+    private Task OnPlanUploaded(string fileName)
+    {
+        if (!string.IsNullOrWhiteSpace(fileName))
+            IsDocumentUploaded = true;
+
+        return Task.CompletedTask;
+    }
+}
+

@@ -1,0 +1,23 @@
+﻿@using Syncfusion.Blazor.Navigations
+
+<SfStepper Orientation="@Orientation"
+           ActiveStep="@CurrentStep"
+           EnableStepNavigation="@EnableNavigation"
+           CssClass="@CssClass"
+           Linear=true>
+    <StepperSteps>
+        @foreach (var step in Steps)
+        {
+            <StepperStep Label="@step" />
+        }
+    </StepperSteps>
+</SfStepper>
+
+@code {
+    [Parameter] public List<string> Steps { get; set; } = new();
+    [Parameter] public int CurrentStep { get; set; }
+    [Parameter] public bool Linear { get; set; } = true;
+    [Parameter] public bool EnableNavigation { get; set; } = false;
+    [Parameter] public StepperOrientation Orientation { get; set; } = StepperOrientation.Horizontal;
+    [Parameter] public string CssClass { get; set; } = "approval-stepper";
+}

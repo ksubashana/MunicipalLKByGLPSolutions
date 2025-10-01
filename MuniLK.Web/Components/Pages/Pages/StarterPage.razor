@@ -1,0 +1,18 @@
+@page "/pages-starter"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime;
+
+<PageBreadcrumb Title="Starter" SubTitle="Pages" />
+
+@* content here *@
+
+@code {
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+      await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+}

@@ -1,0 +1,38 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components
+@using MuniLK.Application.Reports.DTOs
+@inject IJSRuntime JSRuntime
+
+
+
+
+<div id="report-viewer" style="width: 100%;height: 950px"></div>
+
+@code {
+    // ReportViewer options
+    BoldReportViewerOptions viewerOptions = new BoldReportViewerOptions();
+
+    // Used to render the Bold Report Viewer component in Blazor page.
+    public async void RenderReportViewer()
+    {
+        viewerOptions.ReportName = "NewTestReport";
+        viewerOptions.ServiceURL = "http://localhost:5164/api/BoldReportsAPI";
+        await JSRuntime.InvokeVoidAsync("BoldReports.RenderViewer", "report-viewer", viewerOptions);
+    }
+    // Initial rendering of Bold Report Viewer
+    protected override void OnAfterRender(bool firstRender)
+    {
+        RenderReportViewer();
+    }
+}
+
+
+<PageTitle>Index</PageTitle>
+
+<h1>Hello, world! hh</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?" />

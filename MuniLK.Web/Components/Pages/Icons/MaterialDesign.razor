@@ -1,0 +1,71 @@
+﻿@page "/icons-mdi"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime;
+
+<PageBreadcrumb Title="Materail Design" SubTitle="Icons" />
+
+<div class="card">
+    <div class="card-body">
+        <div class="row icons-list-demo" id="newIcons">
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-account-lock-open"></i><span>mdi-account-lock-open</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-account-lock-open-outline"></i><span>mdi-account-lock-open-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-align-horizontal-distribute"></i><span>mdi-align-horizontal-distribute</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-align-vertical-distribute"></i><span>mdi-align-vertical-distribute</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-left-bold-box"></i><span>mdi-arrow-bottom-left-bold-box</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-left-bold-box-outline"></i><span>mdi-arrow-bottom-left-bold-box-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-left-thin"></i><span>mdi-arrow-bottom-left-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-right-bold-box"></i><span>mdi-arrow-bottom-right-bold-box</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-right-bold-box-outline"></i><span>mdi-arrow-bottom-right-bold-box-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-bottom-right-thin"></i><span>mdi-arrow-bottom-right-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-down-thin"></i><span>mdi-arrow-down-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-left-thin"></i><span>mdi-arrow-left-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-right-thin"></i><span>mdi-arrow-right-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-left-bold-box"></i><span>mdi-arrow-top-left-bold-box</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-left-bold-box-outline"></i><span>mdi-arrow-top-left-bold-box-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-left-thin"></i><span>mdi-arrow-top-left-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-right-bold-box"></i><span>mdi-arrow-top-right-bold-box</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-right-bold-box-outline"></i><span>mdi-arrow-top-right-bold-box-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-top-right-thin"></i><span>mdi-arrow-top-right-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-arrow-up-thin"></i><span>mdi-arrow-up-thin</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-bookmark-box-multiple"></i><span>mdi-bookmark-box-multiple</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-bookmark-box-multiple-outline"></i><span>mdi-bookmark-box-multiple-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-bullhorn-variant"></i><span>mdi-bullhorn-variant</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-bullhorn-variant-outline"></i><span>mdi-bullhorn-variant-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-camera-marker"></i><span>mdi-camera-marker</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-camera-marker-outline"></i><span>mdi-camera-marker-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-camera-off-outline"></i><span>mdi-camera-off-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-candy"></i><span>mdi-candy</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-candy-off"></i><span>mdi-candy-off</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-candy-off-outline"></i><span>mdi-candy-off-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-candy-outline"></i><span>mdi-candy-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-car-clock"></i><span>mdi-car-clock</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-clock-edit"></i><span>mdi-clock-edit</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-clock-edit-outline"></i><span>mdi-clock-edit-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-cradle"></i><span>mdi-cradle</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-cradle-outline"></i><span>mdi-cradle-outline</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-crowd"></i><span>mdi-crowd</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-currency-rupee"></i><span>mdi-currency-rupee</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-diving"></i><span>mdi-diving</span></div>
+            <div class="col-xl-3 col-lg-4 col-sm-6"><i class="mdi mdi-dots-circle"></i><span>mdi-dots-circle</span></div>
+        </div>
+    </div> <!-- end card-body -->
+</div>
+
+<div class="my-4 text-center">
+    <a href="https://pictogrammers.com/library/mdi/"
+       target="_blank"
+       class="btn btn-primary">
+        View All Icons
+    </a>
+</div>
+
+@code {
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+      await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+}

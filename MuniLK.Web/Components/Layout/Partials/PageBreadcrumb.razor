@@ -1,0 +1,21 @@
+<!-- start page title -->
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="javascript: void(0);">MuniLK.Web</a></li>
+                    <li class="breadcrumb-item"><a href="javascript: void(0);">@SubTitle</a></li>
+                    <li class="breadcrumb-item active">@Title</li>
+                </ol>
+            </div>
+            <h4 class="page-title">@Title</h4>
+        </div>
+    </div>
+</div>
+<!-- end page title -->
+
+@code {
+	[Parameter] public required string Title { get; set; }
+	[Parameter] public required string SubTitle { get; set; }
+}

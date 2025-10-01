@@ -1,0 +1,232 @@
+@page "/scheduler-test"
+@rendermode InteractiveServer
+@using MuniLK.Application.ScheduleAppointment.DTOs
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JSRuntime
+
+<PageBreadcrumb Title="Scheduler API Test" SubTitle="Test Scheduler Endpoints" />
+
+<div class="row">
+    <div class="col-xl-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">Scheduler API Testing</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary me-2" @onclick="TestGetUserAppointments">Get User Appointments</button>
+                        <button class="btn btn-secondary me-2" @onclick="TestGetAllAppointments">Get All Appointments</button>
+                        <button class="btn btn-success" @onclick="TestCreateAppointment">Create Test Appointment</button>
+                    </div>
+                </div>
+
+                @if (IsLoading)
+                {
+                    <div class="alert alert-info">Loading...</div>
+                }
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> @ErrorMessage
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success">
+                        <strong>Success:</strong> @SuccessMessage
+                    </div>
+                }
+
+                @if (Appointments.Any())
+                {
+                    <h5>Appointments (@Appointments.Count())</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Subject</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Location</th>
+                                    <th>Owner</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var appointment in Appointments)
+                                {
+                                    <tr>
+                                        <td>@appointment.AppointmentId</td>
+                                        <td>@appointment.Subject</td>
+                                        <td>@appointment.StartTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@appointment.EndTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@appointment.Location</td>
+                                        <td>@appointment.OwnerName</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteAppointment(appointment.AppointmentId)">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(ApiResponse))
+                {
+                    <h5>Raw API Response</h5>
+                    <pre class="bg-light p-3">@ApiResponse</pre>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool IsLoading = false;
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
+    private string ApiResponse = "";
+    private List<ScheduleAppointmentResponse> Appointments = new();
+    private HttpClient? _httpClient;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpClientFactory.CreateClient("AuthorizedClient");
+    }
+
+    private async Task TestGetUserAppointments()
+    {
+        await CallApi(async () =>
+        {
+            var response = await _httpClient!.GetAsync("api/scheduleappointments/user");
+            await ProcessResponse(response);
+        });
+    }
+
+    private async Task TestGetAllAppointments()
+    {
+        await CallApi(async () =>
+        {
+            var response = await _httpClient!.GetAsync("api/scheduleappointments/all");
+            await ProcessResponse(response);
+        });
+    }
+
+    private async Task TestCreateAppointment()
+    {
+        await CallApi(async () =>
+        {
+            var request = new ScheduleAppointmentRequest
+            {
+                Subject = "Test Appointment",
+                Location = "Test Location",
+                Description = "This is a test appointment created from the test page",
+                StartTime = DateTime.Now.AddHours(1),
+                EndTime = DateTime.Now.AddHours(2),
+                AllDay = false
+            };
+
+            var response = await _httpClient!.PostAsJsonAsync("api/scheduleappointments", request);
+            await ProcessResponse(response);
+        });
+    }
+
+    private async Task DeleteAppointment(int appointmentId)
+    {
+        await CallApi(async () =>
+        {
+            var response = await _httpClient!.DeleteAsync($"api/scheduleappointments/{appointmentId}");
+            await ProcessResponse(response);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                // Refresh the list
+                await TestGetUserAppointments();
+            }
+        });
+    }
+
+    private async Task CallApi(Func<Task> apiCall)
+    {
+        IsLoading = true;
+        ErrorMessage = "";
+        SuccessMessage = "";
+        ApiResponse = "";
+        
+        try
+        {
+            await apiCall();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ProcessResponse(HttpResponseMessage response)
+    {
+        var content = await response.Content.ReadAsStringAsync();
+        ApiResponse = content;
+
+        if (response.IsSuccessStatusCode)
+        {
+            SuccessMessage = $"API call successful (Status: {response.StatusCode})";
+            
+            try
+            {
+                // Try to parse as appointment list
+                var appointments = JsonSerializer.Deserialize<List<ScheduleAppointmentResponse>>(content, new JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true 
+                });
+                
+                if (appointments != null)
+                {
+                    Appointments = appointments;
+                }
+            }
+            catch
+            {
+                // If it's not an appointment list, it might be a single result or error
+                try
+                {
+                    var jsonDoc = JsonDocument.Parse(content);
+                    if (jsonDoc.RootElement.TryGetProperty("data", out var dataElement))
+                    {
+                        var appointment = JsonSerializer.Deserialize<ScheduleAppointmentResponse>(dataElement.GetRawText(), new JsonSerializerOptions 
+                        { 
+                            PropertyNameCaseInsensitive = true 
+                        });
+                        
+                        if (appointment != null)
+                        {
+                            Appointments = new List<ScheduleAppointmentResponse> { appointment };
+                        }
+                    }
+                }
+                catch
+                {
+                    // Unable to parse as appointment data, just show raw response
+                }
+            }
+        }
+        else
+        {
+            ErrorMessage = $"API call failed (Status: {response.StatusCode}): {content}";
+        }
+    }
+}

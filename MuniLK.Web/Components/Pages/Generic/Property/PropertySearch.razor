@@ -1,0 +1,62 @@
+﻿@using MuniLK.Application.PropertiesLK.DTOs
+@using Syncfusion.Blazor.Data
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@inject IHttpClientFactory HttpClientFactory
+
+<SfAutoComplete 
+    TValue="PropertyResponse" 
+    TItem="PropertyResponse" 
+    Placeholder="Search Property..."
+    @bind-Value="SelectedProperty" 
+    MinLength="2" 
+    AllowFiltering="true">
+    <SfDataManager Url="http://localhost:5164/api/properties/search" CrossDomain="true" Adaptor="Syncfusion.Blazor.Adaptors.UrlAdaptor"></SfDataManager>
+    <AutoCompleteEvents TItem="PropertyResponse" TValue="PropertyResponse" OnValueSelect="@OnValueSelecthandler"></AutoCompleteEvents>
+    <AutoCompleteFieldSettings Value="Address" />
+</SfAutoComplete>
+
+
+<SfButton CssClass="e-link" OnClick="@(() => CreatePropertyRequested.InvokeAsync())">
+    Create New Property
+</SfButton>
+
+@code {
+
+    [Parameter] public string Placeholder { get; set; } = "Search Property...";
+    [Parameter] public EventCallback<PropertyResponse?> SelectedPropertyChanged { get; set; }
+    [Parameter] public EventCallback CreatePropertyRequested { get; set; }
+    public Query Query = new Query();
+    private string SelectedAddress ;
+
+    private Guid SelectedPropertyId;
+    private PropertyResponse? SelectedProperty;
+    private List<PropertyResponse> FilteredProperties = new();
+
+    public class PropertyFields
+    {
+        public string ID { get; set; }
+        public string Text { get; set; }
+    }
+    private async Task ValueChangeHandler(ChangeEventArgs<string, PropertyResponse> args)
+    {
+        // args.Text is the current user input
+        if (!string.IsNullOrWhiteSpace(args.Value) )
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+            FilteredProperties =await client.GetFromJsonAsync<List<PropertyResponse>>($"api/properties/search?query={args.Value}");
+        }
+        else
+        {
+            FilteredProperties.Clear();
+        }
+        // Tell AutoComplete about the new data source
+         await InvokeAsync(StateHasChanged);    
+    }
+
+    private async void OnValueSelecthandler(SelectEventArgs<PropertyResponse> args)
+    {
+        await SelectedPropertyChanged.InvokeAsync(args.ItemData);
+    }
+}

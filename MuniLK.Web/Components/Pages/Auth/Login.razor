@@ -1,0 +1,196 @@
+﻿@page "/auth-login"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider 
+@layout AuthLayout
+
+@using MuniLK.Application.Generic.DTOs 
+@using Microsoft.AspNetCore.Components.Authorization 
+@using MuniLK.Web.Components.Layout
+@using MuniLK.Web.Services
+
+<div class="row justify-content-center">
+    <div class="col-xxl-8 col-lg-10">
+        <div class="card overflow-hidden">
+            <div class="row g-0">
+                <div class="col-lg-6 d-none d-lg-block p-2">
+                    <img src="images/auth-img.jpg" alt="" class="img-fluid rounded h-100">
+                </div>
+                <div class="col-lg-6">
+                    <div class="d-flex flex-column h-100">
+                        <div class="auth-brand p-4">
+                            <a href="/" class="logo-light">
+                                <img src="images/logo.png" alt="logo" height="22">
+                            </a>
+                            <a href="/" class="logo-dark">
+                                <img src="images/logo-dark.png" alt="dark logo" height="22">
+                            </a>
+                        </div>
+                        <div class="p-4 my-auto">
+                            <h4 class="fs-20">Sign In</h4>
+                            <p class="text-muted mb-3">
+                                Enter your username and password to access
+                                account.
+                            </p>
+
+                            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin" >
+                                <DataAnnotationsValidator />
+                                <ValidationSummary />
+
+                                @if (!string.IsNullOrEmpty(errorMessage))
+                                {
+                                    <div class="alert alert-danger" role="alert">
+                                        @errorMessage
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(successMessage))
+                                {
+                                    <div class="alert alert-success" role="alert">
+                                        @successMessage
+                                    </div>
+                                }
+
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <InputText id="username" class="form-control" @bind-Value="loginRequest.Username" placeholder="Enter your username" />
+                                    <ValidationMessage For="@(() => loginRequest.Username)" />
+                                </div>
+                                <div class="mb-3">
+                                    <a href="/auth-forgot-password" class="text-muted float-end">
+                                        <small>
+                                            Forgot
+                                            your
+                                            password?
+                                        </small>
+                                    </a>
+                                    <label for="password" class="form-label">Password</label>
+                                    <InputText id="password" type="password" class="form-control" @bind-Value="loginRequest.Password" placeholder="Enter your password" />
+                                    <ValidationMessage For="@(() => loginRequest.Password)" />
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <InputCheckbox id="checkbox-signin" class="form-check-input" @bind-Value="rememberMe" />
+                                        <label class="form-check-label" for="checkbox-signin">
+                                            Remember
+                                            me
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-0 text-start">
+                                    <button class="btn btn-soft-primary w-100" type="submit" disabled="@isLoggingIn">
+                                        @if (isLoggingIn)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Logging In...</span>
+                                        }
+                                        else
+                                        {
+                                            <i class="ri-login-circle-fill me-1"></i> <span class="fw-bold">
+                                                Log
+                                                In
+                                            </span>
+                                        }
+                                    </button>
+                                </div>
+
+                                <div class="text-center mt-4">
+                                    <p class="text-muted fs-16">Sign in with</p>
+                                    <div class="d-flex gap-2 justify-content-center mt-3">
+                                        <a href="javascript: void(0);" class="btn btn-soft-primary"><i class="ri-facebook-circle-fill"></i></a>
+                                        <a href="javascript: void(0);" class="btn btn-soft-danger"><i class="ri-google-fill"></i></a>
+                                        <a href="javascript: void(0);" class="btn btn-soft-info"><i class="ri-twitter-fill"></i></a>
+                                        <a href="javascript: void(0);" class="btn btn-soft-dark"><i class="ri-github-fill"></i></a>
+                                    </div>
+                                </div>
+                            </EditForm>
+                            </div>
+                    </div>
+                </div> </div>
+        </div>
+    </div>
+    </div>
+<div class="row">
+    <div class="col-12 text-center">
+        <p class="text-dark-emphasis">
+            Don't have an account? <a href="/auth-register" class="text-dark fw-bold ms-1 link-offset-3 text-decoration-underline"><b>Sign up</b></a>
+        </p>
+    </div> </div>
+
+@code {
+
+	private LoginRequest loginRequest = new LoginRequest();
+	private bool rememberMe = false;
+	private string errorMessage = string.Empty;
+	private string successMessage = string.Empty;
+	private bool isLoggingIn = false;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("updateBodyAttributes", "class", "authentication-bg position-relative");
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+			await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+
+	private async Task HandleLogin()
+	{
+		errorMessage = string.Empty;
+		successMessage = string.Empty;
+		isLoggingIn = true;
+
+		try
+		{        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+			var response = await client.PostAsJsonAsync("api/auth/login", loginRequest);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var loginResponse = await response.Content.ReadFromJsonAsync<AuthResponse>();
+
+				if (loginResponse.Succeeded)
+				{
+					// This is where you call your custom AuthenticationStateProvider to set the user as authenticated
+					// and store the token.
+					await ((CustomAuthStateProvider)AuthStateProvider).MarkUserAsAuthenticated(loginResponse.AccessToken);
+
+					successMessage = loginResponse.Message ?? "Login successful!";
+					// Redirect to the dashboard or previous page
+					NavigationManager.NavigateTo("/dashboard", forceLoad: true); // forceLoad often needed after auth state changes
+				}
+				else
+				{
+					errorMessage = loginResponse.Message ?? "Login failed. Please check your credentials.";
+				}
+			}
+			else
+			{
+				// Handle non-success HTTP status codes (e.g., 400, 401, 500)
+				var errorContent = await response.Content.ReadAsStringAsync();
+				errorMessage = $"Error: {response.ReasonPhrase} - {errorContent}";
+				// For 400 Bad Request, you might try to parse validation errors if your API sends them
+				if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+				{
+					// Attempt to parse validation errors from API if they are in a known format
+					// e.g., var validationErrors = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+					// Then display them. For now, just raw content.
+				}
+			}
+		}
+		catch (HttpRequestException httpEx)
+		{
+			errorMessage = $"Network error: Could not connect to the API. ({httpEx.Message})";
+		}
+		catch (Exception ex)
+		{
+			errorMessage = $"An unexpected error occurred: {ex.Message}";
+		}
+		finally
+		{
+			isLoggingIn = false;
+		}
+	}
+}

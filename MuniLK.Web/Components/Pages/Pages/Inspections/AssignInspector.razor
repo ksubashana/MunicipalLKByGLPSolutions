@@ -1,0 +1,430 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.JSInterop
+@using MuniLK.Application.Assignments.DTOs
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.Generic.Interfaces
+@using MuniLK.Domain.Interfaces
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Calendars
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Popups
+@using MuniLK.Application.Assignments.Commands
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
+
+<style type="text/css"> 
+    .status-card {
+        border: 1px solid var(--bs-border-color);
+        border-radius: .5rem;
+        padding: 1rem;
+    }
+
+    /* Full-width banner inside a card-body: bleed to edges using negative margins */
+    .status-banner {
+        padding: 1rem;
+        border-radius: .5rem;
+        border: 1px solid var(--bs-border-color);
+        background: transparent; /* no local bg so body color shows full width */
+    }
+
+    /* Light green / light red using Bootstrap 5.3 subtle tokens */
+    .status-success {
+        background-color: var(--bs-success-bg-subtle);
+        color: var(--bs-success-text-emphasis);
+        border-color: var(--bs-success-border-subtle);
+    }
+
+    .status-danger {
+        background-color: var(--bs-danger-bg-subtle);
+        color: var(--bs-danger-text-emphasis);
+        border-color: var(--bs-danger-border-subtle);
+    }
+
+    /* Full card-body background based on outcome */
+    .status-bg-success {
+        background-color: var(--tz-primary-bg-subtle, var(--bs-success-bg-subtle)) !important;
+        color: var(--tz-success-text-emphasis, var(--bs-success-text-emphasis));
+    }
+
+    .status-bg-danger {
+        background-color: var(--tz-danger-bg-subtle, var(--bs-danger-bg-subtle)) !important;
+        color: var(--tz-danger-text-emphasis, var(--bs-danger-text-emphasis));
+    }
+
+    </style>
+<div class="container-xxl py-3">
+    <div class="card shadow-sm position-relative">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">Assign an Inspector</h5>
+            <div class="d-flex align-items-center gap-2">
+
+                @if (!string.IsNullOrWhiteSpace(FeatureId))
+                {
+                    <span class="badge bg-primary-subtle text-primary">App No: @FeatureId</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(AssignmentOutcome))
+                {
+                    <span class="badge border
+                                 @(AssignmentOutcome == "Passed"
+                                    ? "bg-success-subtle text-success-emphasis border-success-subtle"
+                                    : "bg-danger-subtle text-danger-emphasis border-danger-subtle")">
+                        @(AssignmentOutcome == "Passed" ? "Completed" : "Rejected")
+                    </span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(AssignmentOutcome))
+            {
+                <div class="status-banner @StatusBodyClass" style="margin-bottom:10px;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-uppercase small fw-semibold opacity-75">Inspection Status</div>
+                            <div class="h5 mb-1 fw-bold">
+                                @(AssignmentOutcome == "Passed" ? "Completed" : "Rejected")
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(CompletionRemarks))
+                            {
+                                <div class="small opacity-75">@CompletionRemarks</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <SfButton OnClick="OpenAssignmentDialog">@PrimaryActionText</SfButton>
+
+            <SfDialog @bind-Visible="IsAssignmentDialogVisible" Width="500px" Header="@PrimaryActionText" IsModal="true">
+                <DialogTemplates>
+                    <Content>
+                        <div class="form-group">
+                            <label>Inspector</label>
+                            <SfDropDownList TValue="string" TItem="ContactResponse"
+                                            DataSource="@UserList"
+                                            Placeholder="Select inspector"
+                                            @bind-Value="SelectedInspectorId"
+                                            FloatLabelType="FloatLabelType.Auto">
+                                <DropDownListFieldSettings Value="Id" Text="FullName"></DropDownListFieldSettings>
+                                <DropDownListEvents TValue="string" TItem="ContactResponse" OnValueSelect="@OnInspectorSelect"></DropDownListEvents>
+                            </SfDropDownList>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Assignment Date</label>
+                            <SfDatePicker TValue="DateTime?" @bind-Value="AssignmentDate" Placeholder="Pick a date" />
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Remarks</label>
+                            <InputTextArea class="form-control" @bind-Value="Remarks" />
+                        </div>
+                        <div id="container">
+                            <SfSpinner @bind-Visible="@VisibleProperty">
+                            </SfSpinner>
+                        </div>
+                    </Content>
+                </DialogTemplates>
+                <DialogButtons>
+                    <DialogButton Content="@PrimaryActionText" IsPrimary="true" OnClick="SaveAssignment" />
+                    <DialogButton Content="Cancel" OnClick="() => IsAssignmentDialogVisible = false" />
+                </DialogButtons>
+            </SfDialog>
+
+            @if (SelectedInspector != null)
+            {
+                <hr />
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <h6 class="mb-2">Inspector Details</h6>
+                        <ul class="list-group list-group-flush better-list">
+                            <li class="list-group-item px-0"><span class="label">Full Name</span><span class="value">@SelectedInspector.FullName</span></li>
+                            <li class="list-group-item px-0"><span class="label">Address</span><span class="value">@SelectedInspector.Address</span></li>
+                            <li class="list-group-item px-0"><span class="label">National ID</span><span class="value">@SelectedInspector.NationalId</span></li>
+                            <li class="list-group-item px-0"><span class="label">Email</span><span class="value">@SelectedInspector.Email</span></li>
+                            <li class="list-group-item px-0"><span class="label">Phone</span><span class="value">@SelectedInspector.PhoneNumber</span></li>
+                        </ul>
+                    </div>
+                    <div class="col-lg-6">
+                        <h6 class="mb-2">Assignment Details</h6>
+                        <ul class="list-group list-group-flush better-list">
+                            <li class="list-group-item px-0">
+                                <span class="label">Date</span>
+                                <span class="value">@((AssignmentDate.HasValue ? AssignmentDate.Value.ToString("dd MMM yyyy") : "-"))</span>
+                            </li>
+                            <li class="list-group-item px-0">
+                                <span class="label">Remarks</span>
+                                <span class="value">@(!string.IsNullOrWhiteSpace(Remarks) ? Remarks : "-")</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                @if (EffectiveAssignmentId.HasValue && string.IsNullOrWhiteSpace(AssignmentOutcome))
+                {
+                    <div class="mt-4 p-3 border rounded bg-light">
+                        <label class="form-label">Completion Remarks</label>
+                        <InputTextArea class="form-control" @bind-Value="CompletionRemarks" />
+                        <div class="mt-3 d-flex gap-2">
+                            <SfButton CssClass="e-success" OnClick="MarkCompleted">Mark Completed</SfButton>
+                            <SfButton CssClass="e-danger" OnClick="MarkRejected">Reject</SfButton>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-info mt-3 mb-0">
+                    No inspector selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string FeatureKey = "bp.featureId"; // must match the submit page
+    private bool VisibleProperty { get; set; } = false;
+
+    [Parameter] public Guid? ModuleId { get; set; }
+    [Parameter] public Guid? EntityId { get; set; }
+
+    // Existing assignment context (pass from parent if available)
+    [Parameter] public Guid? ExistingAssignmentId { get; set; }
+    [Parameter] public DateTime? ExistingAssignmentDate { get; set; }
+    [Parameter] public Guid? ExistingAssignedTo { get; set; }
+
+    // Notify parent (stepper) to move forward on completion
+    [Parameter] public EventCallback InspectionCompleted { get; set; }
+
+    private bool IsAssignmentDialogVisible = false;
+    private string? SelectedInspectorId;
+    private DateTime? AssignmentDate;
+    private string? Remarks;
+    private List<ContactResponse> UserList = new();
+    public ContactResponse? SelectedInspector { get; set; }
+
+    private Guid? CreatedAssignmentId;
+    private Guid? EffectiveAssignmentId => ExistingAssignmentId ?? CreatedAssignmentId;
+
+    private string? CompletionRemarks;
+    private string? AssignmentOutcome; // "Passed" or "Rejected"
+
+    // NEW: Feature ID read from localStorage (application number)
+    private string? FeatureId;
+
+    private bool HasExisting => ExistingAssignmentId.HasValue;
+    private bool IsPastExisting => ExistingAssignmentDate.HasValue && ExistingAssignmentDate.Value.Date < DateTime.Today;
+    private string PrimaryActionText => !HasExisting ? "Assign Inspector" : (IsPastExisting ? "Reschedule" : "Reassign");
+    private string StatusBodyClass =>
+       string.IsNullOrWhiteSpace(AssignmentOutcome)
+           ? string.Empty
+           : (AssignmentOutcome == "Passed" ? "status-bg-success" : "status-bg-danger");
+
+    // Load latest assignment using existing AssignmentResponse (no new DTO)
+    private async Task LoadExistingAsync()
+    {
+        if (!(ModuleId.HasValue && EntityId.HasValue)) return;
+
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var url = $"api/Assignment/by-entity?moduleId={ModuleId.Value}&entityId={EntityId.Value}";
+        var resp = await client.GetAsync(url);
+
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound ||
+            resp.StatusCode == System.Net.HttpStatusCode.NoContent)
+        {
+            // No active assignments yet – clear state and exit gracefully
+            ExistingAssignmentId = null;
+            ExistingAssignmentDate = null;
+            ExistingAssignedTo = null;
+            AssignmentOutcome = null;
+            CompletionRemarks = null;
+            Remarks = null;
+            return;
+        }
+
+        resp.EnsureSuccessStatusCode();
+        var details = await resp.Content.ReadFromJsonAsync<MuniLK.Application.Assignments.DTOs.AssignmentResponse>();
+
+        if (details is not null)
+        {
+            ExistingAssignmentId = details.Id;
+            ExistingAssignmentDate = details.AssignmentDate;
+            ExistingAssignedTo = details.AssignedToUserId;
+
+            AssignmentOutcome = details.Outcome;
+            CompletionRemarks = details.OutcomeRemarks;
+            FeatureId = details.FeatureId ?? FeatureId;
+
+            SelectedInspector = UserList.FirstOrDefault(x => x.Id == details.AssignedToUserId);
+            SelectedInspectorId = SelectedInspector?.Id?.ToString();
+            AssignmentDate = details.AssignmentDate;
+            Remarks = details.Notes;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInspectors();
+         await LoadExistingAsync();
+       await ClickHandler();
+    }
+    private async Task ClickHandler()
+    {
+        this.VisibleProperty = true;
+        await Task.Delay(2000);
+        this.VisibleProperty = false;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Read FeatureId stored by the submit page
+            FeatureId = await JS.InvokeAsync<string>("localStorage.getItem", FeatureKey);
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadInspectors()
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var response = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
+        UserList = response ?? new List<ContactResponse>();
+    }
+
+    private void OpenAssignmentDialog()
+    {
+        // Pre-fill from existing if present, otherwise defaults
+        AssignmentDate = HasExisting ? (ExistingAssignmentDate ?? DateTime.Today) : DateTime.Today;
+
+        // Pre-select current inspector when reassigning/rescheduling
+        if (ExistingAssignedTo.HasValue)
+        {
+            SelectedInspectorId = ExistingAssignedTo.Value.ToString();
+            SelectedInspector = UserList.FirstOrDefault(u => u.Id == ExistingAssignedTo);
+        }
+        else
+        {
+            SelectedInspectorId = null;
+            SelectedInspector = null;
+        }
+
+        Remarks = string.Empty;
+        IsAssignmentDialogVisible = true;
+    }
+
+    private void OnInspectorSelect(Syncfusion.Blazor.DropDowns.SelectEventArgs<ContactResponse> args)
+    {
+        if (args.ItemData != null)
+        {
+            SelectedInspector = args.ItemData;
+            SelectedInspectorId = args.ItemData.Id?.ToString();
+        }
+    }
+
+    private async Task SaveAssignment()
+    {
+        this.VisibleProperty = true;
+        if (SelectedInspectorId != null && AssignmentDate.HasValue && ModuleId.HasValue)
+        {
+            // Option A: keep backend unchanged and create a new assignment (simple reschedule/reassign)
+            var notesPrefix = HasExisting
+                ? (IsPastExisting ? $"Rescheduled from {ExistingAssignmentDate:dd MMM yyyy}. " : "Reassigned. ")
+                : string.Empty;
+
+            var request = new CreateAssignmentRequest
+            {
+                AssignedToUserId = Guid.Parse(SelectedInspectorId),
+                EntityId = EntityId,
+                EntityType = EntityId.HasValue ? "BuildingPlanApplication" : null,
+                ModuleId = ModuleId.Value,
+                AssignmentDate = AssignmentDate.Value,
+                TaskType = "Inspection",
+                Notes = $"{notesPrefix}{(Remarks ?? string.Empty)}",
+                // NEW: send the Feature ID (application number)
+                FeatureId = FeatureId
+            };
+
+            try
+            {
+                var client = HttpClientFactory.CreateClient("AuthorizedClient");
+                var url = "api/Assignment/Create";
+                var response = await client.PostAsJsonAsync(url, request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Capture the newly created assignment id
+                    Guid id;
+                    try
+                    {
+                        id = await response.Content.ReadFromJsonAsync<Guid>();
+                    }
+                    catch
+                    {
+                        var raw = await response.Content.ReadAsStringAsync();
+                        id = Guid.Parse(raw.Trim('"'));
+                    }
+
+                    CreatedAssignmentId = id;
+                    IsAssignmentDialogVisible = false;
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    // handle error (e.g., show toast)
+                }
+            }
+            catch (Exception)
+            {
+                // handle exception (e.g., show toast)
+            }
+        }
+        this.VisibleProperty = false;
+
+    }
+
+    private Task MarkCompleted() => CompleteInspection("Passed");
+    private Task MarkRejected() => CompleteInspection("Rejected");
+
+    private async Task CompleteInspection(string outcome)
+    {
+        if (!EffectiveAssignmentId.HasValue) return;
+
+        var req = new CompleteAssignmentRequest
+        {
+            AssignmentId = EffectiveAssignmentId.Value,
+            Outcome = outcome,
+            Remarks = CompletionRemarks,
+            CompletedAt = DateTime.UtcNow
+        };
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var url = $"api/Assignment/{EffectiveAssignmentId.Value}/complete";
+            var resp = await client.PostAsJsonAsync(url, req);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                AssignmentOutcome = outcome;
+
+                // If completed (passed), move to next step
+                if (outcome == "Passed" && InspectionCompleted.HasDelegate)
+                {
+                    await InspectionCompleted.InvokeAsync();
+                }
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                // handle error (e.g, toast)
+            }
+        }
+        catch (Exception)
+        {
+            // handle exception (e.g, toast)
+        }
+    }
+
+}

@@ -1,0 +1,47 @@
+﻿body {
+}
+/* Roomier cards and sections */
+.container-xxl {
+    max-width: 1320px;
+}
+
+/* Compact list rows with a left label and right value */
+.better-list .list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+    border: 0; /* use flush style from parent */
+}
+
+.better-list .label {
+    font-weight: 600;
+    color: #6c757d; /* muted label */
+}
+
+.better-list .value {
+    text-align: right;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Disabled overlay for uploader */
+.uploader-wrapper.disabled {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+    .uploader-wrapper.disabled::after {
+        content: "Select a Property and an Applicant to enable uploading";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(255,255,255,0.6);
+        color: #6c757d;
+        font-weight: 600;
+        text-align: center;
+        padding: 1rem;
+    }

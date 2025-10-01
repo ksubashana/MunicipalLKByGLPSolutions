@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Velonic - Admin Dashboard Template</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="A fully featured admin theme which can be used to build CRM, CMS, etc." name="description" />
+  <meta content="Techzaa" name="author" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- App favicon -->
+  <link rel="shortcut icon" href="assets/images/favicon.ico">
+
+  <!-- App css -->
+  <link href="assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+  <link href="assets/css/app.min.css" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+  <!-- Begin page -->
+  <div id="wrapper">
+
+    <!-- ============================================================== -->
+    <!-- Start Page Content here -->
+    <!-- ============================================================== -->
+
+    <div class="content-page">
+      <div class="content">
+
+        <!-- Topbar Start -->
+        <div class="navbar-custom">
+          <a href="index.html" class="logo text-center d-none d-md-inline-block mr-2">
+            <span class="logo-lg">
+              <img src="assets/images/logo-light.png" alt="" height="18">
+            </span>
+          </a>
+
+          <button type="button" class="btn btn-sm btn-dark d-inline-block d-lg-none button-menu-mobile">Menu</button>
+
+          <span class="badge badge-danger float-right mt-1">v1.1.0</span>
+        </div>
+        <!-- end Topbar -->
+
+        <!-- Start Content-->
+        <div class="container-fluid">
+
+          <div class="page-wrapper">
+            <div class="left-sidebar">
+              <div class="slimscroll-menu">
+                <div class="list-group list-group-transparent mb-0">
+
+                  <a href="index.html" class="list-group-item list-group-item-action ">
+                    <span class="mr-2">
+                      <i class="mdi mdi-flag-variant-outline"></i>
+                    </span>Introduction
+                  </a>
+
+                  <a href="setup.html" class="list-group-item list-group-item-action active">
+                    <span class="mr-2">
+                      <i class="mdi mdi-apps"></i>
+                    </span>Setup
+                  </a>
+
+                  <a href="customization.html" class="list-group-item list-group-item-action ">
+                    <span class="mr-2">
+                      <i class="mdi mdi-square-edit-outline"></i>
+                    </span>Customization
+                  </a>
+
+
+                  <a href="layouts.html" class="list-group-item list-group-item-action ">
+                    <span class="mr-2">
+                      <i class="mdi mdi-menu"></i>
+                    </span>Layouts
+                  </a>
+
+                  <a href="changelog.html" class="list-group-item list-group-item-action ">
+                    <span class="mr-2">
+                      <i class="mdi mdi-book-open-page-variant"></i>
+                    </span>Changelog
+                  </a>
+
+                </div>
+              </div>
+            </div>
+            <!-- end left-sidebar-->
+
+            <div class="page-content">
+
+              <div class="card">
+                <div class="card-body">
+                  <div class="p-lg-1">
+                    <h3 class="mt-0 mb-2 font-weight-bold">Setup</h3>
+                    <hr />
+
+                    <h4 class="mt-3">Prerequisites</h4>
+
+                    <p>
+                      To get started, please follow the steps below
+                      to install and set up all the necessary prerequisites:
+                    </p>
+                    <ul>
+                      <li class="mb-2">
+                        <h5>.NET</h5>
+                        <p class="mb-0">
+                          Make sure to have the
+                          <a href="https://dotnet.microsoft.com/en-us/download" target="_blank">.NET</a>
+                          installed &amp; running in your computer. If you
+                          already have installed it then
+                          can skip this step.
+                        </p>
+                        <a href="https://nodejs.org/" target="_blank">Download .NET</a>
+                      </li>
+                      <li>
+                        <h5>Visual Studio 2022</h5>
+                        <p class="mb-2">
+                          Make sure to have the
+                          <a href="https://visualstudio.microsoft.com/vs/" target="_blank">Visual Studio
+                            2022</a>
+                          installed &amp; running in your computer. If you
+                          already have installed it then you can
+                          skip this step.
+                        </p>
+                      </li>
+                    </ul>
+                    <h4 class="mt-4">Installation</h4>
+                    <p>
+                      To setup Velonic, follow the below-mentioned steps:
+                    </p>
+
+                    <p class="mt-2">
+                      If you are using <strong>Visual Studio 2022</strong>:
+                    </p>
+                    <ul>
+                      <li class="mb-2">Make sure to have the latest version installed.</li>
+                      <li>
+                        Open Velonic.sln file in Visual Studio & Hit run button (On topbar, green play icon).
+                      </li>
+                    </ul>
+
+                    <strong>OR</strong>
+
+                    <p class="mt-2">
+                      You can run the following commands to run projects
+                      locally or build for production use:
+                    </p>
+                    <table class="table table-bordered m-0">
+                      <thead>
+                        <tr>
+                          <th style="width:20%"><i class="ti-file"></i> Command</th>
+                          <th>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><code>dotnet watch</code></td>
+                          <td>This command will build and start the app in "watch" mode. The app will
+                            automatically rebuild and refresh whenever you make code changes. It’s useful for
+                            active development.
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><code>dotnet run</code></td>
+                          <td>This command will build and start the app. It doesn’t track code changes, so you'll
+                            need to stop and rerun the command manually after changes.
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><code>dotnet build</code></td>
+                          <td>This command will build the app.
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-body">
+
+                  <div class="p-lg-1">
+                    <h4>Note: If you want to use scss then follow below steps</h4>
+                    <h4 class="mt-3">Prerequisites</h4>
+                    <ul>
+                      <li class="mb-2">
+                        <h5>Node.js</h5>
+                        <p class="mb-0">
+                          In order to use build tools you will need to
+                          download
+                          and install Node.js. If you do not have Node.js installed already,
+                          you can get it by downloading the package installer from the
+                          official website.
+                        </p>
+                        <a href="https://nodejs.org/en/download" target="_blank" class="text-blue-500">Download Node.js</a>
+                      </li>
+                      <li class="mb-2">
+                        <h5>Gulp</h5>
+                        <p class="mb-0">
+                          Make sure to have the
+                          <a class="text-blue-500" href="https://gulpjs.com/" target="_blank">Gulp</a>
+                          installed &amp; running in your computer. If you already have installed gulp on
+                          your computer, you can skip this step.
+                        </p>
+                        <code>npm install -g gulp</code>
+                      </li>
+                    </ul>
+                    <h4 class="mt-4">Installation</h4>
+                    <p>
+                      To compile assets, follow the below-mentioned steps:
+                    </p>
+                    <p class="mb-2 text-gray-800">If you don't have <strong>yarn</strong> installed on
+                      your
+                      PC, use the command <code>npm i -g yarn</code> or
+                      <code>sudo npm i -g yarn </code>
+                    </p>
+                    <table class="table table-bordered m-0">
+                      <thead>
+                        <tr>
+                          <th style="width:20%"><i class="ti-file"></i> Command</th>
+                          <th>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><code>yarn</code> or <code>npm i</code></td>
+                          <td> This would install all required dependencies
+                            in <code>node_modules</code> folder.
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><code>gulp</code></td>
+                          <td>This would compile the resources in <code>wwwroot</code>
+                            folder.
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><code>gulp build</code></td>
+                          <td>This would bundle the resources for production.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <!-- end page-wrapper-->
+
+
+          </div>
+
+        </div>
+        <!-- content -->
+        <!-- Footer Start -->
+        <footer class="footer">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-md-6">
+                2015 - 2024 © Velonic - by Techzaa
+              </div>
+              <div class="col-md-6">
+                <div class="text-md-right footer-links d-none d-sm-block">
+                  <a href="#" target="_blank">About</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </footer>
+        <!-- end Footer -->
+
+      </div>
+      <!-- ============================================================== -->
+      <!-- End Page content -->
+      <!-- ============================================================== -->
+    </div>
+    <!-- END wrapper -->
+
+    <script src="assets/js/app.min.js"></script>
+
+</body>
+
+</html>

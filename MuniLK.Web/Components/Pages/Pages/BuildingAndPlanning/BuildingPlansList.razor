@@ -1,0 +1,166 @@
+@page "/buildingplans/applicationlist"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using MediatR
+@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.PropertiesLK.DTOs
+@using MuniLK.Application.PropertyOwners.DTOs
+@using MuniLK.Web.Pages
+@using MuniLK.Web.Services
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Data
+@using System.Net.Http.Json
+@inject AuthenticationStateProvider AuthenticationStateProvider;
+
+<AuthorizeView>
+    <Authorized>
+        <PageTitle>Building Plans List</PageTitle>
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <h5 class="card-title mb-0">Building Plan Applications</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            @if (IsLoading)
+                            {
+                                <div class="text-center p-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2">Loading applications...</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <SfGrid TValue="BuildingPlanListItemDto"
+                                        AllowPaging="true"
+                                        AllowSorting="true"
+                                        AllowFiltering="true"
+                                        Toolbar="@(new List<string>() { "Search" })"
+                                        Height="600px"
+                                        @ref="BuildingPlansGrid"
+                                        >
+                                    <GridEditSettings AllowAdding="false" AllowEditing="false" AllowDeleting="false"></GridEditSettings>
+                                    <GridFilterSettings Type="Syncfusion.Blazor.Grids.FilterType.Excel"></GridFilterSettings>
+                                    <GridEvents RowSelected="RowSelectHandler" TValue="BuildingPlanListItemDto"></GridEvents>
+                                    <SfDataManager Headers=@HeaderData Url="http://localhost:5164/api/BuildingPlans/search-list" Adaptor="Adaptors.WebApiAdaptor"></SfDataManager>
+                                    <GridColumns>
+                                        <GridColumn Field="Id" Visible="false" IsPrimaryKey="true" />
+                                        <GridColumn Field="ApplicationNumber" HeaderText="Application #" Width="140" TextAlign="TextAlign.Center" />
+                                        <GridColumn Field="ApplicantName" HeaderText="Applicant" Width="180" />
+                                        <GridColumn Field="ApplicantNIC" HeaderText="NIC" Width="120" />
+                                        <GridColumn Field="PropertyAddress" HeaderText="Address" Width="240" />
+                                        <GridColumn Field="BuildingPurpose" HeaderText="Purpose" Width="140" />
+                                        <GridColumn Field="NoOfFloors" HeaderText="Floors" Width="80" TextAlign="TextAlign.Center" />
+                                        <GridColumn Field="StatusDisplay" HeaderText="Status" Width="120" />
+                                        <GridColumn Field="SubmittedOn" HeaderText="Submitted" Format="d" Width="130" />
+                                    </GridColumns>
+                                </SfGrid>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <RedirectToLogin/>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    [Inject] private IHttpClientFactory HttpClientFactory { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    private SfGrid<BuildingPlanListItemDto>? BuildingPlansGrid;
+    private bool IsLoading = false;
+    private IDictionary<string, string> HeaderData = new Dictionary<string, string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var accessToken = "";
+        var tenantIdClaim = "";
+        if (user.Identity.IsAuthenticated)
+        {
+            tenantIdClaim = user.FindFirst("tenantid")?.Value;
+            HeaderData.Add("TenantId", tenantIdClaim);
+
+        }
+    }
+
+
+    public void RowSelectHandler(RowSelectEventArgs<BuildingPlanListItemDto> args)
+    {
+        if (args.Data != null)
+        {
+            IsLoading = true;
+            StateHasChanged();
+
+            try
+            {
+                // await LoadExistingApplicationAsync(args.Data.Id);
+                // Navigate to the building plan create page after loading
+                NavigationManager.NavigateTo($"/buildingplan/submit?id={args.Data.Id}");
+            }
+            catch (Exception ex)
+            {
+                // Handle error - could show a toast notification
+                Console.WriteLine($"Error loading application: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    // private async Task LoadExistingApplicationAsync(Guid id)
+    // {
+    //     var client = HttpClientFactory.CreateClient("AuthorizedClient");
+
+    //     // 1) Load the application (contains ApplicantContactId and PropertyId)
+    //     var summary = await client.GetFromJsonAsync<BuildingPlanResponse>(
+    //         $"api/building-plans/{id}/summary");
+    //     if (summary is null) return;
+
+    //     // Store the application ID for the BuildingAndPlanningCreate page to use
+    //     await JS.InvokeVoidAsync("localStorage.setItem", "BuildingPlan_ApplicationId", summary.Id.ToString());
+    //     await JS.InvokeVoidAsync("localStorage.setItem", "BuildingPlan_FeatureId", summary.ApplicationNumber ?? string.Empty);
+    // }
+}
+
+<style>
+    .e-darkblue .e-gridheader {
+        background-color: #1e3a5f;
+        color: white;
+    }
+    
+    .e-darkblue .e-grid .e-gridheader .e-headercell {
+        border-color: #2a5490;
+    }
+    
+    .e-darkblue .e-grid .e-gridcontent .e-rowcell {
+        border-color: #e9ecef;
+    }
+    
+    .e-darkblue .e-grid .e-row:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .e-darkblue .e-grid .e-selectionbackground {
+        background-color: #e3f2fd !important;
+    }
+</style>

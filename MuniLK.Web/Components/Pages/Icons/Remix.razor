@@ -1,0 +1,72 @@
+﻿@page "/icons-remix"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime;
+
+<PageBreadcrumb Title="Remix" SubTitle="Icons" />
+
+<div class="card">
+	<div class="card-body">
+		<div class="row icons-list-demo">
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-up-line"></i> ri-arrow-left-up-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-up-fill"></i> ri-arrow-left-up-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-up-line"></i> ri-arrow-up-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-up-fill"></i> ri-arrow-up-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-up-line"></i> ri-arrow-right-up-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-up-fill"></i> ri-arrow-right-up-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-line"></i> ri-arrow-right-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-fill"></i> ri-arrow-right-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-down-line"></i> ri-arrow-right-down-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-down-fill"></i> ri-arrow-right-down-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-down-line"></i> ri-arrow-down-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-down-fill"></i> ri-arrow-down-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-down-line"></i> ri-arrow-left-down-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-down-fill"></i> ri-arrow-left-down-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-line"></i> ri-arrow-left-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-fill"></i> ri-arrow-left-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-right-up-line"></i> ri-corner-right-up-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-right-up-fill"></i> ri-corner-right-up-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-up-left-line"></i> ri-corner-up-left-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-up-left-fill"></i> ri-corner-up-left-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-up-right-line"></i> ri-corner-up-right-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-up-right-fill"></i> ri-corner-up-right-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-right-down-line"></i> ri-corner-right-down-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-right-down-fill"></i> ri-corner-right-down-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-down-left-line"></i> ri-corner-down-left-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-down-left-fill"></i> ri-corner-down-left-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-left-up-line"></i> ri-corner-left-up-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-left-up-fill"></i> ri-corner-left-up-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-left-down-line"></i> ri-corner-left-down-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-left-down-fill"></i> ri-corner-left-down-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-down-right-line"></i> ri-corner-down-right-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-corner-down-right-fill"></i> ri-corner-down-right-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-up-circle-line"></i> ri-arrow-up-circle-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-up-circle-fill"></i> ri-arrow-up-circle-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-circle-line"></i> ri-arrow-right-circle-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-right-circle-fill"></i> ri-arrow-right-circle-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-down-circle-line"></i> ri-arrow-down-circle-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-down-circle-fill"></i> ri-arrow-down-circle-fill </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-circle-line"></i> ri-arrow-left-circle-line </div>
+			<div class="col-xl-3 col-lg-4 col-sm-6"> <i class="ri-arrow-left-circle-fill"></i> ri-arrow-left-circle-fill </div>
+		</div>
+	</div>
+</div>
+
+
+<div class="my-4 text-center">
+	<a href="https://remixicon.com/"
+	   target="_blank"
+	   class="btn btn-primary">
+		View All Icons
+	</a>
+</div>
+
+@code {
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+			await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+}

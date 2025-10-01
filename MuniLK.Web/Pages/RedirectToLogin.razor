@@ -1,0 +1,67 @@
+﻿@* @inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        var uri = Navigation.ToBaseRelativePath(Navigation.Uri).ToLower();
+
+        if (!uri.StartsWith("auth-login"))
+        {
+            Navigation.NavigateTo("/auth-login", forceLoad: true);
+        }
+    }
+} *@
+
+
+@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+@inject IHttpClientFactory HttpClientFactory
+
+@code {
+    private bool _redirected = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_redirected)
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                // Already logged in → go to dashboard
+                Navigation.NavigateTo("/dashboard", forceLoad: true);
+            }
+            else
+            {
+                // Not logged in → ensure logout and go to login
+                await EnsureLogout();
+                Navigation.NavigateTo("/auth-login", forceLoad: true);
+            }
+
+            _redirected = true;
+        }
+    }
+
+    private async Task EnsureLogout()
+    {
+        try
+        {
+            // Call the logout endpoint to clear refresh token cookie
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            await client.PostAsync("api/auth/logout", null);
+        }
+        catch (Exception)
+        {
+            // Ignore errors during logout - user is already being redirected to login
+        }
+
+        // Clear authentication state
+        if (AuthProvider is MuniLK.Web.Services.CustomAuthStateProvider customProvider)
+        {
+            await customProvider.MarkUserAsLoggedOut();
+        }
+    }
+}

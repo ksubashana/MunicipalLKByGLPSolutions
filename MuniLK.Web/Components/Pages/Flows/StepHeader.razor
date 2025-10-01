@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div class="page-header bg-white position-sticky top-0 border-bottom py-2 mb-3">
+    <div class="container-xxl d-flex align-items-center justify-content-between">
+        <h3 class="mb-0">@Title</h3>
+        @if (RightContent is not null)
+        {
+            <div class="ms-3">
+                @RightContent
+            </div>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(FeatureId))
+{
+    <div class="alert alert-success shadow-sm mb-4 rounded-3">
+        <div class="container-xxl d-flex align-items-center justify-content-between">
+            <div>
+                <div class="text-uppercase small text-muted fw-semibold">Current Application Number</div>
+                <div class="display-6 fw-bold">@FeatureId</div>
+                @if (!string.IsNullOrWhiteSpace(HelperText))
+                {
+                    <div class="small text-muted mt-1">@HelperText</div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? FeatureId { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public RenderFragment? RightContent { get; set; }
+}

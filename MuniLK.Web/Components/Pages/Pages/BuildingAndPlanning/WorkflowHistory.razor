@@ -1,0 +1,293 @@
+@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.Navigations
+
+@*
+    WorkflowHistory.razor
+    Displays a read-only timeline and grid of WorkflowLog entries for the current application.
+    Parameters: List<WorkflowLogResponse> WorkflowLogs
+    Provides sortable grid with export functionality and visual timeline.
+*@
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Timeline View -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Workflow Timeline</h6>
+                </div>
+                <div class="card-body">
+                    @if (WorkflowLogs?.Any() == true)
+                    {
+                        <div class="timeline">
+                            @foreach (var log in WorkflowLogs.OrderByDescending(w => w.PerformedOn))
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker @GetTimelineMarkerClass(log.Action)">
+                                        <i class="@GetTimelineIcon(log.Action)"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <h6 class="mb-1">@log.Action</h6>
+                                            <small class="text-muted">@log.PerformedOn.ToString("MMM dd, yyyy HH:mm")</small>
+                                        </div>
+                                        <div class="timeline-body">
+                                            <p class="mb-1"><strong>@log.From</strong> → <strong>@log.To</strong></p>
+                                            @if (!string.IsNullOrEmpty(log.Remarks))
+                                            {
+                                                <p class="mb-1"><small>"@log.Remarks"</small></p>
+                                            }
+                                            <small class="text-muted">by @log.PerformedByUserId</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p>No workflow history available</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid View -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Workflow History Details</h5>
+                    <div>
+                        <SfButton IsPrimary="false" CssClass="btn-outline-success btn-sm me-2"
+                                  @onclick="ExportToExcel">
+                            <i class="fas fa-file-excel me-1"></i>Export Excel
+                        </SfButton>
+                        <SfButton IsPrimary="false" CssClass="btn-outline-info btn-sm"
+                                  @onclick="ExportToCsv">
+                            <i class="fas fa-file-csv me-1"></i>Export CSV
+                        </SfButton>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <SfGrid @ref="WorkflowGrid" DataSource="@WorkflowLogs" AllowPaging="true" 
+                            AllowSorting="true" AllowExcelExport="true" AllowCsvExport="true"
+                            GridLines="GridLine.Both" Height="600">
+                        <GridPageSettings PageSize="10" PageSizes="new int[] { 5, 10, 20, 50 }" />
+                        <GridColumns>
+                            <GridColumn Field="@nameof(WorkflowLogResponse.PerformedOn)" 
+                                        HeaderText="Date & Time" Width="150" Format="d/M/yyyy HH:mm">
+                                <Template>
+                                    @{
+                                        var log = context as WorkflowLogResponse;
+                                    }
+                                    <div>
+                                        <div>@log!.PerformedOn.ToString("MMM dd, yyyy")</div>
+                                        <small class="text-muted">@log.PerformedOn.ToString("HH:mm")</small>
+                                    </div>
+                                </Template>
+                            </GridColumn>
+                            
+                            <GridColumn Field="@nameof(WorkflowLogResponse.Action)" 
+                                        HeaderText="Action" Width="180">
+                                <Template>
+                                    @{
+                                        var log = context as WorkflowLogResponse;
+                                    }
+                                    <div class="d-flex align-items-center">
+                                        <i class="@GetTimelineIcon(log!.Action) me-2 @GetTimelineMarkerClass(log.Action)"></i>
+                                        <span>@log.Action</span>
+                                    </div>
+                                </Template>
+                            </GridColumn>
+
+                            <GridColumn Field="@nameof(WorkflowLogResponse.From)" 
+                                        HeaderText="Previous Status" Width="120">
+                                <Template>
+                                    @{
+                                        var log = context as WorkflowLogResponse;
+                                    }
+                                    <span class="badge @GetStatusBadgeClass(log!.From)">@log.From</span>
+                                </Template>
+                            </GridColumn>
+
+                            <GridColumn Field="@nameof(WorkflowLogResponse.To)" 
+                                        HeaderText="New Status" Width="120">
+                                <Template>
+                                    @{
+                                        var log = context as WorkflowLogResponse;
+                                    }
+                                    <span class="badge @GetStatusBadgeClass(log!.To)">@log.To</span>
+                                </Template>
+                            </GridColumn>
+
+                            <GridColumn Field="@nameof(WorkflowLogResponse.PerformedByUserId)" 
+                                        HeaderText="Performed By" Width="120" />
+
+                            <GridColumn Field="@nameof(WorkflowLogResponse.Remarks)" 
+                                        HeaderText="Remarks" Width="250">
+                                <Template>
+                                    @{
+                                        var log = context as WorkflowLogResponse;
+                                    }
+                                    @if (!string.IsNullOrEmpty(log!.Remarks))
+                                    {
+                                        <div class="text-truncate" title="@log.Remarks" style="max-width: 200px;">
+                                            @log.Remarks
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </Template>
+                            </GridColumn>
+                        </GridColumns>
+                    </SfGrid>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<WorkflowLogResponse> WorkflowLogs { get; set; } = new();
+
+    private SfGrid<WorkflowLogResponse>? WorkflowGrid;
+
+    private string GetTimelineIcon(string action)
+    {
+        return action?.ToLower() switch
+        {
+            var a when a.Contains("submit") => "fas fa-paper-plane",
+            var a when a.Contains("approve") => "fas fa-check-circle",
+            var a when a.Contains("reject") => "fas fa-times-circle",
+            var a when a.Contains("clarification") => "fas fa-question-circle",
+            var a when a.Contains("review") => "fas fa-eye",
+            var a when a.Contains("assign") => "fas fa-user",
+            _ => "fas fa-circle"
+        };
+    }
+
+    private string GetTimelineMarkerClass(string action)
+    {
+        return action?.ToLower() switch
+        {
+            var a when a.Contains("approve") => "text-success",
+            var a when a.Contains("reject") => "text-danger",
+            var a when a.Contains("clarification") => "text-warning",
+            var a when a.Contains("submit") => "text-primary",
+            _ => "text-info"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status?.ToLower() switch
+        {
+            var s when s.Contains("submission") => "bg-primary",
+            var s when s.Contains("review") => "bg-info",
+            var s when s.Contains("planning") => "bg-primary",
+            var s when s.Contains("engineer") => "bg-warning",
+            var s when s.Contains("commissioner") => "bg-purple",
+            var s when s.Contains("final") => "bg-success",
+            var s when s.Contains("reject") => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private async Task ExportToExcel()
+    {
+        if (WorkflowGrid != null)
+        {
+            var exportProperties = new ExcelExportProperties()
+            {
+                FileName = $"WorkflowHistory_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx"
+            };
+            await WorkflowGrid.ExportToExcelAsync(exportProperties);
+        }
+    }
+
+    private async Task ExportToCsv()
+    {
+        if (WorkflowGrid != null)
+        {
+            var exportProperties = new ExcelExportProperties()
+            {
+                FileName = $"WorkflowHistory_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
+            };
+            await WorkflowGrid.ExportToCsvAsync(exportProperties);
+        }
+    }
+}
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+
+    .timeline-item:before {
+        content: '';
+        position: absolute;
+        left: -23px;
+        top: 20px;
+        bottom: -15px;
+        width: 2px;
+        background-color: #dee2e6;
+    }
+
+    .timeline-item:last-child:before {
+        display: none;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: white;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+    }
+
+    .timeline-content {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 3px solid #dee2e6;
+    }
+
+    .timeline-header h6 {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .timeline-body {
+        font-size: 13px;
+    }
+
+    .bg-purple {
+        background-color: #6f42c1 !important;
+    }
+
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>

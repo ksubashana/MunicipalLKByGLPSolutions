@@ -1,0 +1,153 @@
+﻿@page "/icons-bootstrap"
+@rendermode InteractiveServer
+@inject IJSRuntime JsRuntime;
+
+<PageBreadcrumb Title="Bootstrap" SubTitle="Icons" />
+
+
+<div class="card">
+	<div class="card-body">
+		<div class="row icons-list-demo">
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-123 me-3 fs-20"></i><span>123</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-alarm-fill me-3 fs-20"></i><span>alarm-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-alarm me-3 fs-20"></i><span>alarm</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-bottom me-3 fs-20"></i><span>align-bottom</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-center me-3 fs-20"></i><span>align-center</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-end me-3 fs-20"></i><span>align-end</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-middle me-3 fs-20"></i><span>align-middle</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-start me-3 fs-20"></i><span>align-start</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-align-top me-3 fs-20"></i><span>align-top</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-alt me-3 fs-20"></i><span>alt</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-app-indicator me-3 fs-20"></i><span>app-indicator</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-app me-3 fs-20"></i><span>app</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-archive-fill me-3 fs-20"></i><span>archive-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-archive me-3 fs-20"></i><span>archive</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-90deg-down me-3 fs-20"></i><span>arrow-90deg-down</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-90deg-left me-3 fs-20"></i><span>arrow-90deg-left</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-90deg-right me-3 fs-20"></i><span>arrow-90deg-right</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-90deg-up me-3 fs-20"></i><span>arrow-90deg-up</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-bar-down me-3 fs-20"></i><span>arrow-bar-down</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-bar-left me-3 fs-20"></i><span>arrow-bar-left</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-bar-right me-3 fs-20"></i><span>arrow-bar-right</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-bar-up me-3 fs-20"></i><span>arrow-bar-up</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-clockwise me-3 fs-20"></i><span>arrow-clockwise</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-counterclockwise me-3 fs-20"></i><span>arrow-counterclockwise</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-circle-fill me-3 fs-20"></i><span>arrow-down-circle-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-circle me-3 fs-20"></i><span>arrow-down-circle</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-left-circle-fill me-3 fs-20"></i><span>arrow-down-left-circle-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-left-circle me-3 fs-20"></i><span>arrow-down-left-circle</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-left-square-fill me-3 fs-20"></i><span>arrow-down-left-square-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-left-square me-3 fs-20"></i><span>arrow-down-left-square</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-left me-3 fs-20"></i><span>arrow-down-left</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-right-circle-fill me-3 fs-20"></i><span>arrow-down-right-circle-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-right-circle me-3 fs-20"></i><span>arrow-down-right-circle</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-right-square-fill me-3 fs-20"></i><span>arrow-down-right-square-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-right-square me-3 fs-20"></i><span>arrow-down-right-square</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-right me-3 fs-20"></i><span>arrow-down-right</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-short me-3 fs-20"></i><span>arrow-down-short</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-square-fill me-3 fs-20"></i><span>arrow-down-square-fill</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-square me-3 fs-20"></i><span>arrow-down-square</span></div>
+			</div>
+			<div class="col-xl-3 col-lg-4 col-sm-6">
+				<div class="icon-item" style="display: flex; align-items: center;"><i class="bi bi-arrow-down-up me-3 fs-20"></i><span>arrow-down-up</span></div>
+			</div>
+		</div>
+	</div> <!-- end card body -->
+</div>
+
+
+<div class="my-4 text-center">
+	<a href="https://icons.getbootstrap.com/"
+	   target="_blank"
+	   class="btn btn-primary">
+		View All Icons
+	</a>
+</div>
+
+@code {
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+			await JsRuntime.InvokeVoidAsync("loadApps");
+		}
+	}
+}

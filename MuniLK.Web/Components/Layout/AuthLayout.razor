@@ -1,0 +1,17 @@
+﻿@inherits LayoutComponentBase
+
+<div class="account-pages pt-2 pt-sm-5 pb-4 pb-sm-5 position-relative">
+	<div class="container">
+		@Body
+	</div>
+</div>
+
+<footer class="footer footer-alt fw-medium">
+	<span class="text-dark-emphasis">
+        @FullYear © MuniLK.Web - GLP Solutions
+	</span>
+</footer>
+
+@code {
+    public string FullYear = DateTime.Now.Year.ToString();
+}

@@ -1,0 +1,37 @@
+.status-card {
+  border: 1px solid var(--bs-border-color);
+  border-radius: .5rem;
+  padding: 1rem;
+}
+
+/* Full-width banner inside a card-body: bleed to edges using negative margins */
+.status-banner {
+  padding: 1rem;
+  border-radius: .5rem;
+  border: 1px solid var(--bs-border-color);
+  background: transparent; /* no local bg so body color shows full width */
+}
+
+/* Light green / light red using Bootstrap 5.3 subtle tokens */
+.status-success {
+  background-color: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
+  border-color: var(--bs-success-border-subtle);
+}
+
+.status-danger {
+  background-color: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
+  border-color: var(--bs-danger-border-subtle);
+}
+
+/* Full card-body background based on outcome */
+.status-bg-success {
+  background-color: var(--tz-primary-bg-subtle, var(--bs-success-bg-subtle)) !important;
+  color: var(--tz-success-text-emphasis, var(--bs-success-text-emphasis));
+}
+
+.status-bg-danger {
+  background-color: var(--tz-danger-bg-subtle, var(--bs-danger-bg-subtle)) !important;
+  color: var(--tz-danger-text-emphasis, var(--bs-danger-text-emphasis));
+}
