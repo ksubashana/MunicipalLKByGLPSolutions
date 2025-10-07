@@ -238,17 +238,17 @@
                     <!-- DOCUMENT UPLOAD -->
                     <div class="card shadow-sm position-relative">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0">Building Plan Upload</h5>
+                            <h5 class="mb-0">Document Upload</h5>
                         </div>
                         <div class="card-body">
-                            <p class="text-muted mb-3">
-                                Upload the Building Plan PDF once both a Property and an Applicant are selected.
-                            </p>
+                     @*        <p class="text-muted mb-3">
+                                    Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)
+                            </p> *@
 
                             <div class="uploader-wrapper @(CanUploadDocument ? "" : "disabled")">
                                 @if (EntityId != Guid.Empty && ModuleId != Guid.Empty && DocumentCategory != Guid.Empty)
                                 {
-                                    <DocumentUploader Label="Building Plan (PDF)"
+                                    <DocumentUploader Label="Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)"
                                                       Required="true"
                                                       OnUploaded="OnPlanUploaded"
                                                       ModuleId="@ModuleId"
