@@ -16,127 +16,15 @@
 <div class="container-xxl py-3">
     <div class="card shadow-sm">
         <div class="card-header bg-light d-flex align-items-center justify-content-between">
-            <h5 class="mb-0">Site Inspection Management</h5>
+            <h5 class="mb-0">Site Inspection Report</h5>
             <div class="d-flex align-items-center gap-2">
                 @if (!string.IsNullOrWhiteSpace(ApplicationNumber))
                 {
                     <span class="badge bg-primary-subtle text-primary">App No: @ApplicationNumber</span>
                 }
-                @if (IsInspectionAssigned)
-                {
-                    <span class="badge bg-success">Assigned</span>
-                }
             </div>
         </div>
         <div class="card-body">
-            
-            <!-- Step Indicator -->
-            <div class="d-flex align-items-center justify-content-center mb-4">
-                <div class="d-flex align-items-center">
-                    <div class="step-indicator @(IsInspectionAssigned ? "completed" : "active")">
-                        <div class="step-number">1</div>
-                        <div class="step-label">Assign Inspection</div>
-                    </div>
-                    <div class="step-connector"></div>
-                    <div class="step-indicator @(IsInspectionAssigned ? "active" : "")">
-                        <div class="step-number">2</div>
-                        <div class="step-label">Complete Inspection</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- STEP 1: Assignment Section -->
-            @if (!IsInspectionAssigned)
-            {
-                <div class="assignment-section">
-                    <h6 class="text-primary mb-3">📝 Step 1: Assign Inspection to Inspector</h6>
-                    <p class="text-muted mb-4">Select an inspector and schedule the inspection date. The inspector will complete the inspection details later.</p>
-                    
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Inspector <span class="text-danger">*</span></label>
-                            <SfDropDownList TValue="string" TItem="InspectorOption"
-                                          @bind-Value="SelectedInspectorIdForAssignment"
-                                          DataSource="InspectorOptions"
-                                          Placeholder="Select Inspector"
-                                          CssClass="form-control">
-                                <DropDownListFieldSettings Value="Id" Text="Name" />
-                            </SfDropDownList>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label">Scheduled Date <span class="text-danger">*</span></label>
-                            <SfDatePicker TValue="DateTime" @bind-Value="AssignmentDate" 
-                                        CssClass="form-control" 
-                                        Min="DateTime.Today" />
-                        </div>
-                        
-                        <div class="col-12">
-                            <label class="form-label">Assignment Notes</label>
-                            <SfTextBox @bind-Value="AssignmentNotes" 
-                                     Multiline="true" 
-                                     CssClass="form-control" 
-                                     Placeholder="Any special instructions for the inspector..." />
-                        </div>
-                    </div>
-                    
-                    <!-- Google Map Section -->
-                    @if (!string.IsNullOrWhiteSpace(PropertyAddress))
-                    {
-                        <div class="mt-4">
-                            <h6 class="text-primary mb-3">📍 Property Location</h6>
-                            <div class="alert alert-info">
-                                <strong>Address:</strong> @PropertyAddress
-                            </div>
-                            <div class="map-container" style="height: 400px; border: 1px solid #ddd; border-radius: 4px;">
-                                <iframe width="100%" 
-                                        height="100%" 
-                                        frameborder="0" 
-                                        style="border:0"
-                                        src="@GetGoogleMapsEmbedUrl(PropertyAddress)"
-                                        allowfullscreen>
-                                </iframe>
-                            </div>
-                        </div>
-                    }
-                    
-                    <div class="mt-4">
-                        <SfButton IsPrimary="true" 
-                                  @onclick="HandleAssignInspection" 
-                                  Disabled="@(string.IsNullOrWhiteSpace(SelectedInspectorIdForAssignment))">
-                            <i class="fas fa-user-check me-2"></i>Assign Inspection
-                        </SfButton>
-                    </div>
-                </div>
-            }
-            
-            <!-- STEP 2: Completion Section -->
-            @if (IsInspectionAssigned)
-            {
-                <div class="completion-section">
-                    <h6 class="text-primary mb-3">✅ Step 2: Complete Inspection Report</h6>
-                    <p class="text-muted mb-4">Fill out the detailed inspection form below. The inspector will document all findings and provide recommendations.</p>
-                    
-                    <!-- Property Location Map for Inspector Reference -->
-                    @if (!string.IsNullOrWhiteSpace(PropertyAddress))
-                    {
-                        <div class="mb-4">
-                            <h6 class="text-primary mb-3">📍 Property Location for Navigation</h6>
-                            <div class="alert alert-info">
-                                <strong>Address:</strong> @PropertyAddress
-                            </div>
-                            <div class="map-container" style="height: 300px; border: 1px solid #ddd; border-radius: 4px;">
-                                <iframe width="100%" 
-                                        height="100%" 
-                                        frameborder="0" 
-                                        style="border:0"
-                                        src="@GetGoogleMapsEmbedUrl(PropertyAddress)"
-                                        allowfullscreen>
-                                </iframe>
-                            </div>
-                        </div>
-                    }
-                    
             <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
@@ -437,64 +325,9 @@
                     </div>
                 </div>
             </EditForm>
-                </div>
-            }
         </div>
     </div>
 </div>
-
-<style>
-    .step-indicator {
-        text-align: center;
-        position: relative;
-    }
-    
-    .step-number {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: #e9ecef;
-        color: #6c757d;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 8px;
-        font-weight: bold;
-    }
-    
-    .step-indicator.active .step-number {
-        background: #0d6efd;
-        color: white;
-    }
-    
-    .step-indicator.completed .step-number {
-        background: #198754;
-        color: white;
-    }
-    
-    .step-label {
-        font-size: 0.9rem;
-        color: #6c757d;
-    }
-    
-    .step-indicator.active .step-label {
-        color: #0d6efd;
-        font-weight: 600;
-    }
-    
-    .step-indicator.completed .step-label {
-        color: #198754;
-    }
-    
-    .step-connector {
-        width: 80px;
-        height: 2px;
-        background: #e9ecef;
-        margin: 0 20px;
-        position: relative;
-        top: -20px;
-    }
-</style>
 
 <!-- Document Preview Dialog -->
 <SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
@@ -548,7 +381,6 @@
 @code {
     [Parameter] public Guid ApplicationId { get; set; }
     [Parameter] public string? ApplicationNumber { get; set; }
-    [Parameter] public string? PropertyAddress { get; set; }
     [Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
@@ -618,30 +450,11 @@
         Model.ClearancesRequired = new List<ClearanceType>();
         await LoadInspectorsAsync();
         await LoadExistingApplicationAsync(ApplicationId);
+        await CheckExistingAssignment();
     }
 
-    private async Task LoadInspectorsAsync()
+    private async Task CheckExistingAssignment()
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var list = await client.GetFromJsonAsync<List<InspectorDto>>("api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
-            InspectorOptions = list?.Select(x => new InspectorOption { Id = x.Id.ToString(), Name = x.FullName })?.ToList() ?? new();
-        }
-        catch
-        {
-            InspectorOptions = new();
-        }
-    }
-
-    private async Task HandleAssignInspection()
-    {
-        if (string.IsNullOrWhiteSpace(SelectedInspectorIdForAssignment))
-        {
-            await JS.InvokeVoidAsync("alert", "Please select an inspector");
-            return;
-        }
-
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
@@ -654,54 +467,51 @@
                 moduleId = parsedModuleId;
             }
             
-            // Create assignment request
-            var assignmentRequest = new
-            {
-                AssignedToUserId = Guid.Parse(SelectedInspectorIdForAssignment),
-                EntityId = ApplicationId,
-                EntityType = "BuildingPlanApplication",
-                ModuleId = moduleId,
-                AssignmentDate = AssignmentDate,
-                TaskType = "Site Inspection",
-                Notes = AssignmentNotes,
-                FeatureId = ApplicationNumber
-            };
-
-            var response = await client.PostAsJsonAsync("api/Assignment/Create", assignmentRequest);
-            
+            // Check if there's an existing assignment for this application
+            var response = await client.GetAsync($"api/Assignment?moduleId={moduleId}&entityId={ApplicationId}");
             if (response.IsSuccessStatusCode)
             {
-                // Get the assignment ID from response
-                try
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var assignments = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<AssignmentDto>>(jsonContent, 
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (assignments?.Any() == true)
                 {
-                    var raw = await response.Content.ReadAsStringAsync();
-                    AssignmentId = Guid.Parse(raw.Trim('"'));
+                    // If an assignment exists, move to completion step
+                    var assignment = assignments.First();
+                    AssignmentId = assignment.Id;
+                    IsInspectionAssigned = true;
                 }
-                catch
-                {
-                    AssignmentId = await response.Content.ReadFromJsonAsync<Guid>();
-                }
-                
-                IsInspectionAssigned = true;
-                await JS.InvokeVoidAsync("alert", "Inspection assigned successfully!");
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                await JS.InvokeVoidAsync("alert", $"Failed to assign inspection: {error}");
             }
         }
-        catch (Exception ex)
+        catch
         {
-            await JS.InvokeVoidAsync("alert", $"Error assigning inspection: {ex.Message}");
+            // If checking fails, default to assignment step
+            IsInspectionAssigned = false;
         }
     }
 
-    private string GetGoogleMapsEmbedUrl(string address)
+    private class AssignmentDto
     {
-        // Simple Google Maps embed - in production, use proper API key
-        var encodedAddress = Uri.EscapeDataString(address);
-        return $"https://www.google.com/maps?q={encodedAddress}&output=embed";
+        public Guid Id { get; set; }
+        public Guid AssignedToUserId { get; set; }
+        public DateTime AssignmentDate { get; set; }
+        public string? Status { get; set; }
+    }
+
+    private async Task LoadInspectorsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var jsonContent = await client.GetStringAsync("api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
+            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<InspectorDto>>(jsonContent,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            InspectorOptions = list?.Select(x => new InspectorOption { Id = x.Id.ToString(), Name = x.FullName })?.ToList() ?? new();
+        }
+        catch
+        {
+            InspectorOptions = new();
+        }
     }
 
     private async Task HandleValidSubmit()
@@ -748,8 +558,9 @@
             // Load existing site inspection if exists
             try
             {
-                var existingInspection = await client.GetFromJsonAsync<SiteInspectionResponse>(
-                    $"api/BuildingPlans/{applicationId}/site-inspection");
+                var jsonInsp = await client.GetStringAsync($"api/BuildingPlans/{applicationId}/site-inspection");
+                var existingInspection = System.Text.Json.JsonSerializer.Deserialize<SiteInspectionResponse>(jsonInsp,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (existingInspection != null)
                 {
                     PopulateFormFromExistingInspection(existingInspection);
@@ -763,9 +574,11 @@
             // Load documents
             if (ModuleId != Guid.Empty)
             {
-                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>(
+                var jsonDocs = await client.GetStringAsync(
                     $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
-                ApplicationDocuments = documents ?? new List<DocumentLinkResponse>();
+                var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();
             }
         }
         catch (Exception ex)
