@@ -321,7 +321,10 @@
             case 1:
 
                 @* <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId" EntityId="EntityId" /> *@
-                    <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId" ApplicationNumber="GeneratedFeatureId" />
+                    <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm 
+                        ApplicationId="EntityId" 
+                        ApplicationNumber="GeneratedFeatureId"
+                        PropertyAddress="@(SelectedProperty?.Address)" />
 
 
                 break;

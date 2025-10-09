@@ -386,6 +386,15 @@
 
     private SiteInspectionRequest Model = new();
     private bool IsSubmitting = false;
+    
+    // Two-step process state
+    private bool IsInspectionAssigned = false;
+    private Guid? AssignmentId = null;
+    
+    // Assignment form fields
+    private string? SelectedInspectorIdForAssignment = null;
+    private DateTime AssignmentDate = DateTime.Today;
+    private string? AssignmentNotes = null;
 
     // Document management variables
     private List<DocumentLinkResponse> ApplicationDocuments = new();
@@ -441,6 +450,52 @@
         Model.ClearancesRequired = new List<ClearanceType>();
         await LoadInspectorsAsync();
         await LoadExistingApplicationAsync(ApplicationId);
+        await CheckExistingAssignment();
+    }
+
+    private async Task CheckExistingAssignment()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            
+            // Get module ID for Building and Planning
+            var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
+            Guid moduleId = Guid.Empty;
+            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
+            {
+                moduleId = parsedModuleId;
+            }
+            
+            // Check if there's an existing assignment for this application
+            var response = await client.GetAsync($"api/Assignment?moduleId={moduleId}&entityId={ApplicationId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var assignments = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<AssignmentDto>>(jsonContent, 
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (assignments?.Any() == true)
+                {
+                    // If an assignment exists, move to completion step
+                    var assignment = assignments.First();
+                    AssignmentId = assignment.Id;
+                    IsInspectionAssigned = true;
+                }
+            }
+        }
+        catch
+        {
+            // If checking fails, default to assignment step
+            IsInspectionAssigned = false;
+        }
+    }
+
+    private class AssignmentDto
+    {
+        public Guid Id { get; set; }
+        public Guid AssignedToUserId { get; set; }
+        public DateTime AssignmentDate { get; set; }
+        public string? Status { get; set; }
     }
 
     private async Task LoadInspectorsAsync()
@@ -448,7 +503,9 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var list = await client.GetFromJsonAsync<List<InspectorDto>>("api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
+            var jsonContent = await client.GetStringAsync("api/Roles/GetUsersByTenantAndRole?roleName=Inspector");
+            var list = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<InspectorDto>>(jsonContent,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             InspectorOptions = list?.Select(x => new InspectorOption { Id = x.Id.ToString(), Name = x.FullName })?.ToList() ?? new();
         }
         catch
@@ -501,8 +558,9 @@
             // Load existing site inspection if exists
             try
             {
-                var existingInspection = await client.GetFromJsonAsync<SiteInspectionResponse>(
-                    $"api/BuildingPlans/{applicationId}/site-inspection");
+                var jsonInsp = await client.GetStringAsync($"api/BuildingPlans/{applicationId}/site-inspection");
+                var existingInspection = System.Text.Json.JsonSerializer.Deserialize<SiteInspectionResponse>(jsonInsp,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (existingInspection != null)
                 {
                     PopulateFormFromExistingInspection(existingInspection);
@@ -516,9 +574,11 @@
             // Load documents
             if (ModuleId != Guid.Empty)
             {
-                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>(
+                var jsonDocs = await client.GetStringAsync(
                     $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
-                ApplicationDocuments = documents ?? new List<DocumentLinkResponse>();
+                var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();
             }
         }
         catch (Exception ex)
