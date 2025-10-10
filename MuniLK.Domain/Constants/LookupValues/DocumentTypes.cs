@@ -12,6 +12,7 @@ namespace MuniLK.Domain.Constants.LookupValues
         BuildingAndPlanning,
         Permits,
         Construction,
-        Vendors
+        Vendors,
+        Inspection
     }
 }

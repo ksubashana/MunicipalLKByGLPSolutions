@@ -135,9 +135,18 @@ namespace MuniLK.API.Controllers
             {
                 return NotFound(); // Document metadata or actual blob not found/accessible
             }
+            if (result.Content.CanSeek)
+                result.Content.Position = 0;
 
-            // Return the file stream using ASP.NET Core's File method
-            return File(result.Content, result.ContentType, result.FileName);
+            Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{result.FileName}\"");
+            Response.Headers.Add("Content-Type", result.ContentType);
+
+            // Explicit Content-Length if available
+            if (result.Content.CanSeek)
+                Response.Headers.Add("Content-Length", result.Content.Length.ToString());
+
+            return new FileStreamResult(result.Content, result.ContentType);
+
         }
 
         /// <summary>
@@ -171,7 +180,19 @@ namespace MuniLK.API.Controllers
         {
             // For now, preview is the same as download
             // In the future, you might want to return thumbnails or embedded viewer URLs
-            return await DownloadDocument(id);
+            //return await DownloadDocument(id);
+
+            var query = new GetDocumentDownloadQuery(id);
+            var result = await _mediator.Send(query);
+
+            if (result == null || result.Content == Stream.Null)
+                return NotFound();
+
+            if (result.Content.CanSeek)
+                result.Content.Position = 0;
+
+            // Send it inline — no forced download
+            return new FileStreamResult(result.Content, result.ContentType);
         }
 
         /// <summary>

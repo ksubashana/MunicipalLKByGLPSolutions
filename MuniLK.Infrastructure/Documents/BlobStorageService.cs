@@ -96,15 +96,16 @@ namespace MuniLK.Infrastructure.Services
             }
 
             // Get blob properties to retrieve content type and metadata
-            BlobProperties properties = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
+            var propertiesResponse = await blobClient.GetPropertiesAsync(cancellationToken: cancellationToken);
             // Download the content
             var response = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
+            BlobProperties properties = propertiesResponse.Value;
 
             // Retrieve original filename from metadata; fallback to the blob's actual name if metadata missing
             var fileName = properties.Metadata.TryGetValue("original_filename", out var name) ? name : Path.GetFileName(blobPath);
-            var contentType = properties.ContentType;
+            //var contentType = properties.ContentType;
 
-            return (response.Value.Content, contentType, fileName);
+            return (response.Value.Content, properties.ContentType, fileName);
         }
 
         /// <summary>

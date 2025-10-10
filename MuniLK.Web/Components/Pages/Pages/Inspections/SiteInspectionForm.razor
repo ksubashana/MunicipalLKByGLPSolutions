@@ -2,6 +2,8 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.Documents.DTOs
 @using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Components.Pages.Generic.Documents
+@using MuniLK.Web.Components.Pages.Notifications
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Calendars
 @using Syncfusion.Blazor.DropDowns
@@ -25,6 +27,8 @@
             </div>
         </div>
         <div class="card-body">
+            <AlertToast @ref="MyToast" />
+
             <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
@@ -281,7 +285,31 @@
                         <ValidationMessage For="@(() => Model.FinalRecommendation)" />
                     </div>
                 </div>
+                                    <!-- DOCUMENT UPLOAD -->
+                    <div class="card shadow-sm position-relative">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Document Upload</h5>
+                        </div>
+                        <div class="card-body">
 
+                        @if (ApplicationId != Guid.Empty && ModuleId != Guid.Empty && DocumentCategory != Guid.Empty)
+                                {
+                                    <DocumentUploader Label="Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)"
+                                                      Required="true"
+                                                      OnUploaded="OnPlanUploaded"
+                                                      ModuleId="@ModuleId"
+                                                      EntityId="@ApplicationId"
+                                                      LinkContext="Building and Planning"
+                                                      DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()"
+                                                      DocumentTypeId="@DocumentTypeId"
+                                                      Enabled="true" />
+                                }
+                                else
+                                {
+                                    <p>Loading document uploader...</p>
+                                }
+                        </div>
+                    </div>
                 <!-- Documents Section -->
                 <div class="row mb-4">
                     <div class="col-12">
@@ -289,7 +317,7 @@
                         @if (ApplicationDocuments?.Any() == true)
                         {
                             <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" 
-                                    AllowPaging="false" AllowSorting="true" Height="300px">
+                                    AllowPaging="false" AllowSorting="true">
                                 <GridColumns>
                                     <GridColumn Field="FileName" HeaderText="Document" Width="200" />
                                     <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="120" />
@@ -330,7 +358,7 @@
 </div>
 
 <!-- Document Preview Dialog -->
-<SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
+<SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="1400px" Height="600px" ShowCloseIcon="true">
     <DialogTemplates>
         <Header>
             <div>Document Preview - @(SelectedPreviewDocument?.FileName)</div>
@@ -341,6 +369,33 @@
                 <div class="row">
                     <div class="col-8">
                         @if (IsImageFile(SelectedPreviewDocument.FileExtension))
+                        {
+                            <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
+                                 class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
+                        }
+                        else if (IsPdfFile(SelectedPreviewDocument.FileExtension))
+                        {
+                            <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
+                                    width="100%" height="500px"></iframe>
+                        }
+                        else if (IsWordFile(SelectedPreviewDocument.FileExtension))
+                        {
+                            <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=http://localhost:5164/api/Documents/@(SelectedPreviewDocument.DocumentId)/preview"
+                                    width="100%" height="500px"></iframe>
+                        }
+                        else
+                        {
+                            <div class="text-center p-4">
+                                <i class="fas fa-file fa-3x text-muted mb-3"></i>
+                                <p>Preview not available for this file type.</p>
+                                <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)">
+                                    <i class="fas fa-download me-2"></i>Download File
+                                </SfButton>
+                            </div>
+                        }
+
+
+                        @* @if (IsImageFile(SelectedPreviewDocument.FileExtension))
                         {
                             <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
                         }
@@ -357,7 +412,7 @@
                                     <i class="fas fa-download me-2"></i>Download File
                                 </SfButton>
                             </div>
-                        }
+                        } *@
                     </div>
                     <div class="col-4">
                         <h6>Document Information</h6>
@@ -380,17 +435,22 @@
 
 @code {
     [Parameter] public Guid ApplicationId { get; set; }
+    [Parameter] public Guid DocumentTypeId { get; set; }
+    [Parameter] public Guid DocumentCategory { get; set; }
+    [Parameter] public Guid ModuleId { get; set; }
     [Parameter] public string? ApplicationNumber { get; set; }
     [Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
+    // private bool CanUploadDocument => SelectedProperty != null && SelectedContact != null;
+
     private SiteInspectionRequest Model = new();
     private bool IsSubmitting = false;
-    
+
     // Two-step process state
     private bool IsInspectionAssigned = false;
     private Guid? AssignmentId = null;
-    
+
     // Assignment form fields
     private string? SelectedInspectorIdForAssignment = null;
     private DateTime AssignmentDate = DateTime.Today;
@@ -400,7 +460,7 @@
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;
     private DocumentLinkResponse? SelectedPreviewDocument = null;
-    private Guid ModuleId = Guid.Empty;
+    private AlertToast? MyToast;
 
     // Inspector multi-select support
     private List<InspectorOption> InspectorOptions = new();
@@ -458,17 +518,11 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            
+
             // Get module ID for Building and Planning
-            var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
-            Guid moduleId = Guid.Empty;
-            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
-            {
-                moduleId = parsedModuleId;
-            }
-            
+
             // Check if there's an existing assignment for this application
-            var response = await client.GetAsync($"api/Assignment?moduleId={moduleId}&entityId={ApplicationId}");
+            var response = await client.GetAsync($"api/Assignment?moduleId={ModuleId}&entityId={ApplicationId}");
             if (response.IsSuccessStatusCode)
             {
                 var jsonContent = await response.Content.ReadAsStringAsync();
@@ -547,13 +601,9 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            
+
             // Get the Building and Planning module ID
-            var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
-            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
-            {
-                ModuleId = parsedModuleId;
-            }
+
 
             // Load existing site inspection if exists
             try
@@ -595,56 +645,56 @@
         Model.OfficersPresent = inspection.OfficersPresent ?? string.Empty;
         Model.GpsCoordinates = inspection.GpsCoordinates ?? string.Empty;
         Model.Remarks = inspection.Remarks ?? string.Empty;
-        
+
         // Site conditions - need to map from SiteConditionResult list
         var siteConditions = inspection.SiteConditions ?? new List<SiteConditionResult>();
         var accessRoad = siteConditions.FirstOrDefault(sc => sc.Name == "AccessRoadWidth");
         Model.AccessRoadWidthCondition = accessRoad?.Result;
         Model.AccessRoadWidthNotes = accessRoad?.Notes ?? string.Empty;
-        
+
         var boundary = siteConditions.FirstOrDefault(sc => sc.Name == "BoundaryVerification");
         Model.BoundaryVerification = boundary?.Result;
         Model.BoundaryVerificationNotes = boundary?.Notes ?? string.Empty;
-        
+
         var topography = siteConditions.FirstOrDefault(sc => sc.Name == "Topography");
         Model.Topography = topography?.Result;
         Model.TopographyNotes = topography?.Notes ?? string.Empty;
-        
+
         var structures = siteConditions.FirstOrDefault(sc => sc.Name == "ExistingStructures");
         Model.ExistingStructures = structures?.Result;
         Model.ExistingStructuresNotes = structures?.Notes ?? string.Empty;
-        
+
         var encroachments = siteConditions.FirstOrDefault(sc => sc.Name == "Encroachments");
         Model.EncroachmentsReservations = encroachments?.Result;
         Model.EncroachmentsReservationsNotes = encroachments?.Notes ?? string.Empty;
-        
+
         // Compliance checks - need to map from ComplianceCheckResult list
         var complianceChecks = inspection.ComplianceChecks ?? new List<ComplianceCheckResult>();
         var surveyPlan = complianceChecks.FirstOrDefault(cc => cc.Name == "MatchesSurveyPlan");
         Model.MatchesSurveyPlan = surveyPlan?.Result;
         Model.MatchesSurveyPlanNotes = surveyPlan?.Notes ?? string.Empty;
-        
+
         var zoning = complianceChecks.FirstOrDefault(cc => cc.Name == "ZoningCompatible");
         Model.ZoningCompatible = zoning?.Result;
         Model.ZoningCompatibleNotes = zoning?.Notes ?? string.Empty;
-        
+
         var setbacks = complianceChecks.FirstOrDefault(cc => cc.Name == "SetbacksObserved");
         Model.SetbacksObserved = setbacks?.Result;
         Model.SetbacksObservedNotes = setbacks?.Notes ?? string.Empty;
-        
+
         var frontSetback = complianceChecks.FirstOrDefault(cc => cc.Name == "FrontSetback");
         Model.FrontSetback = frontSetback?.Result ?? false;
-        
+
         var rearSetback = complianceChecks.FirstOrDefault(cc => cc.Name == "RearSetback");
         Model.RearSetback = rearSetback?.Result ?? false;
-        
+
         var sideSetbacks = complianceChecks.FirstOrDefault(cc => cc.Name == "SideSetbacks");
         Model.SideSetbacks = sideSetbacks?.Result ?? false;
-        
+
         var environmental = complianceChecks.FirstOrDefault(cc => cc.Name == "EnvironmentalConcerns");
         Model.EnvironmentalConcerns = environmental?.Result;
         Model.EnvironmentalConcernsNotes = environmental?.Notes ?? string.Empty;
-        
+
         // Decision support
         Model.RequiredModifications = inspection.RequiredModifications ?? string.Empty;
         Model.ClearancesRequired = inspection.ClearancesRequired ?? new List<ClearanceType>();
@@ -664,9 +714,27 @@
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
             var downloadUrl = $"api/Documents/{document.DocumentId}/download";
-            
+
+            using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Download failed: {response.StatusCode}");
+                return;
+            }
+
+            var stream = await response.Content.ReadAsStreamAsync();
+
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            ms.Position = 0;
+            var base64 = Convert.ToBase64String(ms.ToArray());
+
+            // call JS to trigger browser download
+            await JS.InvokeVoidAsync("downloadBase64File", document.FileName, base64);
             // Open download in new tab
-            await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
+            //await JS.InvokeVoidAsync("downloadFile", downloadUrl, document.FileName);
+
+            //await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
         }
         catch (Exception ex)
         {
@@ -676,7 +744,10 @@
 
     private string GetDocumentPreviewUrl(Guid documentId)
     {
-        return $"api/Documents/{documentId}/preview";
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var apiBaseUrl = "http://localhost:5164/"; // move this to config/appsettings
+        return $"{apiBaseUrl}api/Documents/{documentId}/preview";
+        //return $"api/Documents/{documentId}/preview";
     }
 
     private bool IsImageFile(string extension)
@@ -689,7 +760,11 @@
     {
         return extension.ToLowerInvariant() == ".pdf";
     }
-
+    private bool IsWordFile(string extension)
+    {
+        var docExtensions = new[] { ".doc", ".docx", ".csv", ".xlsx" };
+        return docExtensions.Contains(extension.ToLowerInvariant());
+    }
     private string FormatFileSize(long bytes)
     {
         string[] suffixes = { "B", "KB", "MB", "GB" };
@@ -702,7 +777,12 @@
         }
         return $"{number:n1} {suffixes[counter]}";
     }
+    private async Task OnPlanUploaded(string fileName)
+    {
+        //if (!string.IsNullOrWhiteSpace(fileName)) ;
+        // await MyToast.ShowToastAsync("Document Sucessfully Uploaded", AlertToast.ToastType.Success);
 
+    }
     public class InspectionStatusOption
     {
         public InspectionStatus Value { get; set; }
