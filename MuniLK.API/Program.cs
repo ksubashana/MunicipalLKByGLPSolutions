@@ -193,6 +193,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IScheduleAppointmentRepository, ScheduleAppointmentRepository>();
 builder.Services.AddScoped<ISiteInspectionRepository, SiteInspectionRepository>();
 builder.Services.AddScoped<IPlanningCommitteeReviewRepository, PlanningCommitteeReviewRepository>();
+builder.Services.AddScoped<IEntityOptionSelectionRepository, EntityOptionSelectionRepository>();
+builder.Services.AddScoped<IEntityOptionSelectionService, MuniLK.Application.BuildingAndPlanning.Services.EntityOptionSelectionService>();
 
 
 var app = builder.Build();
