@@ -12,6 +12,9 @@ namespace MuniLK.Domain.Constants.Flows
         [Display(Name = "Submission")]
         Submission,
 
+        [Display(Name = "Assign Inspector")]
+        AssignInspector,
+
         [Display(Name = "To Review")]
         ToReview,
 

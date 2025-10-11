@@ -32,7 +32,10 @@
             <EditForm Model="@Model" OnValidSubmit="HandleValidSubmit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="text-danger" />
-
+                @if (MetadataLocked)
+                {
+                    <small class="text-muted">Locked (reschedule in previous step to change)</small>
+                }
                 <!-- Core Inspection Details -->
                 <div class="row mb-4">
                     <div class="col-12">
@@ -51,8 +54,9 @@
                     
                     <div class="col-md-6">
                         <label class="form-label">Inspection Date <span class="text-danger">*</span></label>
-                        <SfDatePicker TValue="DateTime" @bind-Value="Model.InspectionDate" 
-                                    CssClass="form-control" />
+                        <SfDatePicker TValue="DateTime" @bind-Value="Model.InspectionDate"
+                                      Enabled="@( !MetadataLocked )"
+                                      CssClass="form-control" />
                         <ValidationMessage For="@(() => Model.InspectionDate)" />
                     </div>
                 </div>
@@ -64,6 +68,7 @@
                         <SfMultiSelect TValue="List<string>" TItem="InspectorOption"
                                        @bind-Value="SelectedInspectorIds"
                                        DataSource="InspectorOptions"
+                                       Enabled="@( !MetadataLocked )"
                                        Placeholder="Select officers present"
                                        Mode="@VisualMode.CheckBox"
                                        ShowSelectAll="true"
@@ -441,8 +446,12 @@
     [Parameter] public string? ApplicationNumber { get; set; }
     [Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
-
+    [Parameter] public DateTime? PrefilledInspectionDate { get; set; }
+    [Parameter] public string? PrefilledOfficers { get; set; }
+    [Parameter] public bool LockMetadata { get; set; } = false;
+    [Parameter] public EventCallback OnInspectionCompleted { get; set; }
     // private bool CanUploadDocument => SelectedProperty != null && SelectedContact != null;
+    private bool MetadataLocked => LockMetadata;
 
     private SiteInspectionRequest Model = new();
     private bool IsSubmitting = false;
@@ -504,7 +513,11 @@
     protected override async Task OnInitializedAsync()
     {
         Model.ApplicationId = ApplicationId;
-        Model.InspectionDate = DateTime.Today;
+        Model.InspectionDate = PrefilledInspectionDate ?? DateTime.Today;
+        if (!string.IsNullOrWhiteSpace(PrefilledOfficers))
+        {
+            Model.OfficersPresent = PrefilledOfficers;
+        }
         Model.Status = InspectionStatus.Pending;
         Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
         Model.ClearancesRequired = new List<ClearanceType>();
@@ -582,6 +595,9 @@
                 {
                     await OnSubmit.InvokeAsync(Model);
                 }
+                if (OnInspectionCompleted.HasDelegate)
+                    await OnInspectionCompleted.InvokeAsync();
+
                 await JS.InvokeVoidAsync("console.log", "Site inspection submitted successfully");
             }
             else

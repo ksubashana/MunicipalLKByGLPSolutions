@@ -16,6 +16,7 @@
 @using MuniLK.Web.Components.Pages.Generic
 @using MuniLK.Web.Components.Pages.Generic.Documents
 @using MuniLK.Web.Components.Pages.Notifications
+@using MuniLK.Web.Components.Pages.Pages.Inspections
 @using MuniLK.Web.Interfaces
 @using MuniLK.Web.Pages
 @using MuniLK.Web.Services
@@ -318,28 +319,26 @@
 
 
 
-            case 1:
-
-                @* <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId" EntityId="EntityId" /> *@
-                    <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm 
-                        ApplicationId="EntityId" 
-                        ApplicationNumber="GeneratedFeatureId"
-                        DocumentCategory="DocumentCategory"
-                        DocumentTypeId="DocumentTypeId"
-                        ModuleId="ModuleId"
-                         />
-
-
-                break;
+                case 1:
+                    <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId"
+                                                                                   EntityId="EntityId"
+                                                                                   OnAssigned="OnAssignmentScheduled" />
+                    break;
                 case 2:
-                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
-
-
-
+                    <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId"
+                                                                                      ApplicationNumber="GeneratedFeatureId"
+                                                                                      DocumentCategory="DocumentCategory"
+                                                                                      DocumentTypeId="DocumentTypeId"
+                                                                                      ModuleId="ModuleId"
+                                                                                      PrefilledInspectionDate="ActiveAssignmentDate"
+                                                                                      PrefilledOfficers="ActiveInspectorName"
+                                                                                      LockMetadata="@(ActiveAssignmentDate.HasValue && ActiveAssignmentDate.Value.Date == DateTime.Today && !SiteInspectionCompleted)"
+                                                                                      OnSubmit="@(_ => { SiteInspectionCompleted = true; })" />
                     break;
                 case 3:
+                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
 
-                    <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview EntityId="@EntityId" Model="@BuildingPlanSummery" />
+                    @* <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview EntityId="@EntityId" Model="@BuildingPlanSummery" /> *@
 
                     break;
                 case 4:
@@ -412,6 +411,12 @@
     private string PropertyMode { get; set; } = "search";
     private string ContactMode { get; set; } = "search";
 
+    private Guid? ActiveAssignmentId;
+    private DateTime? ActiveAssignmentDate;
+    private string? ActiveInspectorName;
+    private Guid? ActiveInspectorUserId;
+    private bool SiteInspectionCompleted;
+
     private string? GeneratedFeatureId;
     private bool IsDocumentUploaded { get; set; } = false;
     private bool CanMoveToNextStep => IsDocumentUploaded;
@@ -470,6 +475,45 @@
         else
         {
             var error = await resp.Content.ReadAsStringAsync();
+        }
+    }
+
+    private async Task OnAssignmentScheduled(AssignInspector.AssignmentScheduledArgs args)
+    {
+        ActiveAssignmentId = args.AssignmentId;
+        ActiveAssignmentDate = args.AssignmentDate;
+        ActiveInspectorName = args.InspectorName;
+        ActiveInspectorUserId = args.InspectorUserId;
+
+        // Advance to Site Inspection step
+        CurrentStep = 2;
+        StateHasChanged();
+    }
+
+    private async Task RefreshSiteInspectionStatus()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var resp = await client.GetAsync($"api/BuildingPlans/{EntityId}/site-inspection");
+            SiteInspectionCompleted = resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            SiteInspectionCompleted = false;
+        }
+    }
+
+    private async Task EnforceAssignmentValidity()
+    {
+        if (CurrentStep == 2 && ActiveAssignmentDate.HasValue)
+        {
+            if (ActiveAssignmentDate.Value.Date < DateTime.Today && !SiteInspectionCompleted)
+            {
+                // Missed inspection date -> force reschedule
+                CurrentStep = 1;
+                await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
@@ -561,6 +605,8 @@
                 StateHasChanged();
             }
         }
+        await RefreshSiteInspectionStatus();
+        await EnforceAssignmentValidity();
     }
 
     public void RecordClickHandler(RecordClickEventArgs<PropertyOwnerResponse> args)

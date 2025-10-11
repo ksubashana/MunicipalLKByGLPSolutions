@@ -159,7 +159,7 @@
                     </div>
                 </div>
 
-                @if (EffectiveAssignmentId.HasValue && string.IsNullOrWhiteSpace(AssignmentOutcome))
+                @* @if (EffectiveAssignmentId.HasValue && string.IsNullOrWhiteSpace(AssignmentOutcome))
                 {
                     <div class="mt-4 p-3 border rounded bg-light">
                         <label class="form-label">Completion Remarks</label>
@@ -169,7 +169,7 @@
                             <SfButton CssClass="e-danger" OnClick="MarkRejected">Reject</SfButton>
                         </div>
                     </div>
-                }
+                } *@
             }
             else
             {
@@ -196,6 +196,7 @@
 
     // Notify parent (stepper) to move forward on completion
     [Parameter] public EventCallback InspectionCompleted { get; set; }
+    [Parameter] public EventCallback<AssignmentScheduledArgs> OnAssigned { get; set; }
 
     private bool IsAssignmentDialogVisible = false;
     private string? SelectedInspectorId;
@@ -368,6 +369,16 @@
 
                     CreatedAssignmentId = id;
                     IsAssignmentDialogVisible = false;
+                    if (OnAssigned.HasDelegate && SelectedInspector is not null)
+                    {
+                        await OnAssigned.InvokeAsync(new AssignmentScheduledArgs
+                        {
+                            AssignmentId = id,
+                            AssignmentDate = AssignmentDate.Value,
+                            InspectorUserId = Guid.Parse(SelectedInspectorId),
+                            InspectorName = SelectedInspector.FullName
+                        });
+                    }
                 }
                 else
                 {
@@ -425,6 +436,13 @@
         {
             // handle exception (e.g, toast)
         }
+    }
+    public class AssignmentScheduledArgs
+    {
+        public Guid AssignmentId { get; set; }
+        public DateTime AssignmentDate { get; set; }
+        public Guid InspectorUserId { get; set; }
+        public string InspectorName { get; set; } = string.Empty;
     }
 
 }
