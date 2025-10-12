@@ -56,6 +56,8 @@ namespace MuniLK.Application.Assignments.Commands
             await _assignmentRepository.AddAsync(assignment);
             await _assignmentRepository.SaveChangesAsync();
 
+          
+
             // Send email notification to the assigned inspector
             try
             {

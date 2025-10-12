@@ -624,7 +624,7 @@
             // Load existing site inspection if exists
             try
             {
-                var jsonInsp = await client.GetStringAsync($"api/BuildingPlans/{applicationId}/site-inspection");
+                var jsonInsp = await client.GetStringAsync($"api/Inspection/{applicationId}");
                 var existingInspection = System.Text.Json.JsonSerializer.Deserialize<SiteInspectionResponse>(jsonInsp,
                     new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (existingInspection != null)

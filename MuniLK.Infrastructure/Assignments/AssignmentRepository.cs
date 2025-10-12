@@ -21,7 +21,21 @@ namespace MuniLK.Infrastructure.Assignments
 
         public async Task AddAsync(Assignment assignment)
         {
-            if (assignment == null) throw new ArgumentNullException(nameof(assignment));
+            if (assignment == null)
+                throw new ArgumentNullException(nameof(assignment));
+
+            // Find any existing assignments with same EntityId, ModuleId, and TenantId
+            var existingAssignments = await _context.Assignments
+                .Where(a => a.EntityId == assignment.EntityId
+                            && a.ModuleId == assignment.ModuleId
+                            && a.TenantId == assignment.TenantId)
+                .ToListAsync();
+
+            if (existingAssignments.Any())
+            {
+                _context.Assignments.RemoveRange(existingAssignments);
+            }
+
             await _context.Assignments.AddAsync(assignment);
         }
 
