@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MuniLK.Domain.Entities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +17,14 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public string BuildingPurpose { get; set; } = default!;
         public int NoOfFloors { get; set; }
         public DateTime SubmittedOn { get; set; }
+        public Guid? AssignmentId { get; set; }
+        public Assignment? Assignment { get; set; }
+
+        public Guid? SiteInspectionId { get; set; }
+        public SiteInspection? SiteInspection { get; set; }
+
+        public Guid? PlanningCommitteeReviewId { get; set; }
+        public PlanningCommitteeReview? PlanningCommitteeReview { get; set; }
         public List<ApplicationDocumentResponse> Documents { get; set; } = new();
         public List<WorkflowLogResponse> Workflow { get; set; } = new();
         
