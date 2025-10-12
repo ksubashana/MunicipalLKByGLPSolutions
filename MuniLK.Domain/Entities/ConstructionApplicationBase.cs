@@ -40,6 +40,16 @@ namespace MuniLK.Domain.Entities
         public string? EngineerReport { get; set; }
         public string? CommissionerDecision { get; set; }
 
+        // Workflow child entity foreign keys
+        public Guid? AssignmentId { get; set; }
+        public Assignment? Assignment { get; set; }
+
+        public Guid? SiteInspectionId { get; set; }
+        public SiteInspection? SiteInspection { get; set; }
+
+        public Guid? PlanningCommitteeReviewId { get; set; }
+        public PlanningCommitteeReview? PlanningCommitteeReview { get; set; }
+
         // Navigation properties
         public ICollection<DocumentLink> Documents { get; set; } = new List<DocumentLink>();
         public ICollection<Assignment> Assignments { get; set; } = new List<Assignment>();
