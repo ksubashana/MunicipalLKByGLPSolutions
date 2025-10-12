@@ -78,12 +78,6 @@ namespace MuniLK.Infrastructure.Data.Configurations
 
             builder.Property(x => x.ModifiedBy)
                 .HasMaxLength(200);
-
-            // Configure relationship with BuildingPlanApplication
-            builder.HasOne(x => x.Application)
-                .WithMany()
-                .HasForeignKey(x => x.ApplicationId)
-                .OnDelete(DeleteBehavior.Restrict); // Don't cascade delete
         }
     }
 }

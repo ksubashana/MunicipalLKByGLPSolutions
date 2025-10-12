@@ -45,6 +45,16 @@ namespace MuniLK.Infrastructure.Data.Configurations
             builder.Property(x => x.CommissionerDecision)
                 .HasMaxLength(4000);
 
+            // Workflow child entity foreign keys (optional)
+            builder.Property(x => x.AssignmentId)
+                .IsRequired(false);
+
+            builder.Property(x => x.SiteInspectionId)
+                .IsRequired(false);
+
+            builder.Property(x => x.PlanningCommitteeReviewId)
+                .IsRequired(false);
+
             // Configure enum as int
             builder.Property(x => x.Status)
                 .HasConversion<int>();
@@ -64,6 +74,25 @@ namespace MuniLK.Infrastructure.Data.Configurations
                 .WithOne()
                 .HasForeignKey("BuildingPlanApplicationId")
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure one-to-one relationships with workflow child entities
+            builder.HasOne(x => x.Assignment)
+                .WithOne()
+                .HasForeignKey<BuildingPlanApplication>(x => x.AssignmentId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            builder.HasOne(x => x.SiteInspection)
+                .WithOne(s => s.Application)
+                .HasForeignKey<BuildingPlanApplication>(x => x.SiteInspectionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            builder.HasOne(x => x.PlanningCommitteeReview)
+                .WithOne(p => p.Application)
+                .HasForeignKey<BuildingPlanApplication>(x => x.PlanningCommitteeReviewId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
         }
     }
 }
