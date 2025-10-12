@@ -24,6 +24,12 @@ namespace MuniLK.Infrastructure.Assignments
             if (assignment == null)
                 throw new ArgumentNullException(nameof(assignment));
 
+            // Clear FK (set AssignmentId = NULL) on the parent application (only if it points to an existing assignment)
+            await _context.buildingPlanApplications
+                .Where(bp => bp.Id == assignment.EntityId.Value && bp.AssignmentId != null
+                            && bp.TenantId == assignment.TenantId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(bp => bp.AssignmentId, (Guid?)null));
+
             // Find any existing assignments with same EntityId, ModuleId, and TenantId
             var existingAssignments = await _context.Assignments
                 .Where(a => a.EntityId == assignment.EntityId

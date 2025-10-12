@@ -31,7 +31,12 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
             => await _dbContext.Set<BuildingPlanApplication>()
                                .AsNoTracking()
                                .FirstOrDefaultAsync(x => x.Id == id, ct);
-
+        public async Task<BuildingPlanApplication?> GetForUpdateAsync(Guid id, CancellationToken ct = default)
+        {
+            return await _dbContext.Set<BuildingPlanApplication>()
+                .Include(a => a.WorkflowLogs)
+                .FirstOrDefaultAsync(a => a.Id == id, ct);
+        }
         public async Task<BuildingPlanApplication?> GetByIdWithWorkflowLogsAsync(Guid id, CancellationToken ct = default)
             => await _dbContext.Set<BuildingPlanApplication>()
                                .Include(x => x.WorkflowLogs)

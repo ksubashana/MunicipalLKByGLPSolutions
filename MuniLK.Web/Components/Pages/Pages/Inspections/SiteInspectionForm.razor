@@ -440,6 +440,7 @@
 
 @code {
     [Parameter] public Guid ApplicationId { get; set; }
+    [Parameter] public Guid AssignmentId { get; set; }
     [Parameter] public Guid DocumentTypeId { get; set; }
     [Parameter] public Guid DocumentCategory { get; set; }
     [Parameter] public Guid ModuleId { get; set; }
@@ -458,7 +459,6 @@
 
     // Two-step process state
     private bool IsInspectionAssigned = false;
-    private Guid? AssignmentId = null;
 
     // Assignment form fields
     private string? SelectedInspectorIdForAssignment = null;
@@ -535,7 +535,7 @@
             // Get module ID for Building and Planning
 
             // Check if there's an existing assignment for this application
-            var response = await client.GetAsync($"api/Assignment?moduleId={ModuleId}&entityId={ApplicationId}");
+            var response = await client.GetAsync($"api/Assignment?id={AssignmentId}");
             if (response.IsSuccessStatusCode)
             {
                 var jsonContent = await response.Content.ReadAsStringAsync();
@@ -588,6 +588,7 @@
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
             var url = $"api/BuildingPlans/{ApplicationId}/complete-site-inspection";
+            Model.InspectionId = AssignmentId;
             var resp = await client.PostAsJsonAsync(url, Model);
             if (resp.IsSuccessStatusCode)
             {

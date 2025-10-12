@@ -2,6 +2,7 @@ using MuniLK.Application.Contact.DTOs;
 using MuniLK.Application.Documents.DTOs;
 using MuniLK.Application.PropertiesLK.DTOs;
 using MuniLK.Domain.Constants.Flows;
+using MuniLK.Domain.Entities;
 
 namespace MuniLK.Application.BuildingAndPlanning.DTOs
 {
@@ -34,7 +35,13 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public string? PlanningReport { get; set; }
         public string? EngineerReport { get; set; }
         public string? CommissionerDecision { get; set; }
-        
+
+        public Guid? AssignmentId { get; set; }
+
+        public Guid? SiteInspectionId { get; set; }
+
+        public Guid? PlanningCommitteeReviewId { get; set; }
+
         // Related data
         public List<ApplicationDocumentResponse> Documents { get; set; } = new();
         public List<WorkflowLogResponse> WorkflowHistory { get; set; } = new();

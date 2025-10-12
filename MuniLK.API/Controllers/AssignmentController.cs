@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MuniLK.Application.Assignments.Commands;
 using MuniLK.Application.Assignments.DTOs;
 using MuniLK.Application.Assignments.Queries;
+using MuniLK.Application.BuildingAndPlanning.Commands;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,13 +27,22 @@ namespace MuniLK.API.Controllers
         public async Task<IActionResult> CreateAssignment([FromBody] CreateAssignmentRequest request)
         {
             var assignmentId = await _mediator.Send(new CreateAssignmentCommand(request));
+            // Then, orchestrate the workflow to link it to the BuildingPlanApplication
+            var result = await _mediator.Send(new AssignInspectionWorkflowCommand(
+                BuildingPlanApplicationId: request.EntityId,
+                AssignmentId: assignmentId,
+                Remarks: "Inspector assigned for site verification",
+                AssignedUserId: request.AssignedToUser
+            ));
             return CreatedAtAction(nameof(GetAssignmentById), new { id = assignmentId }, assignmentId);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetAssignmentById(Guid id)
         {
-            return Ok(); // implement if needed
+            var result = await _mediator.Send(new GetAssignmentByIdQuery(id));
+            if (result is null) return NotFound();
+            return Ok(result);
         }
 
         [HttpGet("by-entity")]

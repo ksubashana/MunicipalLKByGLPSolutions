@@ -187,7 +187,7 @@
     private bool VisibleProperty { get; set; } = false;
 
     [Parameter] public Guid? ModuleId { get; set; }
-    [Parameter] public Guid? EntityId { get; set; }
+    [Parameter] public Guid EntityId { get; set; }
 
     // Existing assignment context (pass from parent if available)
     [Parameter] public Guid? ExistingAssignmentId { get; set; }
@@ -225,10 +225,10 @@
     // Load latest assignment using existing AssignmentResponse (no new DTO)
     private async Task LoadExistingAsync()
     {
-        if (!(ModuleId.HasValue && EntityId.HasValue)) return;
+        if (!(ModuleId.HasValue )) return;
 
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var url = $"api/Assignment/by-entity?moduleId={ModuleId.Value}&entityId={EntityId.Value}";
+        var url = $"api/Assignment/by-entity?moduleId={ModuleId.Value}&entityId={EntityId}";
         var resp = await client.GetAsync(url);
 
         if (resp.StatusCode == System.Net.HttpStatusCode.NotFound ||
@@ -337,8 +337,9 @@
             var request = new CreateAssignmentRequest
             {
                 AssignedToUserId = Guid.Parse(SelectedInspectorId),
+                AssignedToUser = SelectedInspector.FullName,
                 EntityId = EntityId,
-                EntityType = EntityId.HasValue ? "BuildingPlanApplication" : null,
+                EntityType = "BuildingPlanApplication" ,
                 ModuleId = ModuleId.Value,
                 AssignmentDate = AssignmentDate.Value,
                 TaskType = "Inspection",

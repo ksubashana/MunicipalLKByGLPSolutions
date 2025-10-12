@@ -39,7 +39,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         public async Task<Result> Handle(AssignInspectionWorkflowCommand request, CancellationToken cancellationToken)
         {
             // Get the building plan application
-            var application = await _repository.GetByIdAsync(request.BuildingPlanApplicationId, cancellationToken);
+            var application = await _repository.GetForUpdateAsync(request.BuildingPlanApplicationId, cancellationToken);
             if (application == null)
                 return Result.Failure("Building plan application not found");
 

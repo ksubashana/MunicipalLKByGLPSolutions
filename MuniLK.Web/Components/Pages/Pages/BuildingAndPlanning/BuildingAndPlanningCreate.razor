@@ -326,6 +326,7 @@
                     break;
                 case 2:
                     <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId"
+                                                                                      AssignmentId="ActiveAssignmentId"
                                                                                       ApplicationNumber="GeneratedFeatureId"
                                                                                       DocumentCategory="DocumentCategory"
                                                                                       DocumentTypeId="DocumentTypeId"
@@ -411,7 +412,7 @@
     private string PropertyMode { get; set; } = "search";
     private string ContactMode { get; set; } = "search";
 
-    private Guid? ActiveAssignmentId;
+    private Guid ActiveAssignmentId;
     private DateTime? ActiveAssignmentDate;
     private string? ActiveInspectorName;
     private Guid? ActiveInspectorUserId;

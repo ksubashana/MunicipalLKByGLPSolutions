@@ -15,6 +15,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Interfaces
 
         // Get building plan application by id with related entities
         Task<BuildingPlanApplication?> GetByIdAsync(Guid id, CancellationToken ct = default);
+        Task<BuildingPlanApplication?> GetForUpdateAsync(Guid id, CancellationToken ct = default);
         
         // Get building plan application with workflow logs
         Task<BuildingPlanApplication?> GetByIdWithWorkflowLogsAsync(Guid id, CancellationToken ct = default);

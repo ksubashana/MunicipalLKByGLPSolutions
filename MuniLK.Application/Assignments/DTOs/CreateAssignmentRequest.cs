@@ -5,7 +5,8 @@ namespace MuniLK.Application.Assignments.DTOs
     public class CreateAssignmentRequest
     {
         public Guid AssignedToUserId { get; set; }
-        public Guid? EntityId { get; set; }
+        public string AssignedToUser { get; set; }
+        public Guid EntityId { get; set; }
         public string? EntityType { get; set; }
         public Guid ModuleId { get; set; }
         public DateTime AssignmentDate { get; set; }
