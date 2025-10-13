@@ -17,7 +17,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
 
         public async Task<BuildingPlanResponse?> Handle(GetBuildingPlanSummaryQuery request, CancellationToken ct)
         {
-            var app = await _repo.GetByIdAsync(request.Id, ct);
+            var app = await _repo.GetByIdWithChildrenAsync(request.Id, ct);
             if (app is null) return null;
 
             // Map minimal fields needed by the page
@@ -30,6 +30,12 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 BuildingPurpose = app.BuildingPurpose,
                 NoOfFloors = app.NoOfFloors,
                 SubmittedOn = app.SubmittedOn,
+                AssignmentId = app.AssignmentId,
+                Assignment = app.Assignment,
+                SiteInspectionId = app.SiteInspectionId,
+                SiteInspection = app.SiteInspection,
+                PlanningCommitteeReviewId = app.PlanningCommitteeReviewId,
+                PlanningCommitteeReview = app.PlanningCommitteeReview,
                 Documents = new(),   // not needed for summary
                 Workflow = new()     // not needed for summary
                 // Status can be populated later if you have a Lookup projection

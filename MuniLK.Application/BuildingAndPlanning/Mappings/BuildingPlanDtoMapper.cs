@@ -44,6 +44,9 @@ namespace MuniLK.Application.BuildingAndPlanning.Mappings
                 EngineerReport = null,
                 CommissionerDecision = null,
 
+                AssignmentId = summary.AssignmentId,
+                Assignment = summary.Assignment,
+
                 Documents = summary.Documents ?? new List<ApplicationDocumentResponse>(),
                 WorkflowHistory = summary.Workflow ?? new List<WorkflowLogResponse>()
             };

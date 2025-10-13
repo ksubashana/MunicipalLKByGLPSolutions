@@ -9,6 +9,7 @@
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Popups
 @using MuniLK.Application.Assignments.Commands
+@using MuniLK.Domain.Entities
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
 
@@ -188,6 +189,8 @@
 
     [Parameter] public Guid? ModuleId { get; set; }
     [Parameter] public Guid EntityId { get; set; }
+    // Prefetched assignment (from parent summary) to avoid initial API call
+    [Parameter] public Assignment? PrefetchedAssignment { get; set; }
 
     // Existing assignment context (pass from parent if available)
     [Parameter] public Guid? ExistingAssignmentId { get; set; }
@@ -268,7 +271,25 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadInspectors();
-         await LoadExistingAsync();
+        if (PrefetchedAssignment is not null)
+        {
+            // Map domain assignment into existing state model
+            ExistingAssignmentId = PrefetchedAssignment.Id;
+            ExistingAssignmentDate = PrefetchedAssignment.AssignmentDate;
+            ExistingAssignedTo = PrefetchedAssignment.AssignedTo;
+            AssignmentOutcome = PrefetchedAssignment.Outcome;
+            CompletionRemarks = PrefetchedAssignment.OutcomeRemarks;
+            FeatureId = PrefetchedAssignment.FeatureId ?? FeatureId;
+
+            SelectedInspector = UserList.FirstOrDefault(x => x.Id == PrefetchedAssignment.AssignedTo);
+            SelectedInspectorId = SelectedInspector?.Id?.ToString();
+            AssignmentDate = PrefetchedAssignment.AssignmentDate;
+            Remarks = PrefetchedAssignment.Notes;
+        }
+        else
+        {
+            await LoadExistingAsync();
+        }
        await ClickHandler();
     }
     private async Task ClickHandler()

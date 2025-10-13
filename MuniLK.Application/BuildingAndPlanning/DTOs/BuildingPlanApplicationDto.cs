@@ -37,10 +37,13 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public string? CommissionerDecision { get; set; }
 
         public Guid? AssignmentId { get; set; }
+        public Assignment? Assignment { get; set; }
 
         public Guid? SiteInspectionId { get; set; }
+        public SiteInspection? SiteInspection { get; set; }
 
         public Guid? PlanningCommitteeReviewId { get; set; }
+        public PlanningCommitteeReview? PlanningCommitteeReview { get; set; }
 
         // Related data
         public List<ApplicationDocumentResponse> Documents { get; set; } = new();
