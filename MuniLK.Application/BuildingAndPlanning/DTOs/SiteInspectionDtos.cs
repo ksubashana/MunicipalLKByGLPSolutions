@@ -10,7 +10,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public Guid ApplicationId { get; set; }
         
         [Required]
-        public Guid InspectionId { get; set; }
+        public Guid? InspectionId { get; set; }
         
         // Core Outcome (Extended)
         [Required]
@@ -69,7 +69,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
     {
         public Guid Id { get; set; }
         public Guid ApplicationId { get; set; }
-        public Guid InspectionId { get; set; }
+        public Guid? InspectionId { get; set; }
         
         // Core Outcome
         public InspectionStatus Status { get; set; }

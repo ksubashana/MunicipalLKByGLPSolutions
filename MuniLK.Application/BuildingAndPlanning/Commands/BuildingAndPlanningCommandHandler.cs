@@ -340,28 +340,21 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
 
         public async Task<Result> Handle(CompleteSiteInspectionCommand request, CancellationToken ct)
         {
-            var entity = await _repo.GetByIdAsync(request.Id, ct);
-            if (entity == null) return Result.Failure("Building plan application not found");
-            Guid SiteInspectionId = Guid.NewGuid();
-            // Create the site inspection record
+            var application = await _repo.GetForUpdateAsync(request.Id, ct);
+            if (application == null) return Result.Failure("Building plan application not found");
+
             var siteInspection = new SiteInspection
             {
-                Id = SiteInspectionId,
+                Id = Guid.NewGuid(),
                 TenantId = _currentTenant.GetTenantId(),
                 ApplicationId = request.Id,
-                InspectionId = SiteInspectionId,
-                
-                // Core fields
+                InspectionId = request.Request.InspectionId,
                 Status = request.Request.Status,
                 Remarks = request.Request.Remarks,
-                
-                // Metadata
                 InspectionDate = request.Request.InspectionDate,
                 OfficersPresent = request.Request.OfficersPresent,
                 GpsCoordinates = request.Request.GpsCoordinates,
                 PhotosPaths = request.Request.Photos != null ? System.Text.Json.JsonSerializer.Serialize(new List<string>()) : null,
-                
-                // Site conditions
                 AccessRoadWidthCondition = request.Request.AccessRoadWidthCondition,
                 AccessRoadWidthNotes = request.Request.AccessRoadWidthNotes,
                 BoundaryVerification = request.Request.BoundaryVerification,
@@ -372,8 +365,6 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 ExistingStructuresNotes = request.Request.ExistingStructuresNotes,
                 EncroachmentsReservations = request.Request.EncroachmentsReservations,
                 EncroachmentsReservationsNotes = request.Request.EncroachmentsReservationsNotes,
-                
-                // Compliance checks
                 MatchesSurveyPlan = request.Request.MatchesSurveyPlan,
                 MatchesSurveyPlanNotes = request.Request.MatchesSurveyPlanNotes,
                 ZoningCompatible = request.Request.ZoningCompatible,
@@ -385,31 +376,23 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 SideSetbacks = request.Request.SideSetbacks,
                 EnvironmentalConcerns = request.Request.EnvironmentalConcerns,
                 EnvironmentalConcernsNotes = request.Request.EnvironmentalConcernsNotes,
-                
-                // Decision support
                 RequiredModifications = request.Request.RequiredModifications,
-                ClearancesRequired = request.Request.ClearancesRequired != null ? 
-                    System.Text.Json.JsonSerializer.Serialize(request.Request.ClearancesRequired) : null,
+                ClearancesRequired = request.Request.ClearancesRequired != null ? System.Text.Json.JsonSerializer.Serialize(request.Request.ClearancesRequired) : null,
                 FinalRecommendation = request.Request.FinalRecommendation,
-                
-                // Timestamps
                 CreatedDate = DateTime.UtcNow,
-                CreatedBy = _currentUser.UserId
+                CreatedBy = _currentUser.UserId,
+                ModifiedDate = DateTime.UtcNow,
+                ModifiedBy = _currentUser.UserId
             };
 
-            // Save the detailed site inspection
-            await _siteInspectionRepo.AddAsync(siteInspection, ct);
+            var (entity, created) = await _siteInspectionRepo.AddOrUpdateByInspectionIdAsync(siteInspection, ct);
+            if (created)
+            {
+                application.SiteInspectionId = entity.Id;
+            }
+
             await _siteInspectionRepo.SaveChangesAsync(ct);
-
-            //// For backward compatibility, also store in the legacy Report field
-            //var legacyReport = $"Site Inspection - Status: {request.Request.Status}, " +
-            //                 $"Date: {request.Request.InspectionDate:yyyy-MM-dd}, " +
-            //                 $"Final Recommendation: {request.Request.FinalRecommendation}";
-            
-            //// Use the original CompleteInspectionCommand to update the existing Inspection table
-            //var legacyResult = await _mediator.Send(new CompleteInspectionCommand(request.Id, legacyReport), ct);
-            //if (!legacyResult.Succeeded) return legacyResult;
-
+            await _repo.UnitOfWork.SaveChangesAsync(ct);
             return Result.Success();
         }
     }

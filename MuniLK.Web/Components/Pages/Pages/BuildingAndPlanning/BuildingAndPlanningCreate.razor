@@ -413,7 +413,7 @@
     private string PropertyMode { get; set; } = "search";
     private string ContactMode { get; set; } = "search";
 
-    private Guid ActiveAssignmentId;
+    private Guid? ActiveAssignmentId;
     private DateTime? ActiveAssignmentDate;
     private string? ActiveInspectorName;
     private Guid? ActiveInspectorUserId;
@@ -574,7 +574,8 @@
 
         // 4) Build the DTO to pass to EngineerReview.Model
         BuildingPlanSummery = summary.ToApplicationDto(SelectedContact, SelectedProperty);
-
+        ActiveAssignmentId = summary.AssignmentId;
+        ActiveAssignmentDate = summary.Assignment.AssignmentDate;
         // Enable next step
         IsApplicationCreated = true;
         IsDocumentUploaded = true;

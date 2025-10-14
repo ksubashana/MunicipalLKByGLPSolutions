@@ -440,7 +440,7 @@
 
 @code {
     [Parameter] public Guid ApplicationId { get; set; }
-    [Parameter] public Guid AssignmentId { get; set; }
+    [Parameter] public Guid? AssignmentId { get; set; }
     [Parameter] public Guid DocumentTypeId { get; set; }
     [Parameter] public Guid DocumentCategory { get; set; }
     [Parameter] public Guid ModuleId { get; set; }
@@ -521,8 +521,9 @@
         Model.Status = InspectionStatus.Pending;
         Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
         Model.ClearancesRequired = new List<ClearanceType>();
+        Model.InspectionId = AssignmentId;
         await LoadInspectorsAsync();
-        await LoadExistingApplicationAsync(ApplicationId);
+        await LoadExistingApplicationAsync(AssignmentId, ApplicationId);
         await CheckExistingAssignment();
     }
 
@@ -587,8 +588,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var url = $"api/BuildingPlans/{ApplicationId}/complete-site-inspection";
-            Model.InspectionId = AssignmentId;
+            var url = $"api/Inspection/{ApplicationId}/complete-site-inspection";
             var resp = await client.PostAsJsonAsync(url, Model);
             if (resp.IsSuccessStatusCode)
             {
@@ -613,7 +613,7 @@
         }
     }
 
-    private async Task LoadExistingApplicationAsync(Guid applicationId)
+    private async Task LoadExistingApplicationAsync(Guid? AssignmentId,Guid ApplicationId)
     {
         try
         {
@@ -625,7 +625,7 @@
             // Load existing site inspection if exists
             try
             {
-                var jsonInsp = await client.GetStringAsync($"api/Inspection/{applicationId}");
+                var jsonInsp = await client.GetStringAsync($"api/Inspection/{AssignmentId}");
                 var existingInspection = System.Text.Json.JsonSerializer.Deserialize<SiteInspectionResponse>(jsonInsp,
                     new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (existingInspection != null)
@@ -642,7 +642,7 @@
             if (ModuleId != Guid.Empty)
             {
                 var jsonDocs = await client.GetStringAsync(
-                    $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
+                    $"api/Documents/linked?moduleId={ModuleId}&entityId={ApplicationId}&linkContext=Building and Planning");
                 var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
                     new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();

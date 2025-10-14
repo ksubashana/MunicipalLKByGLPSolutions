@@ -11,8 +11,8 @@ namespace MuniLK.Domain.Entities
 
         // Basic References
         public Guid ApplicationId { get; set; }
-        public Guid InspectionId { get; set; } // Reference to existing Inspection table
-        
+        public Guid? InspectionId { get; set; } // Reference to existing assignment table - If possible change this is AssignmentId for better naming consistency 
+
         // Core Outcome (Extended)
         [Required]
         public InspectionStatus Status { get; set; }
