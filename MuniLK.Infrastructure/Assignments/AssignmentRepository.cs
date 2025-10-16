@@ -69,14 +69,14 @@ namespace MuniLK.Infrastructure.Assignments
                 .OrderByDescending(a => a.AssignmentDate)
                 .ToListAsync();
         }
-        public async Task<IEnumerable<Assignment>> GetByModuleAndEntityAsync(Guid? moduleId, Guid? entityId, Guid? tenantId)
-        {
-            return await _context.Assignments
-                .Where(a => a.ModuleId == moduleId
-                            && a.TenantId == tenantId
-                            && (entityId == null || a.ModuleId == moduleId || a.EntityId == entityId))
-                .ToListAsync();
-        }
+public async Task<IEnumerable<Assignment>> GetByModuleAndEntityAsync(Guid? moduleId, Guid? entityId, Guid? tenantId)
+{
+    return await _context.Assignments
+        .Where(a => a.ModuleId == moduleId
+                    && a.EntityId == entityId
+                    && a.TenantId == tenantId)
+        .ToListAsync();
+}
         public async Task UpdateAsync(Assignment assignment)
         {
             _context.Assignments.Update(assignment);

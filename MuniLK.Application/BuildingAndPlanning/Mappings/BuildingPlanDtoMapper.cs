@@ -45,7 +45,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Mappings
                 CommissionerDecision = null,
 
                 AssignmentId = summary.AssignmentId,
-                Assignment = summary.Assignment,
+                // Map already projected assignment response (no cycling)
+                Assignment = null, // keep null here; consumer uses ActiveAssignmentId & date
 
                 Documents = summary.Documents ?? new List<ApplicationDocumentResponse>(),
                 WorkflowHistory = summary.Workflow ?? new List<WorkflowLogResponse>()

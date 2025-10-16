@@ -533,7 +533,7 @@
         await JS.InvokeVoidAsync("localStorage.setItem", LocalStorageFeatureKey, GeneratedFeatureId ?? string.Empty);
 
         // Use the application id as EntityId for linking
-        EntityId = summary.Id;
+        EntityId = id;
 
         // 2) Load applicant details
         var contact = await client.GetFromJsonAsync<MuniLK.Application.Contact.DTOs.ContactResponse>(
@@ -575,7 +575,7 @@
         // 4) Build the DTO to pass to EngineerReview.Model
         BuildingPlanSummery = summary.ToApplicationDto(SelectedContact, SelectedProperty);
         ActiveAssignmentId = summary.AssignmentId;
-        ActiveAssignmentDate = summary.Assignment.AssignmentDate;
+        ActiveAssignmentDate = summary.Assignment?.AssignmentDate;
         // Enable next step
         IsApplicationCreated = true;
         IsDocumentUploaded = true;
