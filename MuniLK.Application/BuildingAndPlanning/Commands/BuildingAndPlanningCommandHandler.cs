@@ -377,11 +377,11 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 EnvironmentalConcerns = request.Request.EnvironmentalConcerns,
                 EnvironmentalConcernsNotes = request.Request.EnvironmentalConcernsNotes,
                 RequiredModifications = request.Request.RequiredModifications,
-                ClearancesRequired = request.Request.ClearancesRequired != null ? System.Text.Json.JsonSerializer.Serialize(request.Request.ClearancesRequired) : null,
+                ClearancesRequired = request.Request.ClearanceOptionItemIds != null ? System.Text.Json.JsonSerializer.Serialize(request.Request.ClearanceOptionItemIds) : null,
                 FinalRecommendation = request.Request.FinalRecommendation,
                 CreatedDate = DateTime.UtcNow,
                 CreatedBy = _currentUser.UserId,
-                ModifiedDate = DateTime.UtcNow,
+                // Legacy ClearancesRequired JSON retained for backward compatibility (write empty)
                 ModifiedBy = _currentUser.UserId
             };
 
@@ -392,6 +392,17 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             }
 
             await _siteInspectionRepo.SaveChangesAsync(ct);
+
+            // Persist option selections for clearances if provided (new model uses SiteInspection.Id as key)
+            if (request.Request.ClearanceOptionItemIds != null && request.Request.ClearanceOptionItemIds.Any())
+            {
+                // Use mediator to reuse generic save command (entityType = "SiteInspection")
+                await _mediator.Send(new SaveEntityOptionSelectionsCommand(
+                    entity.ApplicationId,
+                    "SiteInspection",
+                    application.ModuleId, // assuming BuildingPlanApplication has ModuleId; adjust if different
+                    request.Request.ClearanceOptionItemIds), ct);
+            }
             await _repo.UnitOfWork.SaveChangesAsync(ct);
             return Result.Success();
         }

@@ -41,13 +41,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Handlers
             if (request.ModuleId == Guid.Empty)
                 return Result<EntityOptionSelectionsResponse>.Failure("ModuleId is required");
 
-            // Validate that all OptionItemIds exist
-            if (request.OptionItemIds != null && request.OptionItemIds.Any())
-            {
-                var allExist = await _repository.ValidateOptionItemsExistAsync(request.OptionItemIds, ct);
-                if (!allExist)
-                    return Result<EntityOptionSelectionsResponse>.Failure("One or more OptionItemIds are invalid");
-            }
+            // (Legacy OptionItemIds validation skipped - moving to LookupIds)
 
             try
             {
@@ -72,7 +66,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Handlers
                             EntityId = request.EntityId,
                             EntityType = request.EntityType,
                             ModuleId = request.ModuleId,
-                            OptionItemId = optionItemId
+                            OptionItemId = optionItemId,
+                            LookupId = optionItemId // Treat incoming ids as lookup ids directly in transition phase
                         }).ToList();
 
                         await _repository.AddSelectionsAsync(newSelections, ct);

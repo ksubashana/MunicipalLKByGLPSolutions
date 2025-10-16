@@ -452,6 +452,7 @@
         var request = new MuniLK.Application.BuildingAndPlanning.DTOs.SubmitBuildingPlanRequest
         {
             ApplicationId = EntityId,
+            ModuleId = ModuleId,
             ApplicantContactId = SelectedContact!.Id!.Value,
             PropertyId = SelectedProperty!.Id!.Value,
             BuildingPurpose = BuildingPurposeInput!,

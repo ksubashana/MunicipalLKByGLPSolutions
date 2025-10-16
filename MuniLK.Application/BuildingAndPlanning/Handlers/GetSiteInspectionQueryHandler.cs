@@ -12,10 +12,12 @@ namespace MuniLK.Application.BuildingAndPlanning.Handlers
     public class GetSiteInspectionQueryHandler : IRequestHandler<GetSiteInspectionQuery, SiteInspectionResponse?>
     {
         private readonly ISiteInspectionRepository _repository;
+        private readonly IEntityOptionSelectionRepository _optionSelectionRepository;
 
-        public GetSiteInspectionQueryHandler(ISiteInspectionRepository repository)
+        public GetSiteInspectionQueryHandler(ISiteInspectionRepository repository, IEntityOptionSelectionRepository optionSelectionRepository)
         {
             _repository = repository;
+            _optionSelectionRepository = optionSelectionRepository;
         }
 
         public async Task<SiteInspectionResponse?> Handle(GetSiteInspectionQuery request, CancellationToken ct)
@@ -57,18 +59,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Handlers
                 }
             }
 
-            // Parse clearances if available
-            if (!string.IsNullOrEmpty(siteInspection.ClearancesRequired))
-            {
-                try
-                {
-                    response.ClearancesRequired = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<MuniLK.Domain.Constants.Flows.ClearanceType>>(siteInspection.ClearancesRequired);
-                }
-                catch
-                {
-                    response.ClearancesRequired = new System.Collections.Generic.List<MuniLK.Domain.Constants.Flows.ClearanceType>();
-                }
-            }
+            // Deprecated legacy ClearancesRequired JSON ignored (migrated to EntityOptionSelection)
 
             // Map site conditions
             response.SiteConditions = new System.Collections.Generic.List<SiteConditionResult>
@@ -89,6 +80,12 @@ namespace MuniLK.Application.BuildingAndPlanning.Handlers
                 new ComplianceCheckResult { Name = "EnvironmentalConcerns", Result = siteInspection.EnvironmentalConcerns, Notes = siteInspection.EnvironmentalConcernsNotes }
             };
 
+            // Load option selections (clearances) using generic table keyed by SiteInspection.Id
+            var selections = await _optionSelectionRepository.GetSelectionsAsync(siteInspection.Id, "SiteInspection", siteInspection.ApplicationId, ct);
+            if (selections.Any())
+            {
+                response.ClearanceOptionItemIds = selections.Select(s => s.OptionItemId).ToList();
+            }
             return response;
         }
     }

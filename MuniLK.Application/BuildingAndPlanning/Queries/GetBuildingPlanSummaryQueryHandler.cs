@@ -66,7 +66,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                     GpsCoordinates = app.SiteInspection.GpsCoordinates,
                     // PhotoUrls, SiteConditions, ComplianceChecks left empty in summary context
                     RequiredModifications = app.SiteInspection.RequiredModifications,
-                    ClearancesRequired = null, // parse JSON only in detailed query
+                    ClearanceOptionItemIds = null, // parse JSON only in detailed query
                     FinalRecommendation = app.SiteInspection.FinalRecommendation,
                     CreatedDate = app.SiteInspection.CreatedDate,
                     CreatedBy = app.SiteInspection.CreatedBy,

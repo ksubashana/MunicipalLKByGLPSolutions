@@ -17,8 +17,13 @@ namespace MuniLK.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(100);
 
+            // Legacy OptionItemId no longer required
             builder.Property(eos => eos.OptionItemId)
-                .IsRequired();
+                .IsRequired(false);
+
+            // New LookupId (nullable during transition)
+            builder.Property(eos => eos.LookupId)
+                .IsRequired(false);
 
             builder.Property(eos => eos.ModuleId)
                 .IsRequired();
@@ -26,10 +31,16 @@ namespace MuniLK.Infrastructure.Data.Configurations
             builder.Property(eos => eos.TenantId)
                 .IsRequired(false);
 
-            // Configure many-to-one relationship with OptionItem
+            // Legacy relationship
             builder.HasOne(eos => eos.OptionItem)
                 .WithMany()
                 .HasForeignKey(eos => eos.OptionItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // New relationship to Lookup (if Lookup entity exists in model)
+            builder.HasOne<Lookup>()
+                .WithMany()
+                .HasForeignKey(eos => eos.LookupId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Create composite index for efficient queries by entity

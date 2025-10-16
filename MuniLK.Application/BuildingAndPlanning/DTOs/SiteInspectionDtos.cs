@@ -59,7 +59,8 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
 
         // 4. Decision Support
         public string? RequiredModifications { get; set; }
-        public List<ClearanceType>? ClearancesRequired { get; set; }
+        // Deprecated: use Option Selections via EntityOptionSelection table (List<Guid> OptionItemIds)
+        public List<Guid>? ClearanceOptionItemIds { get; set; }
         
         [Required]
         public FinalRecommendation FinalRecommendation { get; set; }
@@ -87,7 +88,8 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         
         // Decision Support
         public string? RequiredModifications { get; set; }
-        public List<ClearanceType>? ClearancesRequired { get; set; }
+        // Deprecated legacy enum list; now selections resolved externally
+        public List<Guid>? ClearanceOptionItemIds { get; set; }
         public FinalRecommendation FinalRecommendation { get; set; }
         
         // Timestamps

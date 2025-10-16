@@ -19,15 +19,22 @@ namespace MuniLK.Domain.Entities
         [MaxLength(100)]
         public string EntityType { get; set; } = string.Empty;
 
-        [Required]
+        [Obsolete("Use LookupId instead")] 
         public Guid OptionItemId { get; set; }
 
-        [Required]
-        public Guid ModuleId { get; set; }
+        /// <summary>
+        /// New FK pointing to Lookup.Id replacing OptionItemId
+        /// </summary>
+        public Guid? LookupId { get; set; }
 
+        /// <summary>
+        /// Module context (still required for scoping selections)
+        /// </summary>
+        public Guid ModuleId { get; set; }
         public Guid? TenantId { get; set; }
 
-        // Navigation property
+        // Legacy navigation (deprecated)
+        [Obsolete]
         public OptionItem? OptionItem { get; set; }
     }
 }

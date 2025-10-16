@@ -1,6 +1,7 @@
 using MuniLK.Domain.Constants.Flows;
 using MuniLK.Domain.Interfaces;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace MuniLK.Domain.Entities
 {
@@ -74,5 +75,6 @@ namespace MuniLK.Domain.Entities
 
         // Navigation Properties
         public BuildingPlanApplication? Application { get; set; }
+        public ICollection<EntityOptionSelection>? OptionSelections { get; set; }
     }
 }

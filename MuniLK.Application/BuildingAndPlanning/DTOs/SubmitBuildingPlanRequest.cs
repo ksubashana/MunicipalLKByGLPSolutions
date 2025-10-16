@@ -10,6 +10,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
     public class SubmitBuildingPlanRequest
     {
         public Guid ApplicationId { get; set; }
+        public Guid ModuleId { get; set; }
         public Guid ApplicantContactId { get; set; }
         public Guid PropertyId { get; set; }
         public string BuildingPurpose { get; set; } = default!;

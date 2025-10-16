@@ -272,8 +272,8 @@
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Clearances Required</label>
-                        <SfMultiSelect TValue="List<ClearanceType>" TItem="ClearanceTypeOption" 
-                                     @bind-Value="Model.ClearancesRequired" DataSource="@ClearanceTypeOptions" 
+                        <SfMultiSelect TValue="List<Guid>" TItem="ClearanceTypeOption" 
+                                     @bind-Value="Model.ClearanceOptionItemIds" DataSource="@ClearanceTypeOptions" 
                                      Placeholder="Select required clearances" CssClass="form-control"
                                      Mode="@VisualMode.CheckBox">
                             <MultiSelectFieldSettings Value="Value" Text="Text" />
@@ -501,14 +501,8 @@
         new() { Value = FinalRecommendation.ReInspectionRequired, Text = "Re-Inspection Required" }
     };
 
-    private List<ClearanceTypeOption> ClearanceTypeOptions = new()
-    {
-        new() { Value = ClearanceType.CEA, Text = "CEA" },
-        new() { Value = ClearanceType.CoastConservation, Text = "Coast Conservation" },
-        new() { Value = ClearanceType.NBRO, Text = "NBRO" },
-        new() { Value = ClearanceType.FireDept, Text = "Fire Department" },
-        new() { Value = ClearanceType.Other, Text = "Other" }
-    };
+    // Dynamically loaded clearance option items (lookup-based) -> bind to Guid list
+    private List<ClearanceTypeOption> ClearanceTypeOptions = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -520,7 +514,8 @@
         }
         Model.Status = InspectionStatus.Pending;
         Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
-        Model.ClearancesRequired = new List<ClearanceType>();
+        // Load clearance options from lookup/category or option items API (placeholder logic)
+        Model.ClearanceOptionItemIds = new List<Guid>();
         Model.InspectionId = AssignmentId;
         await LoadInspectorsAsync();
         await LoadExistingApplicationAsync(AssignmentId, ApplicationId);
@@ -714,7 +709,7 @@
 
         // Decision support
         Model.RequiredModifications = inspection.RequiredModifications ?? string.Empty;
-        Model.ClearancesRequired = inspection.ClearancesRequired ?? new List<ClearanceType>();
+        Model.ClearanceOptionItemIds = inspection.ClearanceOptionItemIds ?? new List<Guid>();
         Model.FinalRecommendation = inspection.FinalRecommendation;
     }
 
@@ -814,7 +809,7 @@
 
     public class ClearanceTypeOption
     {
-        public ClearanceType Value { get; set; }
+        public Guid Value { get; set; }
         public string Text { get; set; } = "";
     }
 

@@ -12,6 +12,7 @@ namespace MuniLK.Domain.Entities
     {
         public Guid Id { get; set; }
         public Guid? TenantId { get; set; }
+        public Guid ModuleId { get; set; }
         public Guid ApplicantContactId { get; set; }
         public Contact ApplicantContact { get; set; } = default!;
 
