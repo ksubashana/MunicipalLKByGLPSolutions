@@ -13,5 +13,6 @@ namespace MuniLK.Web.Interfaces
         /// <param name="value">The text value of the lookup item.</param>
         /// <returns>The GUID of the lookup item.</returns>
         Task<Guid> GetLookupIdAsync(Guid lookupCategoryId, string value);
+        Task<List<LookupDto>> LoadOptionTypesAsync(string CategoryType); // new convenience method
     }
 }

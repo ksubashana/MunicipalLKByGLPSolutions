@@ -54,18 +54,5 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
             _context.EntityOptionSelections.RemoveRange(existingSelections);
         }
 
-        public async Task<bool> ValidateOptionItemsExistAsync(
-            List<Guid> optionItemIds, 
-            CancellationToken ct = default)
-        {
-            if (optionItemIds == null || !optionItemIds.Any())
-                return true;
-
-            var existingCount = await _context.OptionItems
-                .Where(oi => optionItemIds.Contains(oi.Id))
-                .CountAsync(ct);
-
-            return existingCount == optionItemIds.Count;
-        }
     }
 }

@@ -26,7 +26,7 @@ namespace MuniLK.Infrastructure.Generic.Services
             _mapper = mapper;
         }
 
-        public async Task<string> CreateAsync(ClientConfigurationCreateDto dto)
+        public async Task<ClientConfiguration> CreateAsync(ClientConfigurationCreateDto dto)
         {
             var tenantId = _tenantService.GetTenantId();
 
@@ -51,7 +51,7 @@ namespace MuniLK.Infrastructure.Generic.Services
             _db.ClientConfigurations.Add(entity);
             await _db.SaveChangesAsync();
 
-            return dto.ConfigKey;
+            return entity;
         }
 
         public async Task<ClientConfigurationDto> UpdateAsync(ClientConfigurationUpdateDto dto)
@@ -77,7 +77,7 @@ namespace MuniLK.Infrastructure.Generic.Services
             return _mapper.Map<ClientConfigurationDto>(entity);
         }
 
-        public async Task<ClientConfigurationDto?> GetByIdAsync(int id)
+        public async Task<ClientConfigurationDto?> GetByIdAsync(Guid id)
         {
             var entity = await _db.ClientConfigurations.FindAsync(id);
             if (entity == null || entity.TenantId != _tenantService.GetTenantId())
@@ -96,7 +96,7 @@ namespace MuniLK.Infrastructure.Generic.Services
             return _mapper.Map<List<ClientConfigurationDto>>(items);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(Guid id)
         {
             var entity = await _db.ClientConfigurations.FindAsync(id);
             if (entity == null || entity.TenantId != _tenantService.GetTenantId())

@@ -9,18 +9,18 @@ using MuniLK.Infrastructure.Data;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Data.Migrations.IdentityMigrations
+namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
 {
     [DbContext(typeof(ApplicationIdentityDbContext))]
-    [Migration("20250710182920_InitialIdentitySchema")]
-    partial class InitialIdentitySchema
+    [Migration("20251017042626_InitialIdentityMigration")]
+    partial class InitialIdentityMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);

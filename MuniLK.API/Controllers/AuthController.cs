@@ -19,10 +19,13 @@ namespace MuniLK.API.Controllers
             _authService = authService;
             _dataProtectionProvider = dataProtectionProvider;
         }
-        //dotnet ef migrations add AddingModuleIDtoBuildingAndPlanning --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
+        //dotnet ef migrations add InitialMigration --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
         //dotnet ef database update --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
         //dotnet ef migrations remove --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-        //Test
+
+        //dotnet ef migrations add InitialIdentityMigration --context ApplicationIdentityDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
+        //dotnet ef database update --context ApplicationIdentityDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
+
         /// <summary>
         /// Registers a new user.
         /// </summary>

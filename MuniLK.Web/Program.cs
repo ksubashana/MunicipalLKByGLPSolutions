@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Options;
 using MuniLK.Application.Generic.Interfaces;
+using MuniLK.Domain.Constants;
 using MuniLK.Infrastructure.Services;
 using MuniLK.Web.Components;
 using MuniLK.Web.Interfaces;
@@ -12,7 +13,15 @@ using System.Globalization;
 var builder = WebApplication.CreateBuilder(args);
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk2NDQ4OUAzMzMwMmUzMDJlMzAzYjMzMzQzYm1vQ2VaaUFGSzFoQ1Jqbk9WL05xZEYzQVRtMCtYZ1VLQ3QvS0ZEenhpWGs9");
 
-builder.Services.AddAuthorization(); // Required for AuthenticationStateProvider
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SubmitBuildingPlan", policy =>
+        policy.RequireRole(
+            Roles.SuperAdmin,
+            Roles.Admin,
+            Roles.Officer));
+    // add other shared policies if needed
+}); 
 builder.Services.AddCascadingAuthenticationState(); // Makes AuthenticationState available to components
 
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); // Needed if CustomAuthStateProvider accesses HttpContext
@@ -52,6 +61,7 @@ builder.Services.AddScoped<ILanguageService, LanguageService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options =>
@@ -70,10 +80,13 @@ builder.Services.AddSyncfusionBlazor();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 app.UseRouting();

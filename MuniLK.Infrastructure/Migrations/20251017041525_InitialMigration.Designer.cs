@@ -12,8 +12,8 @@ using MuniLK.Infrastructure.Data;
 namespace MuniLK.Infrastructure.Migrations
 {
     [DbContext(typeof(MuniLKDbContext))]
-    [Migration("20251012051125_AddWorkflowForeignKeys")]
-    partial class AddWorkflowForeignKeys
+    [Migration("20251017041525_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -138,6 +138,9 @@ namespace MuniLK.Infrastructure.Migrations
                     b.Property<string>("EngineerReport")
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
+
+                    b.Property<Guid>("ModuleId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("NoOfFloors")
                         .HasColumnType("int");
@@ -457,10 +460,16 @@ namespace MuniLK.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("LookupId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("ModuleId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("OptionItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SiteInspectionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("TenantId")
@@ -468,7 +477,9 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OptionItemId");
+                    b.HasIndex("LookupId");
+
+                    b.HasIndex("SiteInspectionId");
 
                     b.HasIndex("EntityId", "EntityType", "ModuleId");
 
@@ -800,49 +811,6 @@ namespace MuniLK.Infrastructure.Migrations
                     b.HasIndex("ParentModuleId");
 
                     b.ToTable("Modules");
-                });
-
-            modelBuilder.Entity("MuniLK.Domain.Entities.OptionGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("OptionGroups");
-                });
-
-            modelBuilder.Entity("MuniLK.Domain.Entities.OptionItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupId");
-
-                    b.ToTable("OptionItems");
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeReview", b =>
@@ -1215,7 +1183,7 @@ namespace MuniLK.Infrastructure.Migrations
                     b.Property<DateTime>("InspectionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("InspectionId")
+                    b.Property<Guid?>("InspectionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool?>("MatchesSurveyPlan")
@@ -1630,13 +1598,14 @@ namespace MuniLK.Infrastructure.Migrations
 
             modelBuilder.Entity("MuniLK.Domain.Entities.EntityOptionSelection", b =>
                 {
-                    b.HasOne("MuniLK.Domain.Entities.OptionItem", "OptionItem")
+                    b.HasOne("MuniLK.Domain.Entities.Lookup", null)
                         .WithMany()
-                        .HasForeignKey("OptionItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("LookupId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("OptionItem");
+                    b.HasOne("MuniLK.Domain.Entities.SiteInspection", null)
+                        .WithMany("OptionSelections")
+                        .HasForeignKey("SiteInspectionId");
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.LicenseDocument", b =>
@@ -1677,17 +1646,6 @@ namespace MuniLK.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentModule");
-                });
-
-            modelBuilder.Entity("MuniLK.Domain.Entities.OptionItem", b =>
-                {
-                    b.HasOne("MuniLK.Domain.Entities.OptionGroup", "OptionGroup")
-                        .WithMany("OptionItems")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("OptionGroup");
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PropertyOwner", b =>
@@ -1818,11 +1776,6 @@ namespace MuniLK.Infrastructure.Migrations
                     b.Navigation("ChildModules");
                 });
 
-            modelBuilder.Entity("MuniLK.Domain.Entities.OptionGroup", b =>
-                {
-                    b.Navigation("OptionItems");
-                });
-
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeReview", b =>
                 {
                     b.Navigation("Application");
@@ -1831,6 +1784,8 @@ namespace MuniLK.Infrastructure.Migrations
             modelBuilder.Entity("MuniLK.Domain.Entities.SiteInspection", b =>
                 {
                     b.Navigation("Application");
+
+                    b.Navigation("OptionSelections");
                 });
 
             modelBuilder.Entity("Property", b =>

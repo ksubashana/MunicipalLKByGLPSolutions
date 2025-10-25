@@ -91,58 +91,105 @@ namespace MuniLK.Infrastructure.Security
         /// </summary>
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
-            Guid? tenantId = _currentTenantService.GetTenantId(); // Or use request.TenantId if already provided
+            // Start domain transaction (covers domain entities only)
+            using var domainTx = await _unitOfWork.BeginTransactionAsync();
 
-
-            var user = new IdentityUser { UserName = request.Username, Email = request.Email };
-
-            // Create user with UserManager
-            var result = await _userManager.CreateAsync(user, request.Password);
-            await _userManager.AddClaimAsync(user, new Claim("TenantId", request.TenantId.ToString())); // Add as a claim
-
-            if (!result.Succeeded)
+            IdentityUser? identityUser = null;
+            try
             {
-                return new AuthResponse { Succeeded = false, Errors = result.Errors.Select(e => e.Description).ToArray() };
+                // 1. Create Identity user (separate DbContext)
+                identityUser = new IdentityUser { UserName = request.Username, Email = request.Email };
+                var identityResult = await _userManager.CreateAsync(identityUser, request.Password);
+
+                if (!identityResult.Succeeded)
+                {
+                    return new AuthResponse
+                    {
+                        Succeeded = false,
+                        Errors = identityResult.Errors.Select(e => e.Description).ToArray()
+                    };
+                }
+
+                // 2. Add tenant claim (still on Identity context)
+                var claimResult = await _userManager.AddClaimAsync(identityUser, new Claim("TenantId", request.TenantId.ToString()));
+                if (!claimResult.Succeeded)
+                {
+                    // Rollback by deleting Identity user
+                    await _userManager.DeleteAsync(identityUser);
+                    return new AuthResponse
+                    {
+                        Succeeded = false,
+                        Errors = claimResult.Errors.Select(e => e.Description).ToArray()
+                    };
+                }
+
+                // 3. Prepare domain entities (same Guid for user/contact linkage)
+                var userIdGuid = Guid.Parse(identityUser.Id);
+                var contact = new MuniLK.Domain.Entities.ContactEntities.Contact
+                {
+                    Id = userIdGuid,
+                    FullName = request.FullName,
+                    NIC = request.NIC,
+                    Email = request.Email,
+                    PhoneNumber = request.PhoneNumber,
+                    AddressLine1 = request.AddressLine1,
+                    AddressLine2 = request.AddressLine2,
+                    City = request.City,
+                    District = request.District,
+                    Province = request.Province,
+                    PostalCode = request.PostalCode,
+                    TenantId = request.TenantId,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+                await _contactRepository.AddAsync(contact);
+
+                var domainUser = new Domain.Entities.User
+                {
+                    Id = userIdGuid,
+                    Email = request.Email,
+                    Username = request.Username,
+                    ContactId = userIdGuid,
+                    TenantId = request.TenantId,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                // IMPORTANT: Avoid storing password twice – if AddUserAsync hashes/stores it again, reconsider design.
+                await _userRepository.AddUserAsync(domainUser, request.Password);
+
+                // 4. Commit domain changes
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                // 5. Generate tokens (uses domain model)
+                var accessToken = await _tokenService.GenerateAccessTokenAsync(domainUser);
+                var refreshToken = await _tokenService.GenerateRefreshTokenAsync(domainUser);
+
+                return new AuthResponse
+                {
+                    Succeeded = true,
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken
+                };
             }
-            Guid contactId = Guid.Parse( user.Id); // Or use request.TenantId if already provided
-
-            var contact = new MuniLK.Domain.Entities.ContactEntities.Contact
+            catch (Exception ex)
             {
-                Id = contactId,
-                FullName = request.FullName,
-                NIC = request.NIC,
-                Email = request.Email, // user email
-                PhoneNumber = request.PhoneNumber,
-                AddressLine1 = request.AddressLine1,
-                AddressLine2 = request.AddressLine2,
-                City = request.City,
-                District = request.District,
-                Province = request.Province,
-                PostalCode = request.PostalCode,
-                TenantId = request.TenantId,
-                CreatedAt = DateTime.UtcNow
-            };
+                // Roll back domain transaction
+                await _unitOfWork.RollbackTransactionAsync();
 
-            await _contactRepository.AddAsync(contact);
-            // Optionally add roles here (e.g., default "User" role)
-            // await _userManager.AddToRoleAsync(user, "User");
+                // Compensation: remove Identity user if it was created
+                if (identityUser != null)
+                {
+                    await _userManager.DeleteAsync(identityUser);
+                }
 
-            // Map IdentityUser to your Domain.Entities.User for token generation
-            var domainUser = new Domain.Entities.User
-            {
-                Id = Guid.Parse(user.Id),
-                Email = user.Email ?? string.Empty,
-                Username = user.UserName ?? string.Empty,
-                ContactId = contactId,
-                TenantId = request.TenantId // Set TenantId during registration
-            };
-            await _userRepository.AddUserAsync(domainUser, request.Password);
-            await _unitOfWork.SaveChangesAsync(); // <-- commit all changes at once
-
-            var accessToken = await _tokenService.GenerateAccessTokenAsync(domainUser);
-            var refreshToken = await _tokenService.GenerateRefreshTokenAsync(domainUser);
-
-            return new AuthResponse { Succeeded = true, AccessToken = accessToken, RefreshToken = refreshToken };
+                return new AuthResponse
+                {
+                    Succeeded = false,
+                    Errors = new[] { $"Registration failed: {ex.Message}" }
+                };
+            }
         }
 
         /// <summary>

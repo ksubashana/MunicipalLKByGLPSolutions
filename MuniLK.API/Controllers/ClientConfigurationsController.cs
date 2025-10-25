@@ -1,20 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MuniLK.Application.Generic.DTOs;
 using MuniLK.Application.Generic.Interfaces;
+using MuniLK.Domain.Entities;
 
 namespace MuniLK.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ClientConfigurationController : ControllerBase
+    public class ClientConfigurationsController : ControllerBase
     {
         private readonly IClientConfigurationService _service;
 
-        public ClientConfigurationController(IClientConfigurationService service)
+        public ClientConfigurationsController(IClientConfigurationService service)
         {
             _service = service;
         }
 
+        // Create returns the newly created configuration and sets Location header pointing to GetById
         [HttpPost("Create")]
         public async Task<IActionResult> Create([FromBody] ClientConfigurationCreateDto dto)
         {
@@ -23,9 +25,16 @@ namespace MuniLK.API.Controllers
 
             try
             {
-                var result = await _service.CreateAsync(dto);
-                return CreatedAtAction(nameof(GetById), result);
+                // CHANGE: Expect CreateAsync to return ClientConfigurationDto (not string)
+                ClientConfiguration created = await _service.CreateAsync(dto); // adjust service signature accordingly
 
+                if (created is null)
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Creation failed.");
+
+                if (created.Id == Guid.Empty)
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Created entity has empty Id.");
+
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
             }
             catch (InvalidOperationException ex)
             {
@@ -33,7 +42,7 @@ namespace MuniLK.API.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, [FromBody] ClientConfigurationUpdateDto dto)
         {
             if (id != dto.Id)
@@ -44,11 +53,11 @@ namespace MuniLK.API.Controllers
 
             try
             {
-                var result = await _service.UpdateAsync(dto);
-                if (result == null)
+                var updated = await _service.UpdateAsync(dto);
+                if (updated == null)
                     return NotFound();
 
-                return Ok(result);
+                return Ok(updated);
             }
             catch (InvalidOperationException ex)
             {
@@ -56,8 +65,9 @@ namespace MuniLK.API.Controllers
             }
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        // CHANGE: Id type switched from int to Guid (matches DTO.Id)
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
             var config = await _service.GetByIdAsync(id);
             if (config == null)
@@ -73,8 +83,8 @@ namespace MuniLK.API.Controllers
             return Ok(configs);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpDelete("{id:guid}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
             try
             {

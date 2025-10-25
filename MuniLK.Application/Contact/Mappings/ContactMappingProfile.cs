@@ -15,16 +15,16 @@ public static class ContactMappingProfile
         {
             Id = Guid.NewGuid(), // Generate new GUID for a new entity
             TenantId = tenantId,
-            FullName = dto.FullName,
-            NIC = dto.NIC, // Mapping from dto.NIC to entity.NIC
-            Email = dto.Email,
-            PhoneNumber = dto.PhoneNumber,
-            AddressLine1 = dto.AddressLine1,
-            AddressLine2 = dto.AddressLine2,
-            City = dto.City,
-            District = dto.District,
-            Province = dto.Province,
-            PostalCode = dto.PostalCode,
+            FullName = dto.FullName ?? string.Empty,
+            NIC = dto.NIC ?? string.Empty,
+            Email = dto.Email ?? string.Empty,
+            PhoneNumber = dto.PhoneNumber ?? string.Empty,
+            AddressLine1 = dto.AddressLine1 ?? string.Empty,
+            AddressLine2 = dto.AddressLine2 ?? string.Empty,
+            City = dto.City ?? string.Empty,
+            District = dto.District ?? string.Empty,
+            Province = dto.Province ?? string.Empty,
+            PostalCode = dto.PostalCode ?? string.Empty,
             IsActive = true, // Default to active for new contacts
             CreatedAt = DateTime.UtcNow // Set creation timestamp
         };

@@ -20,7 +20,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         // 1. Inspection Metadata
         [Required]
         public DateTime InspectionDate { get; set; }
-        public string? OfficersPresent { get; set; }
+        public string? InspectionAssignedTo { get; set; }
         public string? GpsCoordinates { get; set; }
         public List<IFormFile>? Photos { get; set; }
 

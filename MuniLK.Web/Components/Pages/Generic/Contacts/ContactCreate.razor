@@ -35,64 +35,84 @@ else
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <h3 class="mb-3">Create New Contact</h3>
+        <h3 class="mb-3">Create New Contact (නව සම්බන්ධය සෑදීම)</h3>
 
         <div class="row g-3">
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.FullName" Placeholder="@localizer["FullName"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.FullName"
+                           Placeholder="@($"{localizer["FullName"]} (පූර්ණ නම)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.FullName)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.NIC" Placeholder="@localizer["NIC"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.NIC"
+                           Placeholder="@($"{localizer["NIC"]} (ජාතික හැඳුනුම්පත් අංකය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.NIC)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.Email" Placeholder="@localizer["Email"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.Email"
+                           Placeholder="@($"{localizer["Email"]} (විද්‍යුත් තැපෑල)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.Email)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.PhoneNumber" Placeholder="@localizer["PhoneNumber"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.PhoneNumber"
+                           Placeholder="@($"{localizer["PhoneNumber"]} (දුරකථන අංකය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.PhoneNumber)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.AddressLine1" Placeholder="@localizer["AddressLine1"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.AddressLine1"
+                           Placeholder="@($"{localizer["AddressLine1"]} (ලිපින පළමු පේළිය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.AddressLine1)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.AddressLine2" Placeholder="@localizer["AddressLine2"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.AddressLine2" 
+                           Placeholder="@($"{localizer["AddressLine2"]} (ලිපින දෙවන පේළිය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.AddressLine2)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.City" Placeholder="@localizer["City"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.City"
+                           Placeholder="@($"{localizer["City"]} (නගරය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.City)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.District" Placeholder="@localizer["District"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.District"
+                           Placeholder="@($"{localizer["District"]} (දිස්ත්‍රික්කය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.District)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.Province" Placeholder="@localizer["Province"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.Province"
+                           Placeholder="@($"{localizer["Province"]} (පළාත)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.Province)" />
             </div>
             <div class="col-md-6">
-                <SfTextBox @bind-Value="NewContact.PostalCode" Placeholder="@localizer["PostalCode"]" FloatLabelType="FloatLabelType.Auto" />
+                <SfTextBox @bind-Value="NewContact.PostalCode"
+                           Placeholder="@($"{localizer["PostalCode"]} (තැපැල් කේතය)")"
+                           FloatLabelType="FloatLabelType.Auto" />
                 <ValidationMessage For="@(() => NewContact.PostalCode)" />
             </div>
         </div>
 
         <div class="mt-4">
-            <SfButton Type="Submit" CssClass="e-primary">@localizer["SaveContact"]</SfButton>
+            <SfButton Type="Submit" CssClass="e-primary">
+                @($"{localizer["SaveContact"]} (සම්බන්ධය සුරකින්න)")
+            </SfButton>
         </div>
     </EditForm>;
 }
-
 
 @code {
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public EventCallback<ContactResponse> OnContactCreated { get; set; }
-
-    [Parameter] public bool RenderAsPopup { get; set; } = true; // default true
+    [Parameter] public bool RenderAsPopup { get; set; } = true;
 
     private CreateContactRequest NewContact = new();
     private AlertToast? MyToast;
@@ -124,6 +144,7 @@ else
             }
             else
             {
+                var errorMessage = await response.Content.ReadAsStringAsync();
                 // ❌ Error without existing data
                 await MyToast.ShowToastAsync("An error occurred while creating contact.", AlertToast.ToastType.Error);
 

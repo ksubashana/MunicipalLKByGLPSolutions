@@ -29,13 +29,18 @@ namespace MuniLK.API.Controllers
         [HttpPost("Create")]
         public async Task<IActionResult> Create([FromBody] CreatePropertyRequest request)
         {
-            var command = new CreatePropertyCommand(request);
-            var id = await _mediator.Send(command);
+            var created = await _mediator.Send(new CreatePropertyCommand(request));
 
-            return CreatedAtAction(nameof(GetById), new { id = id }, new { propertyId = id });
+            if (created?.Id is null || created.Id == Guid.Empty)
+            {
+                _logger.LogError("Property creation returned null or empty Id.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to create property.");
+            }
+
+            // Returns Location header: api/Properties/{guid} and full created object
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
-        // NEW: Strongly-typed GET by Guid for detailed property info
         [Authorize]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken ct)

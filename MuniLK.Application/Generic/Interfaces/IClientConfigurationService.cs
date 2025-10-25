@@ -14,11 +14,11 @@ namespace MuniLK.Application.Generic.Interfaces
     /// </summary>
     public interface IClientConfigurationService
     {
-        Task<string> CreateAsync(ClientConfigurationCreateDto dto);
+        Task<ClientConfiguration> CreateAsync(ClientConfigurationCreateDto dto);
         Task<ClientConfigurationDto> UpdateAsync(ClientConfigurationUpdateDto dto);
-        Task<ClientConfigurationDto?> GetByIdAsync(int id);
+        Task<ClientConfigurationDto?> GetByIdAsync(Guid id);
         Task<IEnumerable<ClientConfigurationDto>> GetAllAsync();
-        Task DeleteAsync(int id);
+        Task DeleteAsync(Guid id);
     }
 }
 

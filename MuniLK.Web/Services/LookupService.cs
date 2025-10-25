@@ -1,4 +1,4 @@
-﻿using MuniLK.Application.Services.DTOs;
+using MuniLK.Application.Services.DTOs;
 using MuniLK.Web.Interfaces;
 
 namespace MuniLK.Web.Services
@@ -57,5 +57,9 @@ namespace MuniLK.Web.Services
                 throw;
             }
         }
+
+        // New convenience wrapper for ClearanceTypes category
+        public async Task<List<LookupDto>> LoadOptionTypesAsync(string CategoryType)
+            => await LoadLookupAsync(CategoryType);
     }
 }

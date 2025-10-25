@@ -17,6 +17,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using MuniLK.Application.Services; // added for ILookupService
 
 namespace MuniLK.Application.BuildingAndPlanning.Commands
 {
@@ -322,6 +323,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         private readonly ICurrentUserService _currentUser;
         private readonly ICurrentTenantService _currentTenant;
         private readonly ISiteInspectionRepository _siteInspectionRepo;
+        private readonly ILookupService _lookupService; // retained for other lookup operations if needed
         private readonly IMediator _mediator;
 
         public CompleteSiteInspectionCommandHandler(
@@ -329,12 +331,14 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             ICurrentUserService currentUser, 
             ICurrentTenantService currentTenant,
             ISiteInspectionRepository siteInspectionRepo,
+            ILookupService lookupService,
             IMediator mediator)
         {
             _repo = repo;
             _currentUser = currentUser;
             _currentTenant = currentTenant;
             _siteInspectionRepo = siteInspectionRepo;
+            _lookupService = lookupService;
             _mediator = mediator;
         }
 
@@ -352,7 +356,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 Status = request.Request.Status,
                 Remarks = request.Request.Remarks,
                 InspectionDate = request.Request.InspectionDate,
-                OfficersPresent = request.Request.OfficersPresent,
+                OfficersPresent = request.Request.InspectionAssignedTo,
                 GpsCoordinates = request.Request.GpsCoordinates,
                 PhotosPaths = request.Request.Photos != null ? System.Text.Json.JsonSerializer.Serialize(new List<string>()) : null,
                 AccessRoadWidthCondition = request.Request.AccessRoadWidthCondition,
@@ -377,11 +381,9 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 EnvironmentalConcerns = request.Request.EnvironmentalConcerns,
                 EnvironmentalConcernsNotes = request.Request.EnvironmentalConcernsNotes,
                 RequiredModifications = request.Request.RequiredModifications,
-                ClearancesRequired = request.Request.ClearanceOptionItemIds != null ? System.Text.Json.JsonSerializer.Serialize(request.Request.ClearanceOptionItemIds) : null,
                 FinalRecommendation = request.Request.FinalRecommendation,
                 CreatedDate = DateTime.UtcNow,
                 CreatedBy = _currentUser.UserId,
-                // Legacy ClearancesRequired JSON retained for backward compatibility (write empty)
                 ModifiedBy = _currentUser.UserId
             };
 
@@ -393,19 +395,10 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
 
             await _siteInspectionRepo.SaveChangesAsync(ct);
 
-            // Persist option selections for clearances if provided (new model uses SiteInspection.Id as key)
-            if (request.Request.ClearanceOptionItemIds != null && request.Request.ClearanceOptionItemIds.Any())
-            {
-                // Use mediator to reuse generic save command (entityType = "SiteInspection")
-                await _mediator.Send(new SaveEntityOptionSelectionsCommand(
-                    entity.ApplicationId,
-                    "SiteInspection",
-                    application.ModuleId, // assuming BuildingPlanApplication has ModuleId; adjust if different
-                    request.Request.ClearanceOptionItemIds), ct);
-            }
+            // Removed server-side saving of clearance selections (Option B). Client will call lookup selections endpoint after inspection save.
+
             await _repo.UnitOfWork.SaveChangesAsync(ct);
             return Result.Success();
         }
     }
-
 }

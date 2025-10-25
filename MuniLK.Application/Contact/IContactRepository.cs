@@ -10,6 +10,7 @@ namespace MuniLK.Applications.Interfaces
     public interface IContactRepository
     {
         Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdAsync(Guid id);
+        Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdWithPropOwnersAsync(Guid id);
         Task AddAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact);
         Task UpdateAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact);
         Task DeleteAsync(Guid id);

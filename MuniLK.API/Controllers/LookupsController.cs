@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging; // For logging within the controller
+using MuniLK.Application.BuildingAndPlanning.DTOs; // For EntityOptionSelectionsResponse
 
 namespace MuniLK.API.Controllers
 {
@@ -294,5 +295,44 @@ namespace MuniLK.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while adding the lookup values.");
             }
         }
+
+        // NEW: Entity Option Selection Endpoints (moved from InspectionController)
+        [HttpGet("entity-options/selections")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<Guid>>> GetEntityOptionSelections([FromQuery] Guid entityId, [FromQuery] string entityType, [FromQuery] Guid moduleId)
+        {
+            if (entityId == Guid.Empty || string.IsNullOrWhiteSpace(entityType) || moduleId == Guid.Empty)
+                return BadRequest("entityId, entityType and moduleId are required.");
+
+            var ids = await _lookupService.GetEntityOptionSelectionsAsync(entityId, entityType, moduleId);
+            return Ok(ids);
+        }
+
+        [HttpDelete("entity-options/selections")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> DeleteEntityOptionSelections([FromQuery] Guid entityId, [FromQuery] string entityType, [FromQuery] Guid moduleId)
+        {
+            if (entityId == Guid.Empty || string.IsNullOrWhiteSpace(entityType) || moduleId == Guid.Empty)
+                return BadRequest("entityId, entityType and moduleId are required.");
+
+            await _lookupService.DeleteEntityOptionSelectionsAsync(entityId, entityType, moduleId);
+            return NoContent();
+        }
+
+        [HttpPost("entity-options/selections/save")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<EntityOptionSelectionsResponse>> SaveEntityOptionSelections([FromBody] SaveEntityOptionSelectionsRequest request)
+        {
+            if (request == null || request.EntityId == Guid.Empty || string.IsNullOrWhiteSpace(request.EntityType) || request.ModuleId == Guid.Empty)
+                return BadRequest("EntityId, EntityType and ModuleId are required.");
+
+            var response = await _lookupService.SaveEntityOptionSelectionsAsync(request.EntityId, request.EntityType, request.ModuleId, request.OptionItemIds ?? new List<Guid>());
+            return Ok(response);
+        }
+
+
     }
 }

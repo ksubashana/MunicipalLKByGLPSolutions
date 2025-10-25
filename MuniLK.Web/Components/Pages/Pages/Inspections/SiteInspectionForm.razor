@@ -1,9 +1,11 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.Documents.DTOs
+@using MuniLK.Application.Services.DTOs
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Components.Pages.Generic.Documents
 @using MuniLK.Web.Components.Pages.Notifications
+@using MuniLK.Web.Interfaces
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Calendars
 @using Syncfusion.Blazor.DropDowns
@@ -14,6 +16,7 @@
 @using System.Net.Http.Json
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
+@inject ILookupService LookupService
 
 <div class="container-xxl py-3">
     <div class="card shadow-sm">
@@ -45,8 +48,8 @@
                     <div class="col-md-6">
                         <label class="form-label">Inspection Status <span class="text-danger">*</span></label>
                         <SfDropDownList TValue="InspectionStatus" TItem="InspectionStatusOption" 
-                                      @bind-Value="Model.Status" DataSource="@InspectionStatusOptions" 
-                                      Placeholder="Select Status" CssClass="form-control">
+                                      @bind-Value="Model.Status" DataSource="@InspectionStatusOptions"
+                                        Placeholder="Select Status" CssClass="form-control" Enabled="@( !MetadataLocked )">
                             <DropDownListFieldSettings Value="Value" Text="Text" />
                         </SfDropDownList>
                         <ValidationMessage For="@(() => Model.Status)" />
@@ -63,9 +66,11 @@
 
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <label class="form-label">Officers Present</label>
+                        <label class="form-label">Assigned Inspector</label>
+                        <SfTextBox @bind-Value="Model.InspectionAssignedTo" 
+                                   CssClass="form-control" Placeholder="" Enabled="@( !MetadataLocked )" />
                         <!-- Multi-select of inspectors; selected names joined into Model.OfficersPresent -->
-                        <SfMultiSelect TValue="List<string>" TItem="InspectorOption"
+                        @* <SfMultiSelect TValue="List<string>" TItem="InspectorOption"
                                        @bind-Value="SelectedInspectorIds"
                                        DataSource="InspectorOptions"
                                        Enabled="@( !MetadataLocked )"
@@ -75,7 +80,7 @@
                                        ClosePopupOnSelect="false"
                                        CssClass="form-control">
                             <MultiSelectFieldSettings Value="Id" Text="Name" />
-                        </SfMultiSelect>
+                        </SfMultiSelect> *@
                     </div>
                     
                     <div class="col-md-6">
@@ -262,7 +267,7 @@
                 <div class="row mb-4">
                     <div class="col-12">
                         <h6 class="text-primary mb-3">📋 Decision Support</h6>
-                    </div>
+                    </div
                     
                     <div class="col-12 mb-3">
                         <label class="form-label">Required Modifications</label>
@@ -315,38 +320,7 @@
                                 }
                         </div>
                     </div>
-                <!-- Documents Section -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <h6 class="text-primary mb-3">📄 Application Documents</h6>
-                        @if (ApplicationDocuments?.Any() == true)
-                        {
-                            <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" 
-                                    AllowPaging="false" AllowSorting="true">
-                                <GridColumns>
-                                    <GridColumn Field="FileName" HeaderText="Document" Width="200" />
-                                    <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="120" />
-                                    <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="100" />
-                                    <GridColumn HeaderText="Actions" Width="120" TextAlign="TextAlign.Center">
-                                        <Template Context="docContext">
-                                            @{
-                                                var doc = (docContext as DocumentLinkResponse);
-                                            }
-                                            <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" 
-                                                      @onclick="() => PreviewDocument(doc)" />
-                                            <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" 
-                                                      @onclick="() => DownloadDocument(doc)" />
-                                        </Template>
-                                    </GridColumn>
-                                </GridColumns>
-                            </SfGrid>
-                        }
-                        else
-                        {
-                            <p class="text-muted">No documents available for this application.</p>
-                        }
-                    </div>
-                </div>
+                
 
                 <!-- Submit Button -->
                 <div class="row">
@@ -358,6 +332,39 @@
                     </div>
                 </div>
             </EditForm>
+
+            <!-- Documents Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6 class="text-primary mb-3">📄 Application Documents</h6>
+                    @if (ApplicationDocuments?.Any() == true)
+                    {
+                        <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments"
+                                AllowPaging="false" AllowSorting="true">
+                            <GridColumns>
+                                <GridColumn Field="FileName" HeaderText="Document" Width="200" />
+                                <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="120" />
+                                <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="100" />
+                                <GridColumn HeaderText="Actions" Width="120" TextAlign="TextAlign.Center">
+                                    <Template Context="docContext">
+                                        @{
+                                            var doc = (docContext as DocumentLinkResponse);
+                                        }
+                                        <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1"
+                                                  @onclick="() => PreviewDocument(doc)" />
+                                        <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary"
+                                                  @onclick="() => DownloadDocument(doc)" />
+                                    </Template>
+                                </GridColumn>
+                            </GridColumns>
+                        </SfGrid>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No documents available for this application.</p>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -448,42 +455,23 @@
     [Parameter] public EventCallback<SiteInspectionRequest> OnSubmit { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public DateTime? PrefilledInspectionDate { get; set; }
-    [Parameter] public string? PrefilledOfficers { get; set; }
+    [Parameter] public string? PrefilledAssignedTo { get; set; }
     [Parameter] public bool LockMetadata { get; set; } = false;
     [Parameter] public EventCallback OnInspectionCompleted { get; set; }
-    // private bool CanUploadDocument => SelectedProperty != null && SelectedContact != null;
-    private bool MetadataLocked => LockMetadata;
 
+    private bool MetadataLocked => LockMetadata;
+    private List<ClearanceTypeOption> ClearanceTypeOptions = new();
     private SiteInspectionRequest Model = new();
     private bool IsSubmitting = false;
-
-    // Two-step process state
     private bool IsInspectionAssigned = false;
-
-    // Assignment form fields
     private string? SelectedInspectorIdForAssignment = null;
     private DateTime AssignmentDate = DateTime.Today;
     private string? AssignmentNotes = null;
-
-    // Document management variables
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;
     private DocumentLinkResponse? SelectedPreviewDocument = null;
     private AlertToast? MyToast;
-
-    // Inspector multi-select support
     private List<InspectorOption> InspectorOptions = new();
-    private List<string> _selectedInspectorIds = new();
-    private List<string> SelectedInspectorIds
-    {
-        get => _selectedInspectorIds;
-        set
-        {
-            _selectedInspectorIds = value ?? new();
-            var names = InspectorOptions.Where(o => _selectedInspectorIds.Contains(o.Id)).Select(o => o.Name);
-            Model.OfficersPresent = string.Join(", ", names);
-        }
-    }
 
     private List<InspectionStatusOption> InspectionStatusOptions = new()
     {
@@ -501,25 +489,32 @@
         new() { Value = FinalRecommendation.ReInspectionRequired, Text = "Re-Inspection Required" }
     };
 
-    // Dynamically loaded clearance option items (lookup-based) -> bind to Guid list
-    private List<ClearanceTypeOption> ClearanceTypeOptions = new();
-
     protected override async Task OnInitializedAsync()
     {
         Model.ApplicationId = ApplicationId;
         Model.InspectionDate = PrefilledInspectionDate ?? DateTime.Today;
-        if (!string.IsNullOrWhiteSpace(PrefilledOfficers))
-        {
-            Model.OfficersPresent = PrefilledOfficers;
-        }
+        Model.InspectionAssignedTo = PrefilledAssignedTo;
         Model.Status = InspectionStatus.Pending;
         Model.FinalRecommendation = FinalRecommendation.ApproveAsSubmitted;
-        // Load clearance options from lookup/category or option items API (placeholder logic)
         Model.ClearanceOptionItemIds = new List<Guid>();
         Model.InspectionId = AssignmentId;
         await LoadInspectorsAsync();
+        await LoadClearanceTypesAsync();
         await LoadExistingApplicationAsync(AssignmentId, ApplicationId);
         await CheckExistingAssignment();
+    }
+
+    private async Task LoadClearanceTypesAsync()
+    {
+        try
+        {
+            var lookups = await LookupService.LoadOptionTypesAsync(Domain.Constants.LookupCategoryNames.ClearanceTypes.ToString());
+            ClearanceTypeOptions = lookups.Select(l => new ClearanceTypeOption { Value = l.Id, Text = l.Value }).ToList();
+        }
+        catch
+        {
+            ClearanceTypeOptions = new();
+        }
     }
 
     private async Task CheckExistingAssignment()
@@ -587,6 +582,31 @@
             var resp = await client.PostAsJsonAsync(url, Model);
             if (resp.IsSuccessStatusCode)
             {
+                // Option B: persist clearance selections separately
+                if (Model.ClearanceOptionItemIds != null && Model.ClearanceOptionItemIds.Any() && ModuleId != Guid.Empty)
+                {
+                    var saveSelectionsUrl = "api/Lookups/entity-options/selections/save";
+                    var saveRequest = new SaveEntityOptionSelectionsRequest
+                    {
+                        EntityId = ApplicationId, // key by application for reporting
+                        EntityType = "SiteInspection",
+                        ModuleId = ModuleId,
+                        OptionItemIds = Model.ClearanceOptionItemIds
+                    };
+                    try
+                    {
+                        var saveResp = await client.PostAsJsonAsync(saveSelectionsUrl, saveRequest);
+                        if (!saveResp.IsSuccessStatusCode)
+                        {
+                            await JS.InvokeVoidAsync("console.warn", "Failed to save clearance selections");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await JS.InvokeVoidAsync("console.error", $"Error saving selections: {ex.Message}");
+                    }
+                }
+
                 if (OnSubmit.HasDelegate)
                 {
                     await OnSubmit.InvokeAsync(Model);
@@ -613,11 +633,7 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-
-            // Get the Building and Planning module ID
-
-
-            // Load existing site inspection if exists
+            // Load existing site inspection
             try
             {
                 var jsonInsp = await client.GetStringAsync($"api/Inspection/{AssignmentId}");
@@ -628,19 +644,33 @@
                     PopulateFormFromExistingInspection(existingInspection);
                 }
             }
-            catch
-            {
-                // No existing inspection found, continue with empty form
-            }
+            catch { }
 
             // Load documents
             if (ModuleId != Guid.Empty)
             {
-                var jsonDocs = await client.GetStringAsync(
-                    $"api/Documents/linked?moduleId={ModuleId}&entityId={ApplicationId}&linkContext=Building and Planning");
-                var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
-                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();
+                try
+                {
+                    var jsonDocs = await client.GetStringAsync($"api/Documents/linked?moduleId={ModuleId}&entityId={ApplicationId}&linkContext=Building and Planning");
+                    var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();
+                }
+                catch { ApplicationDocuments = new System.Collections.Generic.List<DocumentLinkResponse>(); }
+            }
+
+            // Load option selections (clearances) using generic endpoint (override any legacy values populated earlier)
+            if (ModuleId != Guid.Empty)
+            {
+                try
+                {
+                    var selections = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={ApplicationId}&entityType=SiteInspection&moduleId={ModuleId}");
+                    if (selections != null && selections.Any())
+                    {
+                        Model.ClearanceOptionItemIds = selections;
+                    }
+                }
+                catch { }
             }
         }
         catch (Exception ex)
@@ -654,7 +684,7 @@
     {
         Model.Status = inspection.Status;
         Model.InspectionDate = inspection.InspectionDate;
-        Model.OfficersPresent = inspection.OfficersPresent ?? string.Empty;
+        Model.InspectionAssignedTo = inspection.OfficersPresent ?? string.Empty;
         Model.GpsCoordinates = inspection.GpsCoordinates ?? string.Empty;
         Model.Remarks = inspection.Remarks ?? string.Empty;
 
@@ -823,5 +853,14 @@
     {
         public Guid Id { get; set; }
         public string FullName { get; set; } = string.Empty;
+    }
+
+    // DTO used for saving selections
+    private class SaveEntityOptionSelectionsRequest
+    {
+        public Guid EntityId { get; set; }
+        public string EntityType { get; set; } = string.Empty;
+        public Guid ModuleId { get; set; }
+        public List<Guid> OptionItemIds { get; set; } = new();
     }
 }

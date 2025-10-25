@@ -8,7 +8,7 @@ using MuniLK.Infrastructure.Data;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Data.Migrations.IdentityMigrations
+namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
 {
     [DbContext(typeof(ApplicationIdentityDbContext))]
     partial class ApplicationIdentityDbContextModelSnapshot : ModelSnapshot
@@ -17,7 +17,7 @@ namespace MuniLK.Infrastructure.Data.Migrations.IdentityMigrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.7")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);

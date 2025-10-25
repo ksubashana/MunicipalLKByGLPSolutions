@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using MuniLK.Domain.Constants;
 
 namespace MuniLK.API.Controllers
 {
@@ -21,8 +22,8 @@ namespace MuniLK.API.Controllers
 
         // POST: /api/building-plans
         [HttpPost("Submit")]
-        [Authorize(Roles = "Admin,Citizen,Clerk")] // Or anonymous if you allow public submission
-        public async Task<IActionResult> Submit([FromBody] SubmitBuildingPlanRequest request)
+        [Authorize(Policy = "SubmitBuildingPlan")]
+        public async Task<IActionResult> Submit([FromBody] SubmitBuildingPlanRequest request, CancellationToken ct)
         {
             var id = await _mediator.Send(new SubmitBuildingPlanCommand(request));
             return id.Succeeded ? Ok(id.Data) : BadRequest(id.Error);
@@ -59,7 +60,7 @@ namespace MuniLK.API.Controllers
 
         // POST: /api/building-plans/{id}/verify
         [HttpPost("{id:guid}/verify")]
-        [Authorize(Roles = "Clerk")]
+        [Authorize(Roles = Roles.Officer)]
         public async Task<IActionResult> Verify(Guid id, [FromBody] string? remarks)
         {
             var result = await _mediator.Send(new VerifyBuildingPlanCommand(id, remarks));
@@ -69,7 +70,7 @@ namespace MuniLK.API.Controllers
 
         // POST: /api/building-plans/{id}/engineer-approve
         [HttpPost("{id:guid}/engineer-approve")]
-        [Authorize(Roles = "Engineer")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.Officer}")]
         public async Task<IActionResult> EngineerApprove(Guid id, [FromBody] string? remarks)
         {
             var result = await _mediator.Send(new EngineerApproveBuildingPlanCommand(id, remarks));
@@ -78,7 +79,7 @@ namespace MuniLK.API.Controllers
 
         // POST: /api/building-plans/{id}/final-approve
         [HttpPost("{id:guid}/final-approve")]
-        [Authorize(Roles = "Chairman")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.Officer}")]
         public async Task<IActionResult> FinalApprove(Guid id, [FromBody] string? remarks)
         {
             var result = await _mediator.Send(new FinalApproveBuildingPlanCommand(id, remarks));
@@ -87,7 +88,7 @@ namespace MuniLK.API.Controllers
 
         // POST: /api/building-plans/{id}/reject
         [HttpPost("{id:guid}/reject")]
-        [Authorize(Roles = "Clerk,Engineer,Chairman")] // decide
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.Officer}")] // decide
         public async Task<IActionResult> Reject(Guid id, [FromBody] RejectDto dto)
         {
             var result = await _mediator.Send(new RejectBuildingPlanCommand(id, dto.Reason));
@@ -101,7 +102,7 @@ namespace MuniLK.API.Controllers
         }
         // POST: /api/building-plans/{id}/committee-review
         [HttpPost("{id:guid}/committee-review")]
-        [Authorize(Roles = "CommitteeMember,CommitteeChairperson,Admin")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin},{Roles.Officer}")]
         public async Task<IActionResult> SaveCommitteeReview(
             Guid id,
             [FromBody] PlanningCommitteeReviewRequest request,

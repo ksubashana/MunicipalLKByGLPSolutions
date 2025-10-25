@@ -8,6 +8,7 @@
 @using Syncfusion.Blazor.Inputs
 @using Syncfusion.Blazor.Popups
 @using System.ComponentModel.DataAnnotations
+@inject IPermissionService PermissionService
 @inject CustomAuthStateProvider AuthenticationStateProvider;
 
 @*
@@ -236,7 +237,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await IsInProperRole();
+        // Example: planning officer action allowed if in PlanningOfficer OR Admin OR SuperAdmin
+        CanUserTakeAction = await PermissionService.IsInAnyRoleAsync(
+            Roles.Officer,
+            Roles.Admin,
+            Roles.SuperAdmin);
     }
 
     protected override void OnParametersSet()
@@ -245,14 +250,6 @@
         {
             ReviewForm.PlanningReport = Model.PlanningReport ?? string.Empty;
         }
-    }
-
-    private async Task IsInProperRole()
-    {
-        CanUserTakeAction = await AuthenticationStateProvider.IsInRoleAsync("PlanningOfficer")
-            || await AuthenticationStateProvider.IsInRoleAsync("Admin");
-
-        await InvokeAsync(StateHasChanged);
     }
 
     private bool IsFormValid()

@@ -24,9 +24,6 @@ namespace MuniLK.Application.BuildingAndPlanning.Interfaces
             Guid moduleId, 
             CancellationToken ct = default);
 
-        // Legacy validation method retained for backward compatibility (no-op in new flow)
-        Task<bool> ValidateOptionItemsExistAsync(
-            List<Guid> optionItemIds,
-            CancellationToken ct = default);
+
     }
 }

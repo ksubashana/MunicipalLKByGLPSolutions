@@ -1,8 +1,10 @@
 ﻿// MuniLK.Application/Services/LookupService.cs
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MuniLK.Application.BuildingAndPlanning.DTOs; // Added for EntityOptionSelectionsResponse
 using MuniLK.Application.Generic.Interfaces;
 using MuniLK.Application.Services.DTOs; // For DTOs
+using MuniLK.Domain.Constants;
 using MuniLK.Domain.Constants;
 using MuniLK.Domain.Entities;
 using MuniLK.Infrastructure.Data; // Your DbContext
@@ -10,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using MuniLK.Domain.Constants;
 
 namespace MuniLK.Application.Services
 {
@@ -399,6 +400,69 @@ namespace MuniLK.Application.Services
                 .FirstOrDefaultAsync();
 
             return lookupValue;
+        }
+
+        // NEW: Entity option selection operations
+        public async Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId)
+        {
+            return await _context.EntityOptionSelections
+                .AsNoTracking()
+                .Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId)
+                .Select(e => e.LookupId ?? e.OptionItemId)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        public async Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, List<Guid> optionItemIds)
+        {
+            if (entityId == Guid.Empty) throw new ArgumentException("EntityId is required", nameof(entityId));
+            if (string.IsNullOrWhiteSpace(entityType)) throw new ArgumentException("EntityType is required", nameof(entityType));
+            if (moduleId == Guid.Empty) throw new ArgumentException("ModuleId is required", nameof(moduleId));
+            var tenantId = _currentTenantService.GetTenantId();
+
+            var existing = await _context.EntityOptionSelections
+                .Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId)
+                .ToListAsync();
+            if (existing.Any())
+            {
+                _context.EntityOptionSelections.RemoveRange(existing);
+            }
+            if (optionItemIds != null && optionItemIds.Any())
+            {
+                var newRows = optionItemIds.Select(id => new EntityOptionSelection
+                {
+                    Id = Guid.NewGuid(),
+                    EntityId = entityId,
+                    EntityType = entityType,
+                    ModuleId = moduleId,
+                    TenantId = tenantId.Value,
+                    OptionItemId = id,
+                    LookupId = id
+                }).ToList();
+                await _context.EntityOptionSelections.AddRangeAsync(newRows);
+            }
+            await _context.SaveChangesAsync();
+            return new EntityOptionSelectionsResponse
+            {
+                EntityId = entityId,
+                EntityType = entityType,
+                ModuleId = moduleId,
+                SelectedOptionItemIds = optionItemIds ?? new List<Guid>(),
+                Success = true,
+                Message = "Selections saved successfully"
+            };
+        }
+
+        public async Task DeleteEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId)
+        {
+            var existing = await _context.EntityOptionSelections
+                .Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId)
+                .ToListAsync();
+            if (existing.Any())
+            {
+                _context.EntityOptionSelections.RemoveRange(existing);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

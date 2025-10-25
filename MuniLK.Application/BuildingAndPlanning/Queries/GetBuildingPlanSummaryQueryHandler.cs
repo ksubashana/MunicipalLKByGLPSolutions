@@ -1,6 +1,8 @@
 using MediatR;
 using MuniLK.Application.BuildingAndPlanning.DTOs;
 using MuniLK.Application.BuildingAndPlanning.Interfaces;
+using MuniLK.Applications.Interfaces;
+using MuniLK.Domain.Entities;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,16 +11,38 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
     public class GetBuildingPlanSummaryQueryHandler : IRequestHandler<GetBuildingPlanSummaryQuery, BuildingPlanResponse?>
     {
         private readonly IBuildingPlanRepository _repo;
+        private readonly IContactRepository _contactRepo;
 
-        public GetBuildingPlanSummaryQueryHandler(IBuildingPlanRepository repo)
+        public GetBuildingPlanSummaryQueryHandler(IBuildingPlanRepository repo,IContactRepository contactRepository)
         {
             _repo = repo;
+            _contactRepo = contactRepository;
         }
 
         public async Task<BuildingPlanResponse?> Handle(GetBuildingPlanSummaryQuery request, CancellationToken ct)
         {
             var app = await _repo.GetByIdWithChildrenAsync(request.Id, ct);
             if (app is null) return null;
+
+            string assignedToName = string.Empty;
+            string assignedByName = string.Empty;
+
+            if (app.Assignment != null)
+            {
+                // Load AssignedTo contact only if a valid Guid
+                if (app.Assignment.AssignedTo != Guid.Empty)
+                {
+                    var assignedToContact = await _contactRepo.GetByIdAsync(app.Assignment.AssignedTo);
+                    assignedToName = assignedToContact?.FullName ?? string.Empty;
+                }
+
+                // Load AssignedBy contact (ensure you use AssignedBy, not AssignedTo again)
+                if (app.Assignment.AssignedBy.HasValue && app.Assignment.AssignedBy.Value != Guid.Empty)
+                {
+                    var assignedByContact = await _contactRepo.GetByIdAsync(app.Assignment.AssignedBy.Value);
+                    assignedByName = assignedByContact?.FullName ?? string.Empty;
+                }
+            }
 
             // Map minimal fields needed by the page; project navigation entities to lightweight DTOs
             return new BuildingPlanResponse
@@ -35,9 +59,9 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 {
                     Id = app.Assignment.Id,
                     AssignedToUserId = app.Assignment.AssignedTo,
-                    AssignedToName = string.Empty, // populate via join/user service if needed
+                    AssignedToName = assignedToName,
                     AssignedByUserId = app.Assignment.AssignedBy,
-                    AssignedByName = string.Empty,
+                    AssignedByName = assignedByName,
                     ModuleId = app.Assignment.ModuleId,
                     ModuleName = string.Empty,
                     EntityId = app.Assignment.EntityId,

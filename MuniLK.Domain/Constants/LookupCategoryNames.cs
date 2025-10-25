@@ -19,6 +19,7 @@ namespace MuniLK.Domain.Constants
         GSDivision,
         Zone,
         DocumentType,
-        Modules
+        Modules,
+        ClearanceTypes
     }
 }

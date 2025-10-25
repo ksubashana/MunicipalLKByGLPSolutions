@@ -1,13 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <Compile Remove="Migrations\20250809045954_WorkFlowLogErrorFix.cs" />
-    <Compile Remove="Migrations\20250809045954_WorkFlowLogErrorFix.Designer.cs" />
-    <Compile Remove="Migrations\20250809050707_WorkFlowLogErrorFix2.cs" />
-    <Compile Remove="Migrations\20250809050707_WorkFlowLogErrorFix2.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\MuniLK.Application\MuniLK.Application.csproj" />
     <ProjectReference Include="..\MuniLK.Domain\MuniLK.Domain.csproj" />
   </ItemGroup>
@@ -21,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Migrations\" />
+    <Folder Include="Data\Migrations\" />
   </ItemGroup>
 
   <PropertyGroup>

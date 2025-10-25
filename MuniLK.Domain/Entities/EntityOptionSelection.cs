@@ -33,8 +33,5 @@ namespace MuniLK.Domain.Entities
         public Guid ModuleId { get; set; }
         public Guid? TenantId { get; set; }
 
-        // Legacy navigation (deprecated)
-        [Obsolete]
-        public OptionItem? OptionItem { get; set; }
     }
 }

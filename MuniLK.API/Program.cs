@@ -27,7 +27,7 @@ using MuniLK.Infrastructure.Assignments;
 using MuniLK.Infrastructure.BuildingAndPlanning;
 using MuniLK.Infrastructure.Contact;
 using MuniLK.Infrastructure.Data;
-using MuniLK.Infrastructure.Documents; // Add this using directive
+using MuniLK.Infrastructure.Documents; 
 using MuniLK.Infrastructure.FeatureIDService;
 using MuniLK.Infrastructure.Generic.Repositories;
 using MuniLK.Infrastructure.Generic.Services;
@@ -46,23 +46,16 @@ using Serilog.Debugging;
 using Serilog.Sinks.RabbitMQ;
 using System.Reflection;
 using System.Text;
-using System.Web.Services.Description;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using Microsoft.AspNetCore.OpenApi; // add this
-
-
+using Microsoft.AspNetCore.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 SelfLog.Enable(msg => Console.Error.WriteLine("[Serilog SelfLog] " + msg));
 builder.Services.AddScoped<ICurrentTenantService, CurrentTenantService>();
-// Register IHttpContextAccessor and CurrentTenantService for multi-tenancy
-builder.Services.AddHttpContextAccessor(); // Required for CurrentTenantService to access HTTP context
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ILogEventEnricher, TenantIdEnricher>();
-// --- Configure Azure Blob Storage Client ---
 builder.Services.AddAzureClients(clientBuilder =>
 {
     clientBuilder.AddBlobServiceClient(builder.Configuration.GetConnectionString("AzureBlobStorageConnection"));
-
 });
 Bold.Licensing.BoldLicenseProvider.RegisterLicense("HE9AZ25cXVO/KlqZZSzZCRp2hIyDA6akPgvLlkA+OQM=");
 
@@ -70,32 +63,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor",
         policy => policy
-            .WithOrigins("http://localhost:5116") // Blazor app URL
+            .WithOrigins("http://localhost:5116")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
 });
-// --- Register your custom BlobStorageService ---
-// BlobServiceClient is typically a singleton as it manages connections efficiently.
-// BlobStorageService is stateless and depends on a singleton, so it can also be a singleton.
 builder.Services.AddSingleton<IBlobStorageService, BlobStorageService>();
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
-    // Serilog will now use the 'services' (IServiceProvider) provided by the host
-    // to resolve ILogEventEnricher instances.
-    // We explicitly get the TenantIdEnricher from the services and pass the instance.
     .Enrich.With(services.GetRequiredService<ILogEventEnricher>())
 );
 
-// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//builder.Services.AddOpenApi();
 
-// Add MediatR
 builder.Services.AddMediatR(
     cfg =>
     {
@@ -103,36 +86,31 @@ builder.Services.AddMediatR(
         cfg.RegisterServicesFromAssembly(typeof(GetAllLicensesQuery).Assembly);
 });
 
-// Add DbContext (update connection string as needed)
 builder.Services.AddDbContext<MuniLKDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddDbContext<ApplicationIdentityDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))); // Use a separate connection string if desired
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add ASP.NET Core Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
-    // Password settings (adjust for production requirements)
-    options.SignIn.RequireConfirmedAccount = false; // For simplicity, set to true in production
+    options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
 })
-    .AddEntityFrameworkStores<ApplicationIdentityDbContext>() // Use your DbContext for Identity tables
-    .AddDefaultTokenProviders(); // For password reset tokens, email confirmation tokens etc.
+    .AddEntityFrameworkStores<ApplicationIdentityDbContext>()
+    .AddDefaultTokenProviders();
 
-// Configure Data Protection for secure refresh token cookies
 builder.Services.AddDataProtection();
 
-// Configure JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme; // Make JWT the default
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
 })
 .AddJwtBearer(options =>
 {
@@ -148,29 +126,27 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Add Authorization policies (optional, but good for fine-grained control)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("CanManageLicenses", policy =>
-        policy.RequireClaim("permission", "licenses.manage")); // Example custom claim
-    // You can add more policies here based on roles or custom claims
+        policy.RequireClaim("permission", "licenses.manage"));
+
+    options.AddPolicy("SubmitBuildingPlan", policy =>
+        policy.RequireRole(
+            MuniLK.Domain.Constants.Roles.SuperAdmin,
+            MuniLK.Domain.Constants.Roles.Admin,
+            MuniLK.Domain.Constants.Roles.Officer));
 });
 
-
-
-// Register your custom services and implementations
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>(); 
 builder.Services.AddScoped<ITokenService, JwtTokenService>(); 
 builder.Services.AddScoped<IAuthService, AuthService>(); 
 builder.Services.AddScoped<IRoleService, RoleService>();
-//builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, MuniLK.Infrastructure.Services.EmailService>(); 
 builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
-builder.Services.AddScoped<ModuleService>(); // If no interface
+builder.Services.AddScoped<ModuleService>(); 
 builder.Services.AddAutoMapper(config => { config.AddProfile<MappingProfile>(); });
 
-
-// Add scoped services
 builder.Services.AddScoped<ILicenseRepository, LicenseRepository>();
 builder.Services.AddScoped<IPropertyRepository, PropertyRepository>();
 builder.Services.AddScoped<IMyMessageProcessor, LoggingRepository>();
@@ -194,16 +170,18 @@ builder.Services.AddScoped<IScheduleAppointmentRepository, ScheduleAppointmentRe
 builder.Services.AddScoped<ISiteInspectionRepository, SiteInspectionRepository>();
 builder.Services.AddScoped<IPlanningCommitteeReviewRepository, PlanningCommitteeReviewRepository>();
 builder.Services.AddScoped<IEntityOptionSelectionRepository, EntityOptionSelectionRepository>();
-builder.Services.AddScoped<IEntityOptionSelectionService, MuniLK.Application.BuildingAndPlanning.Services.EntityOptionSelectionService>();
-
 
 var app = builder.Build();
 app.UseCors("AllowBlazor");
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    //app.MapOpenApi();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();

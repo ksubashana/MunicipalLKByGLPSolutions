@@ -19,7 +19,7 @@ namespace MuniLK.Infrastructure.Contact
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdAsync(Guid id)
+        public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdWithPropOwnersAsync(Guid id)
         {
             // Use FindAsync for primary key lookup, which is optimized.
             // If you need to include navigation properties, use .Include()
@@ -29,7 +29,13 @@ namespace MuniLK.Infrastructure.Contact
                                  .Include(c => c.PropertyOwners) // Example: include related property owners
                                  .FirstOrDefaultAsync(c => c.Id == id);
         }
+        public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdAsync(Guid id)
+        {
+            // Use FindAsync for primary key lookup, which is optimized.
 
+            return await _context.Contacts.FindAsync(id);
+
+        }
         public async Task AddAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact)
         {
             if (contact == null)

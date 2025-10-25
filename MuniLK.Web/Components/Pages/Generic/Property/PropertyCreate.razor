@@ -42,18 +42,18 @@ else
             <DataAnnotationsValidator />
             <ValidationSummary />
 
-            <h3 class="mb-3">Create New Property</h3>
+            <h3 class="mb-3">Create New Property (නව දේපලක් සෑදීම)</h3>
 
             <div class="row g-3">
 
                 <div class="col-md-6">
-                    <SfTextBox Placeholder="Address" @bind-Value="PropertyModel.Address" FloatLabelType="FloatLabelType.Auto" />
+                    <SfTextBox Placeholder="Address (ලිපිනය)" @bind-Value="PropertyModel.Address" FloatLabelType="FloatLabelType.Auto" />
                     <ValidationMessage For="@(() => PropertyModel.Address)" />
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid" TItem="LookupDto" DataSource="@PropertyTypes"
-                                    @bind-Value="PropertyModel.PropertyTypeId" Placeholder="Select Property Type"
+                                    @bind-Value="PropertyModel.PropertyTypeId" Placeholder="Select Property Type (දේපල වර්ගය තෝරන්න)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
@@ -62,18 +62,18 @@ else
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="decimal" @bind-Value="PropertyModel.AssessmentValue"
-                                      Placeholder="Assessment Value" FloatLabelType="FloatLabelType.Auto" />
+                                      Placeholder="Assessment Value (ඇගයීම් වටිනාකම)" FloatLabelType="FloatLabelType.Auto" />
                     <ValidationMessage For="@(() => PropertyModel.AssessmentValue)" />
                 </div>
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.WardNumber"
-                                      Placeholder="Ward Number" FloatLabelType="FloatLabelType.Auto" />
+                                      Placeholder="Ward Number (වාර්ඩ් අංකය)" FloatLabelType="FloatLabelType.Auto" />
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@Zones"
-                                    @bind-Value="PropertyModel.ZoneId" Placeholder="Select Zone"
+                                    @bind-Value="PropertyModel.ZoneId" Placeholder="Select Zone (කලාපය තෝරන්න)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
@@ -81,42 +81,42 @@ else
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="decimal?" @bind-Value="PropertyModel.LandAreaInSqMeters"
-                                      Placeholder="Land Area (sq.m)" FloatLabelType="FloatLabelType.Auto" />
+                                      Placeholder="Land Area (sq.m) (භූමි ප්‍රමාණය (ච.මී.))" FloatLabelType="FloatLabelType.Auto" />
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@LandExtentUnits"
-                                    @bind-Value="PropertyModel.LandExtentId" Placeholder="Land Extent Unit"
+                                    @bind-Value="PropertyModel.LandExtentId" Placeholder="Land Extent Unit (භූමි ඒකකය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
 
                 <div class="col-md-6">
-                    <SfTextBox Placeholder="Title Deed Number" @bind-Value="PropertyModel.TitleDeedNumber"
+                    <SfTextBox Placeholder="Title Deed Number (ඩීඩ් අංකය)" @bind-Value="PropertyModel.TitleDeedNumber"
                                FloatLabelType="FloatLabelType.Auto" />
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@OwnershipTypes"
-                                    @bind-Value="PropertyModel.OwnershipTypeId" Placeholder="Ownership Type"
+                                    @bind-Value="PropertyModel.OwnershipTypeId" Placeholder="Ownership Type (අයිතියේ වර්ගය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
 
                 <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use" />
+                    <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use (වාණිජ්‍ය භාවිතය)" />
                 </div>
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.NumberOfBuildings"
-                                      Placeholder="Number of Buildings" FloatLabelType="FloatLabelType.Auto" />
+                                      Placeholder="Number of Buildings (ගොඩනැගිලි ගණන)" FloatLabelType="FloatLabelType.Auto" />
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ConstructionTypes"
-                                    @bind-Value="PropertyModel.ConstructionTypeId" Placeholder="Construction Type"
+                                    @bind-Value="PropertyModel.ConstructionTypeId" Placeholder="Construction Type (ඉදිකිරීමේ වර්ගය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
@@ -124,16 +124,15 @@ else
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@RoadAccessTypes"
-                                    @bind-Value="PropertyModel.RoadAccessTypeId" Placeholder="Road Access Type"
+                                    @bind-Value="PropertyModel.RoadAccessTypeId" Placeholder="Road Access Type (පාර ප්‍රවේශ වර්ගය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
-
                 </div>
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@GSDivisions"
-                                    @bind-Value="PropertyModel.GSDivisionId" Placeholder="GS Division"
+                                    @bind-Value="PropertyModel.GSDivisionId" Placeholder="GS Division (ග්‍රාම නිලධාරී කොට්ටාශය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
@@ -141,41 +140,43 @@ else
 
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ElectoralDivisions"
-                                    @bind-Value="PropertyModel.ElectoralDivisionId" Placeholder="Electoral Division"
+                                    @bind-Value="PropertyModel.ElectoralDivisionId" Placeholder="Electoral Division (මැතිවරණ කොට්ටාශය)"
                                     FloatLabelType="FloatLabelType.Auto">
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
+                <div class="row g-3">
                 <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.WaterConnection" Label="Water Connection" />
+                    <SfCheckBox @bind-Checked="PropertyModel.WaterConnection" Label="Water Connection (ජල සම්බන්ධතාවය)" />
                 </div>
 
                 <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.ElectricityConnection" Label="Electricity Connection" />
+                    <SfCheckBox @bind-Checked="PropertyModel.ElectricityConnection" Label="Electricity Connection (විදුලි සම්බන්ධතාවය)" />
+                </div>
+                    <div class="col-md-6">
+                        <SfCheckBox @bind-Checked="PropertyModel.IsDisputed" Label="Disputed Property (වාද විවාදයට ලක් වූ දේපල)" />
+                    </div>
                 </div>
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.LastAssessmentYear"
-                                      Placeholder="Last Assessment Year" FloatLabelType="FloatLabelType.Auto" />
+                                      Placeholder="Last Assessment Year (පසුගිය ඇගයීම් අවුරුද්ද)" FloatLabelType="FloatLabelType.Auto" />
+                </div>
+
+   
+
+                <div class="col-md-6">
+                    <SfTextBox Placeholder="Photo URL (ඡායාරූප URL)" @bind-Value="PropertyModel.PhotoUrl" FloatLabelType="FloatLabelType.Auto" />
                 </div>
 
                 <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.IsDisputed" Label="Disputed Property" />
-                </div>
-
-                <div class="col-md-6">
-                    <SfTextBox Placeholder="Photo URL" @bind-Value="PropertyModel.PhotoUrl" FloatLabelType="FloatLabelType.Auto" />
-                </div>
-
-                <div class="col-md-6">
-                    <SfTextBox Placeholder="Coordinates (lat,lng)" @bind-Value="PropertyModel.LocationCoordinates"
+                    <SfTextBox Placeholder="Coordinates (lat,lng) (ස්ථානාංක (අක්ෂාංශ, දේශාංශ))" @bind-Value="PropertyModel.LocationCoordinates"
                                FloatLabelType="FloatLabelType.Auto" />
                 </div>
             </div>
 
             <div class="mt-4">
-                <SfButton Type="Submit" CssClass="e-primary">Submit</SfButton>
+                <SfButton Type="Submit" CssClass="e-primary">Submit (ඉදිරිපත් කරන්න)</SfButton>
             </div>
         </EditForm>
     };
@@ -185,7 +186,7 @@ else
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public EventCallback<PropertyResponse> OnPropertyCreated { get; set; }
-    [Parameter] public bool RenderAsPopup { get; set; } = true; // default true
+    [Parameter] public bool RenderAsPopup { get; set; } = true;
 
     private CreatePropertyRequest PropertyModel = new();
 
@@ -214,30 +215,11 @@ else
         RoadAccessTypes = await LookupService.LoadLookupAsync("RoadAccessType");
         GSDivisions = await LookupService.LoadLookupAsync("GSDivision");
         ElectoralDivisions = await LookupService.LoadLookupAsync("ElectoralDivision");
-
     }
-
-    // private async Task<List<LookupDto>> LoadLookupAsync(string category)
-    // {
-    //     var client = HttpClientFactory.CreateClient("AuthorizedClient");
-
-    //     try
-    //     {
-    //         Console.WriteLine($"Fetching lookups for: {category}");
-    //         var result = await client.GetFromJsonAsync<List<LookupDto>>($"api/lookups/values/byname/{category}");
-    //         return result ?? new List<LookupDto>();
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error loading {category}: {ex.Message}");
-    //         return new List<LookupDto>();
-    //     }
-    // }
 
     private async Task HandleValidSubmit()
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
-
         var response = await client.PostAsJsonAsync("api/Properties/Create", PropertyModel);
         if (response.IsSuccessStatusCode)
         {
@@ -247,9 +229,8 @@ else
         }
         else
         {
-            // TODO: Show validation or error message
+            var errorMessage = await response.Content.ReadAsStringAsync();
+            // handle error (logging/UI) as needed
         }
     }
-
-
 }

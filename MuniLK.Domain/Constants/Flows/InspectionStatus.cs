@@ -32,21 +32,4 @@ namespace MuniLK.Domain.Constants.Flows
         ReInspectionRequired
     }
 
-    public enum ClearanceType
-    {
-        [Display(Name = "CEA")]
-        CEA,
-
-        [Display(Name = "Coast Conservation")]
-        CoastConservation,
-
-        [Display(Name = "NBRO")]
-        NBRO,
-
-        [Display(Name = "Fire Department")]
-        FireDept,
-
-        [Display(Name = "Other")]
-        Other
-    }
 }

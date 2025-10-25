@@ -101,8 +101,9 @@ namespace Application.Services
         // Check if the user has the tenant claim
         var claims = await _userManager.GetClaimsAsync(user);
         var tenantClaim = claims.FirstOrDefault(c => c.Type == "TenantId");
-        if (tenantClaim?.Value == _currentTenantService.GetTenantId().ToString())
-        {
+                if (Guid.TryParse(tenantClaim?.Value, out var tenantFromClaim) &&
+                    tenantFromClaim == _currentTenantService.GetTenantId())
+                {
             // Check if user is in role
             if (await _userManager.IsInRoleAsync(user, roleName))
             {

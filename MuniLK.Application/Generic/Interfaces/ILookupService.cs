@@ -1,5 +1,6 @@
 ﻿// MuniLK.Application/Services/ILookupService.cs
 using MuniLK.Application.Services.DTOs;
+using MuniLK.Application.BuildingAndPlanning.DTOs; // Added for EntityOptionSelectionsResponse
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -75,6 +76,20 @@ namespace MuniLK.Application.Services
         /// <param name="lookupCategoryName">The programmatic name of the LookupCategory (e.g., "DocumentType").</param>
         /// <returns>The 'Value' string of the lookup, or null if not found/invalid category.</returns>
         Task<string?> GetLookupValueForCategoryAsync(Guid lookupId, string lookupCategoryName);
+
+        // NEW: Entity Option Selection operations (moved from CQRS handlers / Inspection controller)
+        /// <summary>
+        /// Returns selected option item (lookup) ids for an entity context.
+        /// </summary>
+        Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId);
+        /// <summary>
+        /// Saves (replaces) option item selections for an entity and returns the resulting snapshot.
+        /// </summary>
+        Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, List<Guid> optionItemIds);
+        /// <summary>
+        /// Deletes all option selections for the given entity context.
+        /// </summary>
+        Task DeleteEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId);
 
         // Optional: Get the full Lookup object if more properties are needed
         // Task<Lookup?> GetLookupByIdAsync(Guid lookupId);

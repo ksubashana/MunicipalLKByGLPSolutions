@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Data.Migrations.IdentityMigrations
+namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
 {
     /// <inheritdoc />
-    public partial class InitialIdentitySchema : Migration
+    public partial class InitialIdentityMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
