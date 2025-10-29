@@ -15,14 +15,14 @@ namespace MuniLK.Domain.Constants.Flows
         [Display(Name = "Assign Inspector")]
         AssignInspector,
 
-        [Display(Name = "To Review")]
+        [Display(Name = "Site Inspection")]
         ToReview,
 
-        [Display(Name = "Planning Officer Review")]
-        PlanningOfficerReview,
+        //[Display(Name = "Planning Officer Review")]
+        //PlanningOfficerReview,
 
-        [Display(Name = "Engineering Review")]
-        EngineeringReview,
+        //[Display(Name = "Engineering Review")]
+        //EngineeringReview,
 
         [Display(Name = "Planning Committee Review")]
         PlanningCommitteeReview,

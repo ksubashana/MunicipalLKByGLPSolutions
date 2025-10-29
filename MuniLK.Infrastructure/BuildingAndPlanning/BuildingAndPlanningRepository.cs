@@ -176,5 +176,6 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
 
     return (page, total);
 }
+        public Task<BuildingPlanApplication?> GetWorkflowSnapshotSourceAsync(Guid id, CancellationToken ct = default) => GetByIdWithChildrenAsync(id, ct);
     }
 }

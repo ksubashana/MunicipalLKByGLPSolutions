@@ -16,6 +16,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         [Required]
         public InspectionStatus Status { get; set; }
         public string? Remarks { get; set; }
+        public string? PropertyAddress { get; set; }
 
         // 1. Inspection Metadata
         [Required]

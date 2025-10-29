@@ -7,11 +7,13 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.BuildingAndPlanning.Queries
 @using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.Documents.DTOs
 @using MuniLK.Application.Generic.Interfaces
 @using MuniLK.Application.PropertiesLK.DTOs
 @using MuniLK.Application.PropertyOwners.DTOs
 @using MuniLK.Domain.Constants
 @using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Clients
 @using MuniLK.Web.Components.Pages.Flows
 @using MuniLK.Web.Components.Pages.Generic
 @using MuniLK.Web.Components.Pages.Generic.Documents
@@ -20,6 +22,7 @@
 @using MuniLK.Web.Interfaces
 @using MuniLK.Web.Pages
 @using MuniLK.Web.Services
+@using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Grids
 @using Syncfusion.Blazor.Popups 
 @using System.Net.Http.Json
@@ -29,92 +32,52 @@
 @inject IModuleService ModuleService
 @inject IJSRuntime JS
 @inject IPermissionService PermissionService
+@inject DocumentClient DocClient
 
 <style>
-    .global-spinner-overlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(6px);
-        background: rgba(255,255,255,0.45);
-        z-index: 3000;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .2s ease;
-    }
-
-        .global-spinner-overlay.show {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-    body.loading {
-        overflow: hidden;
-    }
+    .global-spinner-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); background: rgba(255,255,255,0.45); z-index: 3000; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .global-spinner-overlay.show { opacity: 1; pointer-events: all; }
+    body.loading { overflow: hidden; }
 </style>
 
 <AuthorizeView>
     <Authorized>
         <div class="global-spinner-overlay @(VisibleProperty ? "show" : "")">
-            <div>
-                <SfSpinner Visible="true"></SfSpinner>
-            </div>
+            <div><SfSpinner Visible="true"></SfSpinner></div>
         </div>
 
         @if (!VisibleProperty)
         {
-
-            <StepHeader Title="Submit Building Plan"
-                        FeatureId="@(GeneratedFeatureId ?? string.Empty)"
-                        HelperText="Save this number for future tracking." />
-
+            <StepHeader Title="Submit Building Plan" FeatureId="@(GeneratedFeatureId ?? string.Empty)" HelperText="Save this number for future tracking." />
+            <div class="d-flex justify-content-end mb-2">
+                <SfButton CssClass="btn btn-outline-info btn-sm" Disabled="@(EntityId==Guid.Empty || !IsApplicationCreated)" @onclick="ShowHistoryAsync">
+                    <i class="fas fa-history me-1"></i>Workflow History
+                </SfButton>
+            </div>
             <div class="container-xxl">
-                <StepperFlow Steps="@buildingSteps"
-                             CurrentStep="@CurrentStep"
-                             Linear="true" CssClass="mb-4" />
-
+                <StepperFlow Steps="@buildingSteps" CurrentStep="@CurrentStep" Linear="true" CssClass="mb-4" />
                 @switch (CurrentStep)
                 {
                     case 0:
                         <div class="container-xxl py-3">
                             <h4 class="mb-3">Application – Link Property & Applicant</h4>
-                            <p class="text-muted mb-4">
-                                Choose whether to <strong>Search</strong> or <strong>Create</strong> a Property and an Applicant.
-                                Once both are selected, you can upload the Building Plan.
-                            </p>
-
+                            <p class="text-muted mb-4">Choose whether to <strong>Search</strong> or <strong>Create</strong> a Property and an Applicant. Once both are selected, you can upload the Building Plan.</p>
                             <!-- PROPERTY SECTION -->
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header bg-light">
                                     <div class="d-flex align-items-center justify-content-between">
                                         <h5 class="mb-0">Property</h5>
-                                        @if (SelectedProperty is not null)
-                                        {
-                                            <span class="badge bg-success">Selected</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">Not selected</span>
-                                        }
+                                        @if (SelectedProperty is not null) { <span class="badge bg-success">Selected</span>; } else { <span class="badge bg-secondary">Not selected</span>; }
                                     </div>
                                 </div>
                                 <div class="card-body">
-
                                     <!-- Tabs: Search | Create -->
                                     <ul class="nav nav-tabs" id="propertyTabs" role="tablist">
                                         <li class="nav-item" role="presentation">
-                                            <button class="nav-link @(PropertyMode == "search" ? "active" : "")"
-                                                    @onclick="SetPropertySearchMode" type="button" role="tab">
-                                                Search
-                                            </button>
+                                            <button class="nav-link @(PropertyMode == "search" ? "active" : "")" @onclick="SetPropertySearchMode" type="button" role="tab">Search</button>
                                         </li>
                                         <li class="nav-item" role="presentation">
-                                            <button class="nav-link @(PropertyMode == "create" ? "active" : "")"
-                                                    @onclick="SetPropertyCreateMode" type="button" role="tab">
-                                                Create New
-                                            </button>
+                                            <button class="nav-link @(PropertyMode == "create" ? "active" : "")" @onclick="SetPropertyCreateMode" type="button" role="tab">Create New</button>
                                         </li>
                                     </ul>
 
@@ -122,20 +85,14 @@
                                         <div class="tab-pane fade @(PropertyMode == "search" ? "show active" : "")" role="tabpanel">
                                             <div class="mb-3">
                                                 <label class="form-label">Find an existing property</label>
-                                                <MuniLK.Web.Components.Pages.Generic.Property.PropertySearch Placeholder="Search by address, deed no., or ID..."
-                                                                                                         SelectedPropertyChanged="OnPropertySelected"
-                                                                                                         CreatePropertyRequested="SetPropertyCreateMode" />
-                                                <div class="form-text">
-                                                    Tip: Press Enter to search. You can switch to <em>Create New</em> anytime.
-                                                </div>
+                                                <MuniLK.Web.Components.Pages.Generic.Property.PropertySearch Placeholder="Search by address, deed no., or ID..." SelectedPropertyChanged="OnPropertySelected" CreatePropertyRequested="SetPropertyCreateMode" />
+                                                <div class="form-text">Tip: Press Enter to search. You can switch to <em>Create New</em> anytime.</div>
                                             </div>
                                         </div>
 
                                         <div class="tab-pane fade @(PropertyMode == "create" ? "show active" : "")" role="tabpanel">
                                             <label class="form-label">Create a new property</label>
-                                            <MuniLK.Web.Components.Pages.Generic.Property.PropertyCreate RenderAsPopup=false IsVisible="true"
-                                                                                                 IsVisibleChanged="OnDialogVisibilityChanged"
-                                                                                                 OnPropertyCreated="OnPropertyCreated" />
+                                            <MuniLK.Web.Components.Pages.Generic.Property.PropertyCreate RenderAsPopup=false IsVisible="true" IsVisibleChanged="OnDialogVisibilityChanged" OnPropertyCreated="OnPropertyCreated" />
                                         </div>
                                     </div>
 
@@ -171,9 +128,7 @@
                                     }
                                     else
                                     {
-                                        <div class="alert alert-info mt-3 mb-0">
-                                            No property selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.
-                                        </div>
+                                        <div class="alert alert-info mt-3 mb-0">No property selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.</div>
                                     }
                                 </div>
                             </div>
@@ -185,49 +140,29 @@
                                     <div class="card-header bg-light">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <h5 class="mb-0">Applicant (Contact)</h5>
-                                            @if (SelectedContact is not null)
-                                            {
-                                                <span class="badge bg-success">Selected</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary">Not selected</span>
-                                            }
+                                            @if (SelectedContact is not null) { <span class="badge bg-success">Selected</span>; } else { <span class="badge bg-secondary">Not selected</span>; }
                                         </div>
                                     </div>
                                     <div class="card-body">
 
                                         <!-- Tabs: Search | Create -->
                                         <ul class="nav nav-tabs" id="contactTabs" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link @(ContactMode == "search" ? "active" : "")"
-                                                        @onclick="SetContactSearchMode" type="button" role="tab">
-                                                    Search
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link @(ContactMode == "create" ? "active" : "")"
-                                                        @onclick="SetContactCreateMode" type="button" role="tab">
-                                                    Create New
-                                                </button>
-                                            </li>
+                                            <li class="nav-item" role="presentation"><button class="nav-link @(ContactMode == "search" ? "active" : "")" @onclick="SetContactSearchMode" type="button" role="tab">Search</button></li>
+                                            <li class="nav-item" role="presentation"><button class="nav-link @(ContactMode == "create" ? "active" : "")" @onclick="SetContactCreateMode" type="button" role="tab">Create New</button></li>
                                         </ul>
 
                                         <div class="tab-content pt-3">
                                             <div class="tab-pane fade @(ContactMode == "search" ? "show active" : "")" role="tabpanel">
                                                 <div class="mb-3">
                                                     <label class="form-label">Find an existing applicant</label>
-                                                    <MuniLK.Web.Components.Pages.Generic.Contacts.ContactSearch Placeholder="Search by name, NIC, email or phone..."
-                                                                                                            SelectedContactChanged="OnContactSelected"
-                                                                                                            CreateContactRequested="SetContactCreateMode" />
+                                                    <MuniLK.Web.Components.Pages.Generic.Contacts.ContactSearch Placeholder="Search by name, NIC, email or phone..." SelectedContactChanged="OnContactSelected" CreateContactRequested="SetContactCreateMode" />
                                                     <div class="form-text">Switch to <em>Create New</em> if the applicant doesn’t exist.</div>
                                                 </div>
                                             </div>
 
                                             <div class="tab-pane fade @(ContactMode == "create" ? "show active" : "")" role="tabpanel">
                                                 <label class="form-label">Create a new applicant</label>
-                                                <MuniLK.Web.Components.Pages.Generic.Contacts.ContactCreate RenderAsPopup="false"
-                                                                                                        OnContactCreated="OnContactCreated" />
+                                                <MuniLK.Web.Components.Pages.Generic.Contacts.ContactCreate RenderAsPopup="false" OnContactCreated="OnContactCreated" />
                                             </div>
                                         </div>
 
@@ -249,193 +184,193 @@
                                         }
                                         else
                                         {
-                                            <div class="alert alert-info mt-3 mb-0">
-                                                No applicant selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.
-                                            </div>
+                                            <div class="alert alert-info mt-3 mb-0">No applicant selected yet. Use <strong>Search</strong> or <strong>Create New</strong> above.</div>
                                         }
                                     </div>
                                 </div>
                             }
                             else
                             {
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    Please select a Property before selecting a Contact.
-                                </div>
+                                <div class="alert alert-warning mt-3 mb-0">Please select a Property before selecting a Contact.</div>
                             }
 
                             <!-- DOCUMENT UPLOAD -->
                             <div class="card shadow-sm position-relative">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0">Document Upload</h5>
-                                </div>
+                                <div class="card-header bg-light"><h5 class="mb-0">Document Upload</h5></div>
                                 <div class="card-body">
-                     @*        <p class="text-muted mb-3">
-                                    Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)
-                            </p> *@
-
                                     <div class="uploader-wrapper @(CanUploadDocument ? "" : "disabled")">
                                         @if (EntityId != Guid.Empty && ModuleId != Guid.Empty && DocumentCategory != Guid.Empty)
                                         {
-                                            <DocumentUploader Label="Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)"
-                                                              Required="true"
-                                                              OnUploaded="OnPlanUploaded"
-                                                              ModuleId="@ModuleId"
-                                                              EntityId="@EntityId"
-                                                              LinkContext="Building and Planning"
-                                                              DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()"
-                                                              DocumentTypeId="@DocumentTypeId"
-                                                              Enabled="@CanUploadDocument" />
+                                            <DocumentUploader Label="Upload Required Documents for Building Application (අයදුම්පත සඳහා අවශ්‍ය ලේඛන උඩුගත කරන්න)" Required="true" OnUploaded="OnPlanUploaded" ModuleId="@ModuleId" EntityId="@EntityId" LinkContext="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()" DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()" DocumentTypeId="@DocumentTypeId" Enabled="@CanUploadDocument" />
                                         }
-                                        else
-                                        {
-                                            <p>Loading document uploader...</p>
-                                        }
+                                        else { <p>Loading document uploader...</p>; }
                                     </div>
-
-                                    @if (!CanUploadDocument)
-                                    {
-                                        <div class="text-danger mt-2">
-                                            Please select both a Property and an Applicant first.
-                                        </div>
-                                    }
+                                    @if (!CanUploadDocument) { <div class="text-danger mt-2">Please select both a Property and an Applicant first.</div>; }
                                 </div>
                             </div>
 
+                            <!-- Documents Section -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary mb-3">📄 Application Documents</h6>
+                                    @if (ApplicationDocuments?.Any() == true)
+                                    {
+                                        <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" AllowPaging="false" AllowSorting="true">
+                                            <GridColumns>
+                                                <GridColumn Field="FileName" HeaderText="Document" Width="200" />
+                                                <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="120" />
+                                                <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="100" />
+                                                <GridColumn HeaderText="Actions" Width="120" TextAlign="TextAlign.Center">
+                                                    <Template Context="docContext">
+                                                        @{ var doc = (docContext as DocumentLinkResponse); }
+                                                        <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" @onclick="() => PreviewDocument(doc)" />
+                                                        <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" @onclick="() => DownloadDocument(doc)" />
+                                                    </Template>
+                                                </GridColumn>
+                                            </GridColumns>
+                                        </SfGrid>
+                                    }
+                                    else { <p class="text-muted">No documents available for this application.</p>; }
+                                </div>
+                            </div>
+
+                            <!-- Document Preview Dialog -->
+                            <SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="1400px" Height="600px" ShowCloseIcon="true">
+                                <DialogTemplates>
+                                    <Header><div>Document Preview - @(SelectedPreviewDocument?.FileName)</div></Header>
+                                    <Content>
+                                        @if (SelectedPreviewDocument != null)
+                                        {
+                                            <div class="row">
+                                                <div class="col-8">
+                                                    @if (@DocClient.IsImageFile(SelectedPreviewDocument.FileExtension)) { <img src="@DocClient.GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" /> }
+                                                    else if (@DocClient.IsPdfFile(SelectedPreviewDocument.FileExtension)) { <iframe src="@DocClient.GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" width="100%" height="500px"></iframe> }
+                                                    else if (@DocClient.IsWordFile(SelectedPreviewDocument.FileExtension)) { <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=http://localhost:5164/api/Documents/@(SelectedPreviewDocument.DocumentId)/preview" width="100%" height="500px"></iframe> }
+                                                    else {
+                                                        <div class="text-center p-4">
+                                                            <i class="fas fa-file fa-3x text-muted mb-3"></i>
+                                                            <p>Preview not available for this file type.</p>
+                                                            <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)"><i class="fas fa-download me-2"></i>Download File</SfButton>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="col-4">
+                                                    <h6>Document Information</h6>
+                                                    <table class="table table-sm">
+                                                        <tr><td><strong>Filename:</strong></td><td>@SelectedPreviewDocument.FileName</td></tr>
+                                                        <tr><td><strong>Type:</strong></td><td>@SelectedPreviewDocument.DocumentTypeName</td></tr>
+                                                        <tr><td><strong>Size:</strong></td><td>@DocClient.FormatFileSize(SelectedPreviewDocument.FileSize)</td></tr>
+                                                        <tr><td><strong>Uploaded:</strong></td><td>@SelectedPreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
+                                                        <tr><td><strong>Uploaded By:</strong></td><td>@SelectedPreviewDocument.UploadedBy</td></tr>
+                                                    </table>
+                                                    <SfButton IsPrimary="true" @onclick="() => DownloadDocument(SelectedPreviewDocument)"><i class="fas fa-download me-2"></i>Download</SfButton>
+                                                </div>
+                                            </div>
+                                        }
+                                    </Content>
+                                </DialogTemplates>
+                            </SfDialog>
+
                             <!-- Application Details - New UI Block -->
                             <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-light">
-                                    <h5 class="mb-0">Application Details</h5>
-                                </div>
+                                <div class="card-header bg-light"><h5 class="mb-0">Application Details</h5></div>
                                 <div class="card-body">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Building Purpose</label>
-                                            <InputText class="form-control" @bind-Value="BuildingPurposeInput" placeholder="Residential / Commercial / Mixed..." />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Number of Floors</label>
-                                            <InputNumber class="form-control" @bind-Value="NoOfFloorsInput" Min="1" />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Architect Name</label>
-                                            <InputText class="form-control" @bind-Value="ArchitectNameInput" />
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Engineer Name</label>
-                                            <InputText class="form-control" @bind-Value="EngineerNameInput" />
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label">Remarks</label>
-                                            <InputTextArea class="form-control" @bind-Value="RemarksInput" />
-                                        </div>
+                                        <div class="col-md-6"><label class="form-label">Building Purpose</label><InputText class="form-control" @bind-Value="BuildingPurposeInput" placeholder="Residential / Commercial / Mixed..." /></div>
+                                        <div class="col-md-6"><label class="form-label">Number of Floors</label><InputNumber class="form-control" @bind-Value="NoOfFloorsInput" Min="1" /></div>
+                                        <div class="col-md-6"><label class="form-label">Architect Name</label><InputText class="form-control" @bind-Value="ArchitectNameInput" /></div>
+                                        <div class="col-md-6"><label class="form-label">Engineer Name</label><InputText class="form-control" @bind-Value="EngineerNameInput" /></div>
+                                        <div class="col-12"><label class="form-label">Remarks</label><InputTextArea class="form-control" @bind-Value="RemarksInput" /></div>
                                     </div>
                                     <div class="mt-3">
                                         @if (HasSubmitPermission)
                                         {
-                                            <button class="btn btn-success"
-                                                    disabled="@(IsApplicationCreated || !CanSubmitApplication)"
-                                                    @onclick="SubmitBuildingPlanAsync">
-                                                @(IsApplicationCreated ? "Submitted" : "Submit Application")
-                                            </button>
-                                            @if (!IsDocumentUploaded)
-                                            {
-                                                <span class="text-muted ms-2">Upload the Building Plan PDF to enable submission.</span>
-                                            }
+                                            <button class="btn btn-success" disabled="@(IsApplicationCreated || !CanSubmitApplication)" @onclick="SubmitBuildingPlanAsync">@(IsApplicationCreated ? "Submitted" : "Submit Application")</button>
+                                            @if (!IsDocumentUploaded) { <span class="text-muted ms-2">Upload the Building Plan PDF to enable submission.</span>; }
                                         }
-                                        else
-                                        {
-                                            <div class="alert alert-warning mb-0">
-                                                You do not have permission to submit the application. 
-                                            </div>
-                                        }
+                                        else { <div class="alert alert-warning mb-0">You do not have permission to submit the application.</div>; }
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                         break;
+                    case 1:
+                        <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId" EntityId="EntityId" PrefetchedAssignment="BuildingPlanSummery?.Assignment" OnAssigned="OnAssignmentScheduled" />
+                        break;
+                    case 2:
+                        <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId" AssignmentId="ActiveAssignmentId" ApplicationNumber="GeneratedFeatureId" DocumentCategory="DocumentCategory" DocumentTypeId="DocumentTypeId" ModuleId="ModuleId" PrefilledInspectionDate="ActiveAssignmentDate" PrefilledAssignedTo="@ActiveInspectorName" PropertyAddress="@SelectedProperty?.Address" LockMetadata="@true" OnSubmit="OnSiteInspectionSubmitted" />
+                        break;
+                    case 3:
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
 
-
-
-                        case 1:
-                            <MuniLK.Web.Components.Pages.Pages.Inspections.AssignInspector ModuleId="ModuleId"
-                                                                                       EntityId="EntityId"
-                                                                                       PrefetchedAssignment="BuildingPlanSummery?.Assignment"
-                                                                                       OnAssigned="OnAssignmentScheduled" />
-                            break;
-                        case 2:
-                            <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId"
-                                                                                          AssignmentId="ActiveAssignmentId"
-                                                                                          ApplicationNumber="GeneratedFeatureId"
-                                                                                          DocumentCategory="DocumentCategory"
-                                                                                          DocumentTypeId="DocumentTypeId"
-                                                                                          ModuleId="ModuleId"
-                                                                                          PrefilledInspectionDate="ActiveAssignmentDate"
-                                                                                          PrefilledAssignedTo="@ActiveInspectorName"
-                                                                                          LockMetadata="@true"
-                                                                                          OnSubmit="@(_ => { SiteInspectionCompleted = true; })" />
-                            break;
-                        case 3:
-                            <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
-
-                            @* <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview EntityId="@EntityId" Model="@BuildingPlanSummery" /> *@
-
-                            break;
-                        case 4:
-
-                            <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.CommissionerApproval />
-
-
-                            break;
-                        case 5:
-
-                            <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.WorkflowHistory />
-
-
-                            break;
-                        // Add more steps as needed
+                        @* <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview Model="BuildingPlanSummery" /> *@
+                        break;
+                    case 4:
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.CommissionerApproval />
+                        break;
+                    case 5:
+                    
+                        break;
                 }
                 <div class="container-xxl py-3">
-
                     <div class="card shadow-sm position-relative">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Go to the Next Step</h5>
-                        </div>
+                        <div class="card-header bg-light"><h5 class="mb-0">Go to the Next Step</h5></div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-lg-12">
                                     <div class="d-flex justify-content-between mt-3">
-                                        @if (CurrentStep > 0)
-                                        {
-                                            <button class="btn btn-secondary" @onclick="MoveToPreviousStep">Back</button>
-                                        }
-
-                                        @if (CurrentStep < buildingSteps.Count - 1)
-                                        {
-                                            <button class="btn btn-primary" @onclick="MoveToNextStep" >Next</button> 
-                                            @* disabled="@(!CanMoveToNextStep)" *@
-                                        }
+                                        @if (CurrentStep > 0) { <button class="btn btn-secondary" @onclick="MoveToPreviousStep">Back</button>; }
+                                        @if (CurrentStep < buildingSteps.Count - 1) { <button class="btn btn-primary" @onclick="MoveToNextStep">Next</button>; }
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
 
-                <button class="btn btn-primary" @onclick="MoveToNextStep2">Next</button>
+            <button class="btn btn-primary" @onclick="MoveToNextStep2">Next</button>
 
-                <hr />
-            }
-        </Authorized>
-        <NotAuthorized>
-            <RedirectToLogin/>
-        </NotAuthorized>
-    </AuthorizeView>
+            <!-- Workflow History Dialog -->
+            <SfDialog @bind-Visible="IsHistoryDialogVisible" Width="90%" IsModal="true" CssClass="workflow-history-dialog" ShowCloseIcon="true">
+                <DialogTemplates>
+                    <Header>
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <span class="fw-bold">Workflow History - @GeneratedFeatureId</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <SfButton CssClass="btn btn-sm btn-outline-secondary" @onclick="RefreshHistoryAsync"><i class="fas fa-sync me-1"></i>Refresh</SfButton>
+                                <SfButton CssClass="btn btn-sm btn-outline-danger" @onclick="() => IsHistoryDialogVisible = false"><i class="fas fa-times me-1"></i>Close</SfButton>
+                            </div>
+                        </div>
+                    </Header>
+                    <Content>
+                        <div class="workflow-history-content">
+                            @if (IsHistoryLoading)
+                            {
+                                <div class="p-4 text-center"><SfSpinner Visible="true" /></div>
+                            }
+                            else if (HistoryLogs.Count == 0)
+                            {
+                                <div class="p-5 text-center text-muted"><i class="fas fa-clock fa-2x mb-2"></i><p>No workflow entries yet.</p></div>
+                            }
+                            else
+                            {
+                                <WorkflowHistory WorkflowLogs="HistoryLogs" />
+                            }
+                        </div>
+                    </Content>
+                </DialogTemplates>
+            </SfDialog>
+
+            <hr />
+        }
+    </Authorized>
+    <NotAuthorized><RedirectToLogin/></NotAuthorized>
+</AuthorizeView>
+
 
 @code {
     private bool VisibleProperty { get; set; } = false;
-
     private const string LocalStorageFeatureKey = "bp.featureId";
     [Parameter][SupplyParameterFromQuery(Name = "id")] public Guid? QueryApplicationId { get; set; } 
 
@@ -444,6 +379,7 @@
 
     private bool IsContactDialogVisible = false;
     private BuildingPlanApplicationDto BuildingPlanSummery;
+    private BuildingPlanWorkflowSnapshot? WorkflowSnapshot;
     private ContactResponse? SelectedContact;
     private PropertyResponse? SelectedProperty;
     private List<PropertyOwnerResponse> OwnerList = new();
@@ -456,16 +392,18 @@
     private bool CanUploadDocument => SelectedProperty != null && SelectedContact != null;
     private string PropertyMode { get; set; } = "search";
     private string ContactMode { get; set; } = "search";
+    private List<DocumentLinkResponse> ApplicationDocuments = new();
+    private DocumentLinkResponse? SelectedPreviewDocument = null;
+    private bool IsPreviewDialogVisible = false;
 
     private Guid? ActiveAssignmentId;
     private DateTime? ActiveAssignmentDate;
     private string? ActiveInspectorName;
     private Guid? ActiveInspectorUserId;
-    private bool SiteInspectionCompleted;
 
     private string? GeneratedFeatureId;
     private bool IsDocumentUploaded { get; set; } = false;
-    private bool CanMoveToNextStep => IsDocumentUploaded;
+    private bool HasSubmitPermission;
 
     private string? BuildingPurposeInput { get; set; }
     private int? NoOfFloorsInput { get; set; }
@@ -480,11 +418,9 @@
     void SetContactSearchMode() => ContactMode = "search";
     void SetContactCreateMode() => ContactMode = "create";
 
-    private bool HasSubmitPermission;
-
     protected override async Task OnInitializedAsync()
     {
-        this.VisibleProperty = true;
+        VisibleProperty = true;
 
         try
         {
@@ -496,31 +432,19 @@
             if (QueryApplicationId.HasValue)
             {
                 await LoadExistingApplicationAsync(QueryApplicationId.Value);
+                await RefreshWorkflowSnapshotAsync();
             }
             else
             {
                 // New application scenario – fully reset state
                 await JS.InvokeVoidAsync("localStorage.removeItem", LocalStorageFeatureKey);
-                GeneratedFeatureId = null;
-                SelectedProperty = null;
-                SelectedContact = null;
-                OwnerList.Clear();
-                ActiveAssignmentId = null;
-                ActiveAssignmentDate = null;
-                ActiveInspectorName = null;
-                ActiveInspectorUserId = null;
-                SiteInspectionCompleted = false;
-                IsApplicationCreated = false;
-                IsDocumentUploaded = false;
-                BuildingPlanSummery = null; // ensure summary cleared
-                // Always generate a brand-new EntityId to avoid using a stale one from previous navigation/circuit
                 EntityId = Guid.NewGuid();
                 CurrentStep = 0;
             }
         }
         finally
         {
-            this.VisibleProperty = false; 
+            VisibleProperty = false; 
             StateHasChanged();
         }
     }
@@ -539,7 +463,7 @@
 
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
 
-        var request = new MuniLK.Application.BuildingAndPlanning.DTOs.SubmitBuildingPlanRequest
+        var request = new SubmitBuildingPlanRequest
         {
             ApplicationId = EntityId,
             ModuleId = ModuleId,
@@ -562,90 +486,131 @@
             // persist banner across refresh
             await JS.InvokeVoidAsync("localStorage.setItem", LocalStorageFeatureKey, GeneratedFeatureId ?? string.Empty);
 
-            // go to next step
-            MoveToNextStep();
-        }
-        else
-        {
-            var error = await resp.Content.ReadAsStringAsync();
+            // refresh workflow snapshot and determine next step
+            await RefreshWorkflowSnapshotAsync();
+            CurrentStep = DeriveStep(WorkflowSnapshot);
+            StateHasChanged();
         }
     }
 
-    private bool CanEnterInspectionStep =>
-        ActiveAssignmentDate.HasValue
-        && ActiveAssignmentDate.Value.Date >= DateTime.Today
-        && !SiteInspectionCompleted;
+    private int DeriveStep(BuildingPlanWorkflowSnapshot? snap)
+    {
+        if (!IsApplicationCreated) return 0;
+        if (snap == null) return CurrentStep; // fallback
+
+        // Force assignment step if assignment missing or expired
+        if (!snap.HasAssignment || snap.IsAssignmentExpired) return 1;
+
+        // Site inspection pending
+        if (snap.HasAssignment && !snap.IsInspectionCompleted) return 2;
+
+        // Move to committee if inspection approved
+        if (snap.CanProceedToCommittee || snap.CurrentStatus == BuildingAndPlanSteps.PlanningCommitteeReview) return 3;
+        if (snap.CurrentStatus == BuildingAndPlanSteps.CommissionerApproval) return 4;
+        if (snap.CurrentStatus is BuildingAndPlanSteps.Finalized or BuildingAndPlanSteps.Rejected) return 5;
+
+        // Default mapping
+        return snap.CurrentStatus switch
+        {
+            BuildingAndPlanSteps.Submission => 0,
+            BuildingAndPlanSteps.AssignInspector => 1,
+            BuildingAndPlanSteps.ToReview or BuildingAndPlanSteps.PlanningCommitteeReview  => 3,
+            _ => CurrentStep
+        };
+    }
+
+    private async Task RefreshWorkflowSnapshotAsync()
+    {
+        if (EntityId == Guid.Empty) return;
+
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        try
+        {
+            WorkflowSnapshot = await client.GetFromJsonAsync<BuildingPlanWorkflowSnapshot>($"api/BuildingPlans/{EntityId}/workflow-snapshot");
+            ActiveAssignmentId = WorkflowSnapshot?.HasAssignment == true ? WorkflowSnapshot.ApplicationId : ActiveAssignmentId; // keep existing FK if needed
+            ActiveAssignmentDate = WorkflowSnapshot?.AssignmentDate;
+            CurrentStep = DeriveStep(WorkflowSnapshot);
+        }
+        catch { }
+    }
 
     private void MoveToNextStep()
     {
-        // Prevent moving into Site Inspection (step 2) if assignment date already passed
-        if (CurrentStep == 1 && !CanEnterInspectionStep)
-        {
-            // Stay on Assign Inspector
-            return;
-        }
-        if (CurrentStep < buildingSteps.Count - 1)
-            CurrentStep++;
+        // Re-derive to ensure we don't skip locked steps
+        CurrentStep = DeriveStep(WorkflowSnapshot);
+        if (CurrentStep < buildingSteps.Count - 1) CurrentStep++;
+    }
+    private void MoveToNextStep2() { MoveToNextStep(); }
+    private void MoveToPreviousStep() { if (CurrentStep > 0) CurrentStep--; }
+
+    private void PreviewDocument(DocumentLinkResponse document) { SelectedPreviewDocument = document; IsPreviewDialogVisible = true; }
+    private async Task DownloadDocument(DocumentLinkResponse document) { var (fileName, base64) = await DocClient.DownloadDocumentAsync(document); if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(base64)) return; await JS.InvokeVoidAsync("downloadBase64File", fileName, base64); }
+
+    // Workflow History logic
+    private List<WorkflowLogResponse> HistoryLogs = new();
+    private bool IsHistoryDialogVisible = false;
+    private bool IsHistoryLoading = false;
+
+    private async Task ShowHistoryAsync()
+    {
+        if (EntityId == Guid.Empty || !IsApplicationCreated) return;
+        IsHistoryDialogVisible = true;
+        await LoadHistoryAsync();
     }
 
-    private async Task OnAssignmentScheduled(AssignInspector.AssignmentScheduledArgs args)
+    private async Task RefreshHistoryAsync()
     {
-        ActiveAssignmentId = args.AssignmentId;
-        ActiveAssignmentDate = args.AssignmentDate;
-        ActiveInspectorName = args.InspectorName;
-        ActiveInspectorUserId = args.InspectorUserId;
-
-        // Only jump to site inspection if date is today or future
-        CurrentStep = CanEnterInspectionStep ? 2 : 1;
-        StateHasChanged();
+        await LoadHistoryAsync(force:true);
     }
 
-    private async Task RefreshSiteInspectionStatus()
+    private DateTime? _historyLastLoaded;
+    private async Task LoadHistoryAsync(bool force = false)
     {
+        if (!force && _historyLastLoaded.HasValue && (DateTime.UtcNow - _historyLastLoaded.Value).TotalSeconds < 10) return; // throttle
+        IsHistoryLoading = true; StateHasChanged();
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var resp = await client.GetAsync($"api/BuildingPlans/{EntityId}/site-inspection");
-            SiteInspectionCompleted = resp.IsSuccessStatusCode;
+            var logs = await client.GetFromJsonAsync<List<WorkflowLogResponse>>($"api/BuildingPlans/{EntityId}/workflow-history");
+            HistoryLogs = logs ?? new();
+            _historyLastLoaded = DateTime.UtcNow;
         }
-        catch
-        {
-            SiteInspectionCompleted = false;
-        }
+        catch { HistoryLogs = new(); }
+        finally { IsHistoryLoading = false; StateHasChanged(); }
     }
 
-    private async Task EnforceAssignmentValidity()
+    // Auto-refresh history dialog on workflow-changing events
+    private async Task AutoRefreshHistoryIfOpen()
     {
-        if (CurrentStep == 2 && ActiveAssignmentDate.HasValue)
-        {
-            if (ActiveAssignmentDate.Value.Date < DateTime.Today && !SiteInspectionCompleted)
-            {
-                // Missed inspection date -> force reschedule
-                CurrentStep = 1;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
+        if (IsHistoryDialogVisible)
+            await RefreshHistoryAsync();
+    }
+
+    // Extend existing events
+    private async Task OnAssignmentScheduled(AssignInspector.AssignmentScheduledArgs args)
+    {
+        ActiveAssignmentId = args.AssignmentId; ActiveAssignmentDate = args.AssignmentDate; ActiveInspectorName = args.InspectorName; ActiveInspectorUserId = args.InspectorUserId;
+        await RefreshWorkflowSnapshotAsync();
+        await AutoRefreshHistoryIfOpen();
+        StateHasChanged();
+    }
+
+    private async Task OnSiteInspectionSubmitted(SiteInspectionRequest _)
+    {
+        await RefreshWorkflowSnapshotAsync();
+        await AutoRefreshHistoryIfOpen();
+        StateHasChanged();
     }
 
     private async Task LoadExistingApplicationAsync(Guid id)
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
-
-        // 1) Load the application (contains ApplicantContactId and PropertyId)
-        var summary = await client.GetFromJsonAsync<MuniLK.Application.BuildingAndPlanning.DTOs.BuildingPlanResponse>(
-            $"api/BuildingPlans/{id}/summary");
+        var summary = await client.GetFromJsonAsync<BuildingPlanResponse>($"api/BuildingPlans/{id}/summary");
         if (summary is null) return;
-
-        // Banner + identity
         GeneratedFeatureId = summary.ApplicationNumber;
         await JS.InvokeVoidAsync("localStorage.setItem", LocalStorageFeatureKey, GeneratedFeatureId ?? string.Empty);
-
-        // Use the application id as EntityId for linking
         EntityId = id;
-
-        // 2) Load applicant details
-        var contact = await client.GetFromJsonAsync<MuniLK.Application.Contact.DTOs.ContactResponse>(
-            $"api/Contact/{summary.ApplicantContactId}");
+        var contact = await client.GetFromJsonAsync<ContactResponse>($"api/Contact/{summary.ApplicantContactId}");
         if (contact is not null)
         {
             SelectedContact = new ContactResponse
@@ -658,10 +623,7 @@
                 Address = contact.Address
             };
         }
-
-        // 3) Load property details
-        var property = await client.GetFromJsonAsync<MuniLK.Application.PropertiesLK.DTOs.PropertyResponse>(
-            $"api/Properties/{summary.PropertyId}");
+        var property = await client.GetFromJsonAsync<PropertyResponse>($"api/Properties/{summary.PropertyId}");
         if (property is not null)
         {
             SelectedProperty = new PropertyResponse
@@ -673,14 +635,19 @@
                 AssessmentValue = property.AssessmentValue,
                 IsCommercialUse = property.IsCommercialUse
             };
-
             if (SelectedProperty.Id is not null)
-            {
                 await LoadPropertyOwners(SelectedProperty.Id);
-            }
         }
-
-        // 4) Build the DTO to pass to EngineerReview.Model
+        if (ModuleId != Guid.Empty)
+        {
+            try
+            {
+                var jsonDocs = await client.GetStringAsync($"api/Documents/linked?moduleId={ModuleId}&entityId={id}&linkContext={MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()}");
+                var documents = System.Text.Json.JsonSerializer.Deserialize<List<DocumentLinkResponse>>(jsonDocs, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                ApplicationDocuments = documents ?? new();
+            }
+            catch { ApplicationDocuments = new(); }
+        }
         BuildingPlanSummery = summary.ToApplicationDto(SelectedContact, SelectedProperty);
         ActiveAssignmentId = summary.AssignmentId;
         ActiveAssignmentDate = summary.Assignment?.AssignmentDate;
@@ -688,45 +655,6 @@
         ActiveInspectorName = summary.Assignment?.AssignedToName;
         IsApplicationCreated = true;
         IsDocumentUploaded = true;
-
-        // Decide starting step after load:
-        // If no assignment yet -> stay at step 1 (assign)
-        // If assignment exists and date valid -> allow site inspection (step 2)
-        // If assignment date expired and not completed -> force remain at assign step
-        if (ActiveAssignmentDate.HasValue)
-        {
-            CurrentStep = CanEnterInspectionStep ? 2 : 1;
-        }
-        else
-        {
-            CurrentStep = 1;
-        }
-        StateHasChanged();
-    }
-
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // restore banner after refresh
-            var stored = await JS.InvokeAsync<string>("localStorage.getItem", LocalStorageFeatureKey);
-            if (!string.IsNullOrWhiteSpace(stored))
-            {
-                GeneratedFeatureId = stored;
-                StateHasChanged();
-            }
-        }
-
-        // Re‑enforce validity if user manually navigated
-        if (CurrentStep == 2 && !CanEnterInspectionStep)
-        {
-            CurrentStep = 1;
-            StateHasChanged();
-        }
-
-        await RefreshSiteInspectionStatus();
-        await EnforceAssignmentValidity();
     }
 
     public void RecordClickHandler(RecordClickEventArgs<PropertyOwnerResponse> args)
@@ -737,58 +665,36 @@
             {
                 Id = args.RowData.ContactId,
                 FullName = args.RowData.FullName,
-                NationalId = args.RowData.NIC,
-                Email = args.RowData.Email,
-                PhoneNumber = args.RowData.Phone,
-                Address = args.RowData.Address
+                NationalId = args.RowData.NIC ?? string.Empty,
+                Email = args.RowData.Email ?? string.Empty,
+                PhoneNumber = args.RowData.Phone ?? string.Empty,
+                Address = args.RowData.Address ?? string.Empty
             };
         }
     }
 
-    private Task OnDialogVisibilityChanged(bool value)
-    {
-        IsContactDialogVisible = value;
-        return Task.CompletedTask;
-    }
-
-    private Task OnContactSelected(ContactResponse? contact)
-    {
-        SelectedContact = contact;
-        return Task.CompletedTask;
-    }
+    private Task OnDialogVisibilityChanged(bool value) => Task.CompletedTask;
+    private Task OnContactSelected(ContactResponse? contact) { SelectedContact = contact; return Task.CompletedTask; }
 
     private async Task OnPropertySelected(PropertyResponse? property)
     {
-        SelectedProperty = property;
-        PropertyMode = "search";
-        if (SelectedProperty?.Id != null)
-        {
-            await LoadPropertyOwners(SelectedProperty.Id);
-        }
+        SelectedProperty = property; PropertyMode = "search";
+        if (SelectedProperty?.Id != null) await LoadPropertyOwners(SelectedProperty.Id);
     }
 
     private async Task OnPropertyCreated(PropertyResponse created)
     {
-        SelectedProperty = created;
-        PropertyMode = "search"; // return to search view after creation
-        if (created.Id != null)
-        {
-            await LoadPropertyOwners(created.Id.Value);
-        }
+        SelectedProperty = created; PropertyMode = "search";
+        if (created.Id != null) await LoadPropertyOwners(created.Id.Value);
     }
 
-    // Modified: when a new contact is created within this page, automatically link to selected property as owner
     private async Task OnContactCreated(ContactResponse created)
     {
         SelectedContact = created;
-        if (SelectedProperty?.Id != null && created.Id != null)
+        if (SelectedProperty?.Id != null && created.Id != null && !OwnerList.Any(o => o.ContactId == created.Id))
         {
-            // Avoid duplicate linking if already exists
-            if (!OwnerList.Any(o => o.ContactId == created.Id))
-            {
-                await CreatePropertyOwnerAsync(SelectedProperty.Id.Value, created.Id.Value, "Primary Owner");
-                await LoadPropertyOwners(SelectedProperty.Id);
-            }
+            await CreatePropertyOwnerAsync(SelectedProperty.Id.Value, created.Id.Value, "Primary Owner");
+            await LoadPropertyOwners(SelectedProperty.Id);
         }
     }
 
@@ -797,43 +703,22 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var request = new CreatePropertyOwnerRequest
-            {
-                PropertyId = propertyId,
-                ContactId = contactId,
-                OwnershipType = ownershipType
-            };
-            var response = await client.PostAsJsonAsync("api/PropertyOwners/Create", request);
-            // You could inspect response here or show a toast; kept minimal per requirements.
+            var request = new CreatePropertyOwnerRequest { PropertyId = propertyId, ContactId = contactId, OwnershipType = ownershipType };
+            await client.PostAsJsonAsync("api/PropertyOwners/Create", request);
         }
-        catch
-        {
-            // Swallow or log error (no logging context here). In production, inject a logger.
-        }
+        catch { }
     }
 
     private async Task LoadPropertyOwners(Guid? propertyId)
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
         var response = await client.GetFromJsonAsync<List<PropertyOwnerResponse>>($"api/PropertyOwners/GetByProperty?propertyId={propertyId}");
-        OwnerList = response ?? new List<PropertyOwnerResponse>();
-    }
-
-    private void MoveToNextStep2()
-    {
-            CurrentStep++;
-    }
-    private void MoveToPreviousStep()
-    {
-        if (CurrentStep > 0)
-            CurrentStep--;
+        OwnerList = response ?? new();
     }
 
     private Task OnPlanUploaded(string fileName)
     {
-        if (!string.IsNullOrWhiteSpace(fileName))
-            IsDocumentUploaded = true;
-
+        if (!string.IsNullOrWhiteSpace(fileName)) IsDocumentUploaded = true;
         return Task.CompletedTask;
     }
 }

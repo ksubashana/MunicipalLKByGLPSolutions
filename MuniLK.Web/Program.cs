@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using MuniLK.Application.Generic.Interfaces;
 using MuniLK.Domain.Constants;
 using MuniLK.Infrastructure.Services;
+using MuniLK.Web.Clients;
 using MuniLK.Web.Components;
 using MuniLK.Web.Interfaces;
 using MuniLK.Web.Services;
@@ -62,6 +63,7 @@ builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IModuleService, ModuleService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<DocumentClient>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(options =>

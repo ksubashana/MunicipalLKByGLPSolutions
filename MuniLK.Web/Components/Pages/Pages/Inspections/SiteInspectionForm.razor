@@ -3,6 +3,7 @@
 @using MuniLK.Application.Documents.DTOs
 @using MuniLK.Application.Services.DTOs
 @using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Clients
 @using MuniLK.Web.Components.Pages.Generic.Documents
 @using MuniLK.Web.Components.Pages.Notifications
 @using MuniLK.Web.Interfaces
@@ -17,6 +18,9 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
 @inject ILookupService LookupService
+@inject IConfiguration Config
+@inject DocumentClient DocClient
+
 
 <div class="container-xxl py-3">
     <div class="card shadow-sm">
@@ -84,9 +88,15 @@
                     </div>
                     
                     <div class="col-md-6">
-                        <label class="form-label">GPS Coordinates</label>
-                        <SfTextBox @bind-Value="Model.GpsCoordinates" 
-                                 Placeholder="Latitude, Longitude" CssClass="form-control" />
+                        <label class="form-label">Property Address</label>
+                        <div class="input-group">
+                            <SfTextBox @bind-Value="Model.PropertyAddress" Width="80%"
+                                       Placeholder="Enter property address" CssClass="form-control"
+                                       Enabled="@( !MetadataLocked )" />
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ShowMapDialog" title="View on map">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -102,7 +112,7 @@
                 <div class="row mb-4">
                     <div class="col-12">
                         <h6 class="text-primary mb-3">🏗️ Site Conditions Verification</h6>
-                    </div>
+                    </div
                     
                     <!-- Access Road Width -->
                     <div class="col-md-4 mb-3">
@@ -309,8 +319,8 @@
                                                       OnUploaded="OnPlanUploaded"
                                                       ModuleId="@ModuleId"
                                                       EntityId="@ApplicationId"
-                                                      LinkContext="Building and Planning"
-                                                      DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.BuildingAndPlanning.ToString()"
+                                                      LinkContext="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.Inspection.ToString()"
+                                                      DocumentType="@MuniLK.Domain.Constants.LookupValues.DocumentTypes.Inspection.ToString()"
                                                       DocumentTypeId="@DocumentTypeId"
                                                       Enabled="true" />
                                 }
@@ -380,17 +390,17 @@
             {
                 <div class="row">
                     <div class="col-8">
-                        @if (IsImageFile(SelectedPreviewDocument.FileExtension))
+                        @if (@DocClient.IsImageFile(SelectedPreviewDocument.FileExtension))
                         {
-                            <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
+                            <img src="@DocClient.GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
                                  class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
                         }
-                        else if (IsPdfFile(SelectedPreviewDocument.FileExtension))
+                        else if (@DocClient.IsPdfFile(SelectedPreviewDocument.FileExtension))
                         {
-                            <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
+                            <iframe src="@DocClient.GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)"
                                     width="100%" height="500px"></iframe>
                         }
-                        else if (IsWordFile(SelectedPreviewDocument.FileExtension))
+                        else if (@DocClient.IsWordFile(SelectedPreviewDocument.FileExtension))
                         {
                             <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=http://localhost:5164/api/Documents/@(SelectedPreviewDocument.DocumentId)/preview"
                                     width="100%" height="500px"></iframe>
@@ -431,7 +441,7 @@
                         <table class="table table-sm">
                             <tr><td><strong>Filename:</strong></td><td>@SelectedPreviewDocument.FileName</td></tr>
                             <tr><td><strong>Type:</strong></td><td>@SelectedPreviewDocument.DocumentTypeName</td></tr>
-                            <tr><td><strong>Size:</strong></td><td>@FormatFileSize(SelectedPreviewDocument.FileSize)</td></tr>
+                            <tr><td><strong>Size:</strong></td><td>@DocClient.FormatFileSize(SelectedPreviewDocument.FileSize)</td></tr>
                             <tr><td><strong>Uploaded:</strong></td><td>@SelectedPreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
                             <tr><td><strong>Uploaded By:</strong></td><td>@SelectedPreviewDocument.UploadedBy</td></tr>
                         </table>
@@ -440,6 +450,27 @@
                         </SfButton>
                     </div>
                 </div>
+            }
+        </Content>
+    </DialogTemplates>
+</SfDialog>
+
+<!-- Map Dialog -->
+<SfDialog @bind-Visible="_showMapDialog" Width="800px" Height="600px" ShowCloseIcon="true">
+    <DialogTemplates>
+        <Header>
+            <div>Location Map</div>
+        </Header>
+        <Content>
+            @if (!string.IsNullOrWhiteSpace(PropertyAddress))
+            {
+                <iframe width="100%" height="520" style="border:0" loading="lazy" allowfullscreen
+                        referrerpolicy="no-referrer-when-downgrade"
+                        src="@GetGoogleMapsEmbedUrl(PropertyAddress)"></iframe>
+            }
+            else
+            {
+                <p class="text-muted">Address unavailable.</p>
             }
         </Content>
     </DialogTemplates>
@@ -456,6 +487,7 @@
     [Parameter] public EventCallback OnCancel { get; set; }
     [Parameter] public DateTime? PrefilledInspectionDate { get; set; }
     [Parameter] public string? PrefilledAssignedTo { get; set; }
+    [Parameter] public string? PropertyAddress { get; set; } // new
     [Parameter] public bool LockMetadata { get; set; } = false;
     [Parameter] public EventCallback OnInspectionCompleted { get; set; }
 
@@ -488,6 +520,8 @@
         new() { Value = FinalRecommendation.Reject, Text = "Reject" },
         new() { Value = FinalRecommendation.ReInspectionRequired, Text = "Re-Inspection Required" }
     };
+
+        private string GoogleMapsKey => Config["Maps:GoogleApiKey"] ?? string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -651,7 +685,7 @@
             {
                 try
                 {
-                    var jsonDocs = await client.GetStringAsync($"api/Documents/linked?moduleId={ModuleId}&entityId={ApplicationId}&linkContext=Building and Planning");
+                    var jsonDocs = await client.GetStringAsync($"api/Documents/linked?moduleId={ModuleId}&entityId={ApplicationId}&linkContext={@MuniLK.Domain.Constants.LookupValues.DocumentTypes.Inspection.ToString()}");
                     var documents = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<DocumentLinkResponse>>(jsonDocs,
                         new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     ApplicationDocuments = documents ?? new System.Collections.Generic.List<DocumentLinkResponse>();
@@ -685,8 +719,8 @@
         Model.Status = inspection.Status;
         Model.InspectionDate = inspection.InspectionDate;
         Model.InspectionAssignedTo = inspection.OfficersPresent ?? string.Empty;
-        Model.GpsCoordinates = inspection.GpsCoordinates ?? string.Empty;
         Model.Remarks = inspection.Remarks ?? string.Empty;
+        Model.PropertyAddress = PropertyAddress; // new
 
         // Site conditions - need to map from SiteConditionResult list
         var siteConditions = inspection.SiteConditions ?? new List<SiteConditionResult>();
@@ -750,75 +784,13 @@
         IsPreviewDialogVisible = true;
     }
 
-    private async Task DownloadDocument(DocumentLinkResponse document)
+      private async Task DownloadDocument(DocumentLinkResponse document)
     {
-        try
-        {
-            var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var downloadUrl = $"api/Documents/{document.DocumentId}/download";
-
-            using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Download failed: {response.StatusCode}");
-                return;
-            }
-
-            var stream = await response.Content.ReadAsStreamAsync();
-
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            ms.Position = 0;
-            var base64 = Convert.ToBase64String(ms.ToArray());
-
-            // call JS to trigger browser download
-            await JS.InvokeVoidAsync("downloadBase64File", document.FileName, base64);
-            // Open download in new tab
-            //await JS.InvokeVoidAsync("downloadFile", downloadUrl, document.FileName);
-
-            //await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error downloading document: {ex.Message}");
-        }
+        var (fileName, base64) = await DocClient.DownloadDocumentAsync(document);
+        if (string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(base64)) return;
+        await JS.InvokeVoidAsync("downloadBase64File", fileName, base64);
     }
 
-    private string GetDocumentPreviewUrl(Guid documentId)
-    {
-        var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var apiBaseUrl = "http://localhost:5164/"; // move this to config/appsettings
-        return $"{apiBaseUrl}api/Documents/{documentId}/preview";
-        //return $"api/Documents/{documentId}/preview";
-    }
-
-    private bool IsImageFile(string extension)
-    {
-        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
-        return imageExtensions.Contains(extension.ToLowerInvariant());
-    }
-
-    private bool IsPdfFile(string extension)
-    {
-        return extension.ToLowerInvariant() == ".pdf";
-    }
-    private bool IsWordFile(string extension)
-    {
-        var docExtensions = new[] { ".doc", ".docx", ".csv", ".xlsx" };
-        return docExtensions.Contains(extension.ToLowerInvariant());
-    }
-    private string FormatFileSize(long bytes)
-    {
-        string[] suffixes = { "B", "KB", "MB", "GB" };
-        int counter = 0;
-        decimal number = bytes;
-        while (Math.Round(number / 1024) >= 1)
-        {
-            number = number / 1024;
-            counter++;
-        }
-        return $"{number:n1} {suffixes[counter]}";
-    }
     private async Task OnPlanUploaded(string fileName)
     {
         //if (!string.IsNullOrWhiteSpace(fileName)) ;
@@ -862,5 +834,19 @@
         public string EntityType { get; set; } = string.Empty;
         public Guid ModuleId { get; set; }
         public List<Guid> OptionItemIds { get; set; } = new();
+    }
+
+    private bool _showMapDialog = false;
+
+    private void ShowMapDialog() => _showMapDialog = true;
+    private string GetGoogleMapsEmbedUrl(string address)
+    {
+                var encoded = System.Web.HttpUtility.UrlEncode(address);
+        if (string.IsNullOrWhiteSpace(GoogleMapsKey))
+        {
+            // Fallback to regular maps search without API key
+            return $"https://www.google.com/maps?q={encoded}&output=embed";
+        }
+        return $"https://www.google.com/maps/embed/v1/place?key={GoogleMapsKey}&q={encoded}";
     }
 }

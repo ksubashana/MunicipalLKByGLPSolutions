@@ -45,3 +45,29 @@
         text-align: center;
         padding: 1rem;
     }
+
+
+.workflow-history-dialog .e-dlg-overlay {
+    backdrop-filter: blur(6px);
+    background: rgba(0,0,0,0.25);
+}
+
+.workflow-history-dialog .e-dlg-content {
+    padding: 0;
+}
+
+.workflow-history-content {
+    padding: 0.75rem 1rem 1rem 1rem;
+    max-height: calc(100vh - 140px); /* leave room for header */
+    overflow-y: auto; /* natural scroll only if needed */
+}
+
+.workflow-history-dialog .e-dlg-header-content {
+    padding: .75rem 1rem;
+}
+
+@media (max-width: 992px) {
+    .workflow-history-content {
+        max-height: calc(100vh - 120px);
+    }
+}

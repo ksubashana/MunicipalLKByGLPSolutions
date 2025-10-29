@@ -105,9 +105,6 @@ else
                     </SfDropDownList>
                 </div>
 
-                <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use (වාණිජ්‍ය භාවිතය)" />
-                </div>
 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.NumberOfBuildings"
@@ -156,8 +153,12 @@ else
                     <div class="col-md-6">
                         <SfCheckBox @bind-Checked="PropertyModel.IsDisputed" Label="Disputed Property (වාද විවාදයට ලක් වූ දේපල)" />
                     </div>
+                    <div class="col-md-6">
+                        <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use (වාණිජ්‍ය භාවිතය)" />
+                    </div>
                 </div>
 
+ 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.LastAssessmentYear"
                                       Placeholder="Last Assessment Year (පසුගිය ඇගයීම් අවුරුද්ද)" FloatLabelType="FloatLabelType.Auto" />

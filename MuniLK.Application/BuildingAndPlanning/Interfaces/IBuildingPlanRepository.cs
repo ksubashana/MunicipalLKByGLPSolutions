@@ -35,5 +35,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Interfaces
             int take,
             string? search,
             CancellationToken ct = default);
+        
+        // New: Snapshot projection (optional specialized query)
+        Task<BuildingPlanApplication?> GetWorkflowSnapshotSourceAsync(Guid id, CancellationToken ct = default);
     }
 }

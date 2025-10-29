@@ -101,8 +101,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
 
             // Allow clarification requests from review stages
             if (decision == ReviewDecision.ClarificationRequired &&
-                (currentStatus == BuildingAndPlanSteps.PlanningOfficerReview ||
-                 currentStatus == BuildingAndPlanSteps.EngineeringReview ||
+                (
                  currentStatus == BuildingAndPlanSteps.PlanningCommitteeReview ||
                  currentStatus == BuildingAndPlanSteps.CommissionerApproval))
             {
@@ -114,8 +113,6 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             {
                 BuildingAndPlanSteps.Submission when decision == ReviewDecision.Approved => Result.Success(),
                 BuildingAndPlanSteps.ToReview when decision == ReviewDecision.Approved => Result.Success(),
-                BuildingAndPlanSteps.PlanningOfficerReview when decision == ReviewDecision.Approved => Result.Success(),
-                BuildingAndPlanSteps.EngineeringReview when decision == ReviewDecision.Approved => Result.Success(),
                 BuildingAndPlanSteps.PlanningCommitteeReview when decision == ReviewDecision.Approved => Result.Success(),
                 BuildingAndPlanSteps.CommissionerApproval when decision == ReviewDecision.Approved => Result.Success(),
                 BuildingAndPlanSteps.Finalized => Result.Failure("Application is already finalized"),
@@ -139,9 +136,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             return currentStatus switch
             {
                 BuildingAndPlanSteps.Submission => BuildingAndPlanSteps.ToReview,
-                BuildingAndPlanSteps.ToReview => BuildingAndPlanSteps.PlanningOfficerReview,
-                BuildingAndPlanSteps.PlanningOfficerReview => BuildingAndPlanSteps.EngineeringReview,
-                BuildingAndPlanSteps.EngineeringReview => BuildingAndPlanSteps.PlanningCommitteeReview,
+                BuildingAndPlanSteps.ToReview => BuildingAndPlanSteps.PlanningCommitteeReview,
                 BuildingAndPlanSteps.PlanningCommitteeReview => BuildingAndPlanSteps.CommissionerApproval,
                 BuildingAndPlanSteps.CommissionerApproval => BuildingAndPlanSteps.Finalized,
                 _ => currentStatus
@@ -155,11 +150,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         {
             switch (stage)
             {
-                case BuildingAndPlanSteps.PlanningOfficerReview:
+                case BuildingAndPlanSteps.PlanningCommitteeReview:
                     application.PlanningReport = comments;
-                    break;
-                case BuildingAndPlanSteps.EngineeringReview:
-                    application.EngineerReport = comments;
                     break;
                 case BuildingAndPlanSteps.CommissionerApproval:
                     application.CommissionerDecision = comments;
@@ -177,8 +169,6 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             {
                 BuildingAndPlanSteps.Submission => "Initial Review",
                 BuildingAndPlanSteps.ToReview => "Administrative Review", 
-                BuildingAndPlanSteps.PlanningOfficerReview => "Planning Review",
-                BuildingAndPlanSteps.EngineeringReview => "Engineering Review",
                 BuildingAndPlanSteps.PlanningCommitteeReview => "Planning Committee Review",
                 BuildingAndPlanSteps.CommissionerApproval => "Commissioner Decision",
                 _ => currentStatus.ToString()

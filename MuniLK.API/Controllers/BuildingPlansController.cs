@@ -38,6 +38,35 @@ namespace MuniLK.API.Controllers
             return dto is null ? NotFound() : Ok(dto);
         }
 
+        // New workflow snapshot endpoint
+        [HttpGet("{id:guid}/workflow-snapshot")]
+        [Authorize]
+        public async Task<IActionResult> GetWorkflowSnapshot(Guid id)
+        {
+            var snapshot = await _mediator.Send(new GetBuildingPlanWorkflowSnapshotQuery(id));
+            return snapshot is null ? NotFound() : Ok(snapshot);
+        }
+
+        // New: workflow history (logs) endpoint
+        [HttpGet("{id:guid}/workflow-history")]
+        [Authorize]
+        public async Task<IActionResult> GetWorkflowHistory(Guid id)
+        {
+            var result = await _mediator.Send(new GetWorkflowHistoryQuery(id));
+            if (!result.Succeeded) return NotFound(result.Error);
+            // Map to simplified DTO used by Blazor component
+            var logs = result.Data.Select(l => new WorkflowLogResponse
+            {
+                From = l.PreviousStatus ?? string.Empty,
+                To = l.NewStatus,
+                Action = l.ActionTaken,
+                Remarks = l.Remarks,
+                PerformedByUserId = l.PerformedByDisplayName,
+                PerformedOn = l.PerformedAt
+            }).OrderByDescending(x => x.PerformedOn).ToList();
+            return Ok(logs);
+        }
+
         // New: search endpoint for Syncfusion DataGrid
         [HttpGet("search")]
         public async Task<object> SearchBuildingPlans()

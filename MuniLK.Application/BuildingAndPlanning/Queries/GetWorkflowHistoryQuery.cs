@@ -18,7 +18,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
         public string? PreviousStatus { get; set; }
         public string NewStatus { get; set; } = default!;
         public string? Remarks { get; set; }
-        public string PerformedByUserId { get; set; } = default!;
+        public string PerformedByUserId { get; set; } = default!; // raw id or system label
+        public string? PerformedByDisplayName { get; set; } // resolved friendly name
         public string? PerformedByRole { get; set; }
         public string? AssignedToUserId { get; set; }
         public bool IsSystemGenerated { get; set; }

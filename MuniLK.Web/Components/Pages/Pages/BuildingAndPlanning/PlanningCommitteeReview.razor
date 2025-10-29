@@ -1,5 +1,6 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.Documents.DTOs
+@using MuniLK.Domain.Constants
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
@@ -12,6 +13,7 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject CustomAuthStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
+@inject IPermissionService PermissionService
 
 <style>
     /* Container spacing & visual alignment */
@@ -314,7 +316,13 @@
                                     <i class="fas fa-times me-1"></i>Reject
                                 </SfButton>
                             </div>
+                        }else{
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                You do not have permission to take action on this application.
+                            </div>
                         }
+                        
 
                         @if (IsSubmitting)
                         {
@@ -445,9 +453,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        CanUserTakeAction = await AuthenticationStateProvider.IsInRoleAsync("CommitteeMember")
-            || await AuthenticationStateProvider.IsInRoleAsync("CommitteeChairperson")
-            || await AuthenticationStateProvider.IsInRoleAsync("Admin");
+        CanUserTakeAction = await PermissionService.IsInAnyRoleAsync(
+    Roles.Officer,
+    Roles.Admin,
+    Roles.SuperAdmin);
 
         if (ReviewForm.MembersPresent.Count == 0)
             ReviewForm.MembersPresent.Add(new CommitteeMember());
