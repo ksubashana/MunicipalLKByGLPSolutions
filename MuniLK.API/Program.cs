@@ -47,6 +47,7 @@ using Serilog.Sinks.RabbitMQ;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.OpenApi;
+using MuniLK.Application.PlanningCommitteeMeetings.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 SelfLog.Enable(msg => Console.Error.WriteLine("[Serilog SelfLog] " + msg));
@@ -170,6 +171,7 @@ builder.Services.AddScoped<IScheduleAppointmentRepository, ScheduleAppointmentRe
 builder.Services.AddScoped<ISiteInspectionRepository, SiteInspectionRepository>();
 builder.Services.AddScoped<IPlanningCommitteeReviewRepository, PlanningCommitteeReviewRepository>();
 builder.Services.AddScoped<IEntityOptionSelectionRepository, EntityOptionSelectionRepository>();
+builder.Services.AddScoped<IPlanningCommitteeMeetingRepository, PlanningCommitteeMeetingRepository>();
 
 var app = builder.Build();
 app.UseCors("AllowBlazor");

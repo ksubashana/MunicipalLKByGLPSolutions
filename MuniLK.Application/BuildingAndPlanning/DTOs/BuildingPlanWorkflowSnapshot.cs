@@ -16,6 +16,9 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public bool IsAssignmentExpired { get; set; }
         public bool IsInspectionCompleted { get; set; }
         public bool CanProceedToCommittee { get; set; }
+        public bool HasCommitteeSchedule { get; set; }
+        public DateTime? CommitteeMeetingDate { get; set; }
+        public CommitteeDecision? CommitteeDecision { get; set; }
         public DateTime SubmittedOn { get; set; }
         public string? NextStage { get; set; }
     }

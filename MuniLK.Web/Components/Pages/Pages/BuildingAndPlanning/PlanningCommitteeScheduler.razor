@@ -1,0 +1,306 @@
+﻿@page "/buildingplan/committeemeeting"
+
+
+<h3>PlanningCommitteeScheduler</h3>
+
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.PlanningCommitteeMeetings.DTOs
+@using MuniLK.Domain.Constants.Flows
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+@using System.Net.Http.Json
+@using Syncfusion.Blazor.DropDowns
+
+<div class="container-xxl py-3">
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Planning Committee Meetings</h5>
+                    <button class="btn btn-sm btn-primary" @onclick="NewMeeting">New Meeting</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height:420px; overflow-y:auto;">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Venue</th>
+                                    <th>Chairperson</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Meetings.Count == 0)
+                                {
+                                    <tr><td colspan="6" class="text-center text-muted">No meetings scheduled in range.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var m in Meetings.OrderBy(x=>x.StartTime))
+                                    {
+                                        <tr class="@(SelectedMeetingId == m.Id ? "table-primary" : string.Empty)">
+                                            <td>@m.StartTime.ToString("dd MMM yyyy")</td>
+                                            <td>@m.StartTime.ToString("HH:mm") - @m.EndTime.ToString("HH:mm")</td>
+                                            <td>@m.Venue</td>
+                                            <td>@GetContactName(m.ChairpersonContactId)</td>
+                                            <td><span class="badge @(m.Status switch { PlanningCommitteeMeetingStatus.Scheduled => "bg-info", PlanningCommitteeMeetingStatus.Completed => "bg-success", PlanningCommitteeMeetingStatus.Cancelled => "bg-secondary", _=>"bg-light"})">@m.Status</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => EditMeeting(m)">Edit</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">@FormTitle</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="MeetingModel" OnValidSubmit="SaveMeeting">
+                        <DataAnnotationsValidator />
+                        <div class="mb-2">
+                            <label class="form-label">Subject</label>
+                            <InputText class="form-control" @bind-Value="MeetingModel.Subject" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Agenda</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="MeetingModel.Agenda" />
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label">Start Date</label>
+                                <InputDate class="form-control" @bind-Value="StartDate" />
+                                <label class="form-label mt-1">Start Time</label>
+                                <input type="time" class="form-control" value="@StartTimeString" @onchange="OnStartTimeChanged" />
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">End Date</label>
+                                <InputDate class="form-control" @bind-Value="EndDate" />
+                                <label class="form-label mt-1">End Time</label>
+                                <input type="time" class="form-control" value="@EndTimeString" @onchange="OnEndTimeChanged" />
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Venue</label>
+                            <InputText class="form-control" @bind-Value="MeetingModel.Venue" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Chairperson (Officer)</label>
+                            <select class="form-select" @bind="MeetingModel.ChairpersonContactId">
+                                <option value="">-- select --</option>
+                                @foreach (var c in OfficerContacts)
+                                {
+                                    <option value="@c.Id">@c.FullName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Members (Officers)</label>
+                            <SfMultiSelect TItem="OfficerOption" TValue="List<Guid>" 
+                                           DataSource="@OfficerOptions"
+                                           @bind-Value="SelectedMemberIdsList"
+                                           Placeholder="Select Members"
+                                           Mode="VisualMode.CheckBox"
+                                           ShowSelectAll="true"
+                                           ClosePopupOnSelect="false">
+                                <MultiSelectFieldSettings Value="Id" Text="Name" />
+                            </SfMultiSelect>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Applications (Optional)</label>
+                            <SfMultiSelect TItem="ApplicationOption" TValue="List<Guid>"
+                                           DataSource="@ApplicationOptions"
+                                           @bind-Value="SelectedApplicationIdsList"
+                                           Placeholder="Select Applications"
+                                           Mode="VisualMode.CheckBox"
+                                           ShowSelectAll="true"
+                                           ClosePopupOnSelect="false">
+                                <MultiSelectFieldSettings Value="Id" Text="Number" />
+                            </SfMultiSelect>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@IsSaving">@SaveButtonText</button>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">Reset</button>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(FormError))
+                        {
+                            <div class="alert alert-danger mt-2">@FormError</div>
+                        }
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PlanningCommitteeMeetingRequest MeetingModel = new();
+    private List<PlanningCommitteeMeetingResponse> Meetings = new();
+    private List<ContactResponse> OfficerContacts = new();
+    private List<ApplicationLite> AvailableApplications = new();
+
+    private Guid? SelectedMeetingId;
+    private HashSet<Guid> SelectedMemberIds = new();
+    private HashSet<Guid> SelectedApplicationIds = new();
+
+    private DateTime StartDate = DateTime.Today.AddDays(1);
+    private DateTime EndDate = DateTime.Today.AddDays(1);
+    private string StartTimeString = "09:00";
+    private string EndTimeString = "11:00";
+
+    private string FormTitle => SelectedMeetingId.HasValue ? "Edit Meeting" : "Schedule New Meeting";
+    private string SaveButtonText => SelectedMeetingId.HasValue ? "Update" : "Create";
+    private bool IsSaving = false;
+    private string? FormError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOfficerContacts();
+        await LoadApplications();
+        await LoadMeetings();
+        MeetingModel.Subject = "Planning Committee Meeting";
+    }
+
+    private async Task LoadMeetings()
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var list = await client.GetFromJsonAsync<List<PlanningCommitteeMeetingResponse>>($"api/PlanningCommitteeMeetings/GetMeetings?start={DateTime.UtcNow.AddDays(-7):o}&end={DateTime.UtcNow.AddDays(30):o}");
+        Meetings = list ?? new();
+    }
+
+    private async Task LoadOfficerContacts()
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        // expects an endpoint that returns officers; adjust if different
+        var response = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName={MuniLK.Domain.Constants.Roles.Inspector}");
+        OfficerContacts = response ?? new List<ContactResponse>();
+    }
+
+    private async Task LoadApplications()
+    {
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        // var list = await client.GetFromJsonAsync<List<ApplicationLite>>("api/BuildingPlans/search-list?take=100");
+        // AvailableApplications = list ?? new();
+    }
+
+    private void NewMeeting()
+    {
+        SelectedMeetingId = null;
+        MeetingModel = new PlanningCommitteeMeetingRequest { Subject = "Planning Committee Meeting" };
+        SelectedMemberIds.Clear();
+        SelectedApplicationIds.Clear();
+        FormError = null;
+        StartDate = DateTime.Today.AddDays(1); EndDate = StartDate; StartTimeString = "09:00"; EndTimeString = "11:00";
+    }
+
+    private void EditMeeting(PlanningCommitteeMeetingResponse m)
+    {
+        SelectedMeetingId = m.Id;
+        MeetingModel = new PlanningCommitteeMeetingRequest
+        {
+            Id = m.Id,
+            Subject = m.Subject,
+            Agenda = m.Agenda,
+            StartTime = m.StartTime,
+            EndTime = m.EndTime,
+            Venue = m.Venue,
+            ChairpersonContactId = m.ChairpersonContactId
+        };
+        SelectedMemberIds = m.MemberContactIds.Where(x => x != m.ChairpersonContactId).ToHashSet();
+        SelectedApplicationIds = m.ApplicationIds.ToHashSet();
+        StartDate = m.StartTime.Date; EndDate = m.EndTime.Date; StartTimeString = m.StartTime.ToString("HH:mm"); EndTimeString = m.EndTime.ToString("HH:mm");
+        FormError = null;
+    }
+
+    private void OnStartTimeChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => StartTimeString = e.Value?.ToString() ?? "09:00";
+    private void OnEndTimeChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => EndTimeString = e.Value?.ToString() ?? "11:00";
+
+    private void ToggleMember(Guid id)
+    {
+        if (SelectedMemberIds.Contains(id)) SelectedMemberIds.Remove(id); else SelectedMemberIds.Add(id);
+    }
+    private void ToggleApplication(Guid id)
+    {
+        if (SelectedApplicationIds.Contains(id)) SelectedApplicationIds.Remove(id); else SelectedApplicationIds.Add(id);
+    }
+
+    private async Task SaveMeeting()
+    {
+        IsSaving = true; FormError = null;
+        if (!TimeSpan.TryParse(StartTimeString, out var startTs) || !TimeSpan.TryParse(EndTimeString, out var endTs))
+        { FormError = "Invalid time format"; IsSaving = false; return; }
+        MeetingModel.StartTime = StartDate.Date + startTs;
+        MeetingModel.EndTime = EndDate.Date + endTs;
+        MeetingModel.MemberContactIds = SelectedMemberIds.ToList();
+        MeetingModel.ApplicationIds = SelectedApplicationIds.ToList();
+
+        if (MeetingModel.ChairpersonContactId == Guid.Empty)
+        { FormError = "Chairperson required"; IsSaving = false; return; }
+        if (MeetingModel.StartTime >= MeetingModel.EndTime)
+        { FormError = "Start must be before End"; IsSaving = false; return; }
+
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        HttpResponseMessage resp;
+        if (!SelectedMeetingId.HasValue)
+        {
+            resp = await client.PostAsJsonAsync("api/PlanningCommitteeMeetings", MeetingModel);
+        }
+        else
+        {
+            resp = await client.PutAsJsonAsync($"api/PlanningCommitteeMeetings/{SelectedMeetingId.Value}", MeetingModel);
+        }
+        if (resp.IsSuccessStatusCode)
+        {
+            await LoadMeetings();
+            NewMeeting();
+        }
+        else
+        {
+            FormError = await resp.Content.ReadAsStringAsync();
+        }
+        IsSaving = false;
+    }
+
+    private string GetContactName(Guid id)
+        => OfficerContacts.FirstOrDefault(c => c.Id == id)?.FullName ?? "-";
+
+    private void ResetForm() => NewMeeting();
+
+    private class ContactLite { public Guid Id { get; set; } public string FullName { get; set; } = string.Empty; public string NationalId { get; set; } = string.Empty; }
+    private class ApplicationLite { public Guid Id { get; set; } public string ApplicationNumber { get; set; } = string.Empty; public string Status { get; set; } = string.Empty; }
+
+    private List<OfficerOption> OfficerOptions => OfficerContacts
+        .Where(c => c.Id.HasValue)
+        .Select(c => new OfficerOption { Id = c.Id!.Value, Name = c.FullName }).ToList();
+
+    private List<ApplicationOption> ApplicationOptions => AvailableApplications
+        .Select(a => new ApplicationOption { Id = a.Id, Number = a.ApplicationNumber }).ToList();
+
+    private List<Guid> SelectedMemberIdsList
+    {
+        get => SelectedMemberIds.ToList();
+        set => SelectedMemberIds = value is null ? new HashSet<Guid>() : value.ToHashSet();
+    }
+
+    private List<Guid> SelectedApplicationIdsList
+    {
+        get => SelectedApplicationIds.ToList();
+        set => SelectedApplicationIds = value is null ? new HashSet<Guid>() : value.ToHashSet();
+    }
+
+    private class OfficerOption { public Guid Id { get; set; } public string Name { get; set; } = ""; }
+    private class ApplicationOption { public Guid Id { get; set; } public string Number { get; set; } = ""; }
+}
+
+<style>
+    .table-hover tbody tr { cursor:pointer; }
+</style>

@@ -30,4 +30,14 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         Guid PlanningCommitteeReviewId,
         string? Remarks,
         string? AssignedUserId = null) : IRequest<Result>;
+
+    /// <summary>
+    /// Command to assign a building plan application to a committee for review
+    /// </summary>
+    public record AssignToCommitteeWorkflowCommand(
+        Guid BuildingPlanApplicationId,
+        Guid PlanningCommitteeReviewId,
+        DateTime MeetingDate,
+        string? Remarks,
+        string? AssignedUserId = null) : IRequest<Result>;
 }

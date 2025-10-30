@@ -45,6 +45,9 @@ namespace MuniLK.Infrastructure.Data
         public DbSet<SiteInspection> SiteInspections { get; set; }
         public DbSet<PlanningCommitteeReview> PlanningCommitteeReviews { get; set; }
         public DbSet<EntityOptionSelection> EntityOptionSelections { get; set; }
+        public DbSet<PlanningCommitteeMeeting> PlanningCommitteeMeetings { get; set; }
+        public DbSet<PlanningCommitteeMeetingMember> PlanningCommitteeMeetingMembers { get; set; }
+        public DbSet<PlanningCommitteeMeetingApplication> PlanningCommitteeMeetingApplications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

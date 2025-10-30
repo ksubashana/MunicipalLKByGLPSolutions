@@ -301,15 +301,16 @@
                         <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId" AssignmentId="ActiveAssignmentId" ApplicationNumber="GeneratedFeatureId" DocumentCategory="DocumentCategory" DocumentTypeId="DocumentTypeId" ModuleId="ModuleId" PrefilledInspectionDate="ActiveAssignmentDate" PrefilledAssignedTo="@ActiveInspectorName" PropertyAddress="@SelectedProperty?.Address" LockMetadata="@true" OnSubmit="OnSiteInspectionSubmitted" />
                         break;
                     case 3:
-                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
 
-                        @* <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.EngineerReview Model="BuildingPlanSummery" /> *@
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.AssignToCommittee ApplicationId="EntityId" ApplicationNumber="GeneratedFeatureId" />
                         break;
                     case 4:
-                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.CommissionerApproval />
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
+
                         break;
                     case 5:
-                    
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.CommissionerApproval />
+
                         break;
                 }
                 <div class="container-xxl py-3">

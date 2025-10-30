@@ -38,12 +38,42 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
             bool hasAssignment = app.AssignmentId.HasValue;
             bool assignmentExpired = assignmentDate.HasValue && assignmentDate.Value.Date < DateTime.Today && !isInspectionCompleted;
 
-            string? nextStage = canProceedToCommittee ? BuildingAndPlanSteps.PlanningCommitteeReview.ToString() : null;
+            // Committee scheduling context
+            bool hasCommitteeSchedule = app.PlanningCommitteeReviewId.HasValue;
+            DateTime? committeeMeetingDate = app.PlanningCommitteeReview?.MeetingDate;
+            CommitteeDecision? committeeDecision = hasCommitteeSchedule ? app.PlanningCommitteeReview?.CommitteeDecision : null;
+
+            string? nextStage = null;
+            // Derive next stage considering new AssignToCommittee step
+            if (app.Status == BuildingAndPlanSteps.ToReview && canProceedToCommittee && !hasCommitteeSchedule)
+            {
+                nextStage = BuildingAndPlanSteps.AssignToCommittee.ToString();
+            }
+            else if (app.Status == BuildingAndPlanSteps.AssignToCommittee && hasCommitteeSchedule && (committeeDecision == Domain.Constants.Flows.CommitteeDecision.Pending))
+            {
+                nextStage = BuildingAndPlanSteps.PlanningCommitteeReview.ToString();
+            }
+            else if (app.Status == BuildingAndPlanSteps.PlanningCommitteeReview && committeeDecision is Domain.Constants.Flows.CommitteeDecision.Approve or Domain.Constants.Flows.CommitteeDecision.ApproveWithConditions)
+            {
+                nextStage = BuildingAndPlanSteps.CommissionerApproval.ToString();
+            }
+            else if (app.Status == BuildingAndPlanSteps.PlanningCommitteeReview && committeeDecision is Domain.Constants.Flows.CommitteeDecision.Reject)
+            {
+                nextStage = BuildingAndPlanSteps.Rejected.ToString();
+            }
+            else if (app.Status == BuildingAndPlanSteps.PlanningCommitteeReview && committeeDecision is Domain.Constants.Flows.CommitteeDecision.DeferForClarifications)
+            {
+                nextStage = BuildingAndPlanSteps.PlanningCommitteeReview.ToString(); // stays in review until clarified
+            }
+            else if (canProceedToCommittee && app.Status == BuildingAndPlanSteps.ToReview)
+            {
+                nextStage = BuildingAndPlanSteps.AssignToCommittee.ToString();
+            }
 
             return new BuildingPlanWorkflowSnapshot
             {
                 ApplicationId = app.Id,
-                ApplicationNumber = app.ApplicationNumber,
+                ApplicationNumber = app.ApplicationNumber ?? string.Empty,
                 CurrentStatus = app.Status,
                 SiteInspectionStatus = inspectionStatus,
                 HasAssignment = hasAssignment,
@@ -51,6 +81,9 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 IsAssignmentExpired = assignmentExpired,
                 IsInspectionCompleted = isInspectionCompleted,
                 CanProceedToCommittee = canProceedToCommittee,
+                HasCommitteeSchedule = hasCommitteeSchedule,
+                CommitteeMeetingDate = committeeMeetingDate,
+                CommitteeDecision = committeeDecision,
                 SubmittedOn = app.SubmittedOn,
                 NextStage = nextStage
             };

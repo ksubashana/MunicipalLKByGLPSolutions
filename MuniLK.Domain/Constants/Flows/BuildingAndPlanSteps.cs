@@ -23,6 +23,8 @@ namespace MuniLK.Domain.Constants.Flows
 
         //[Display(Name = "Engineering Review")]
         //EngineeringReview,
+        [Display(Name = "Assign To Committee")]
+        AssignToCommittee,
 
         [Display(Name = "Planning Committee Review")]
         PlanningCommitteeReview,

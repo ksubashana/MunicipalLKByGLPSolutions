@@ -17,7 +17,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
     public class WorkflowOrchestrationCommandHandler :
         IRequestHandler<AssignInspectionWorkflowCommand, Result>,
         IRequestHandler<CreateSiteInspectionWorkflowCommand, Result>,
-        IRequestHandler<CreatePlanningCommitteeReviewWorkflowCommand, Result>
+        IRequestHandler<CreatePlanningCommitteeReviewWorkflowCommand, Result>,
+        IRequestHandler<AssignToCommitteeWorkflowCommand, Result>
     {
         private readonly IBuildingPlanRepository _repository;
         private readonly ICurrentUserService _currentUserService;
@@ -118,6 +119,49 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         }
 
         /// <summary>
+        /// Handles assigning a building plan application to a committee
+        /// </summary>
+        public async Task<Result> Handle(AssignToCommitteeWorkflowCommand request, CancellationToken cancellationToken)
+        {
+            // Get the building plan application
+            var application = await _repository.GetForUpdateAsync(request.BuildingPlanApplicationId, cancellationToken);
+            if (application == null)
+                return Result.Failure("Building plan application not found");
+
+            // Store previous status
+            var previousStatus = application.Status;
+
+            // Update the planning committee review foreign key
+            application.PlanningCommitteeReviewId = request.PlanningCommitteeReviewId; // placeholder record already created outside
+
+            // Update workflow status - move to committee review
+            var newStatus = BuildingAndPlanSteps.AssignToCommittee;
+            application.Status = newStatus;
+
+            // Add workflow log
+            var roles = _currentUserService.GetRoles();
+            var rolesString = roles != null ? string.Join(",", roles) : null;
+            string remarks = request.Remarks ?? $"Scheduled for committee meeting on {request.MeetingDate:dd MMM yyyy}";
+
+            await _workflowService.AddLogAsync(
+                applicationId: application.Id,
+                actionTaken: "Assigned To Committee",
+                previousStatus: previousStatus.ToString(),
+                newStatus: newStatus.ToString(),
+                remarks: remarks,
+                performedByUserId: _currentUserService.UserId ?? "System",
+                performedByRole: rolesString,
+                assignedToUserId: request.AssignedUserId,
+                isSystemGenerated: false,
+                ct: cancellationToken);
+
+            // Save changes
+            await _repository.UnitOfWork.SaveChangesAsync(cancellationToken);
+
+            return Result.Success();
+        }
+
+        /// <summary>
         /// Handles creating a planning committee review for a building plan application
         /// </summary>
         public async Task<Result> Handle(CreatePlanningCommitteeReviewWorkflowCommand request, CancellationToken cancellationToken)
@@ -143,7 +187,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
 
             await _workflowService.AddLogAsync(
                 applicationId: application.Id,
-                actionTaken: "Planning Committee Review Scheduled",
+                actionTaken: "Planning Committee Review Recorded",
                 previousStatus: previousStatus.ToString(),
                 newStatus: newStatus.ToString(),
                 remarks: request.Remarks,
