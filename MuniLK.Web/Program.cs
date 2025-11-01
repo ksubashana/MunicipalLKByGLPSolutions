@@ -10,6 +10,7 @@ using MuniLK.Web.Interfaces;
 using MuniLK.Web.Services;
 using Syncfusion.Blazor;
 using System.Globalization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 
 var builder = WebApplication.CreateBuilder(args);
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Mzk2NDQ4OUAzMzMwMmUzMDJlMzAzYjMzMzQzYm1vQ2VaaUFGSzFoQ1Jqbk9WL05xZEYzQVRtMCtYZ1VLQ3QvS0ZEenhpWGs9");
@@ -21,11 +22,10 @@ builder.Services.AddAuthorization(options =>
             Roles.SuperAdmin,
             Roles.Admin,
             Roles.Officer));
-    // add other shared policies if needed
-}); 
-builder.Services.AddCascadingAuthenticationState(); // Makes AuthenticationState available to components
+});
+builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>(); // Needed if CustomAuthStateProvider accesses HttpContext
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -42,21 +42,19 @@ builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<CustomAuthStateProvider>());
 builder.Services.AddScoped<AuthTokenHandler>();
 
-// Add separate HTTP clients 
-builder.Services.AddHttpClient(); // For the factory
+builder.Services.AddSingleton<CircuitHandler, GlobalCircuitHandler>();
+
+builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("AuthorizedClient", client =>
 {
     client.BaseAddress = new Uri("http://localhost:5164/");
 }).AddHttpMessageHandler<AuthTokenHandler>();
 
-// Add a client without token handler for internal use (to avoid recursion during token refresh)
 builder.Services.AddHttpClient("ApiHttpClient", client =>
 {
     client.BaseAddress = new Uri("http://localhost:5164/");
 });
 
-
-// For Blazor Server, use the main authorized HTTP client
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("AuthorizedClient"));
 builder.Services.AddScoped<ILanguageService, LanguageService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
@@ -66,22 +64,27 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<DocumentClient>();
 
 builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor().AddCircuitOptions(options =>
-{
-    options.DetailedErrors = true;
-}); 
-//builder.Services.AddRazorComponents()
-//    .AddInteractiveServerComponents()
-//     .AddCircuitOptions(options =>
-//    {
-//        options.DetailedErrors = true;
-//    });
+builder.Services.AddServerSideBlazor()
+    .AddCircuitOptions(options =>
+    {
+#if DEBUG
+        options.DetailedErrors = true;
+#else
+        options.DetailedErrors = false;
+#endif
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10); // allow seamless reconnect for idle users
+    })
+    .AddHubOptions(options =>
+    {
+        options.EnableDetailedErrors = false; // true only if needed
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // detect dead clients
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15); // push keepalive pings
+    });
 
 builder.Services.AddSyncfusionBlazor();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -103,15 +106,11 @@ localizationOptions.RequestCultureProviders.Insert(0, new CookieRequestCulturePr
 
 app.UseRequestLocalization(localizationOptions);
 
-
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.MapFallbackToPage("/_Host");
-
-//app.MapRazorComponents<App>()
-//    .AddInteractiveServerRenderMode();
 app.MapBlazorHub();
 
 app.Run();

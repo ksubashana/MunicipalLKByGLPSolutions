@@ -28,6 +28,55 @@
 		<!--- Sidemenu -->
 		<ul class="side-nav">
 
+			<li class="side-nav-item">
+				<a data-bs-toggle="collapse" href="#Administration" aria-expanded="false" aria-controls="Administration" class="side-nav-link">
+					<i class="ri-briefcase-line"></i>
+					<span> Administration </span>
+					<span class="menu-arrow"></span>
+				</a>
+				<div class="collapse" id="Administration">
+					<ul class="side-nav-second-level">
+		
+						<li class="side-nav-item">
+							<a data-bs-toggle="collapse" href="#UserManagement" aria-expanded="false" aria-controls="UserManagement">
+								<span> User Management </span>
+								<span class="menu-arrow"></span>
+							</a>
+							<div class="collapse" id="UserManagement">
+								<ul class="side-nav-third-level">
+									<li>
+										<a href="/admin/users">User List</a>
+									</li>
+									<li>
+										<a href="/admin/users/register">User Registration</a>
+									</li>
+									<li>
+										<a href="javascript: void(0);">Other</a>
+									</li>
+								</ul>
+							</div>
+						</li>
+						<li class="side-nav-item">
+							<a data-bs-toggle="collapse" href="#LookupsManagement" aria-expanded="false" aria-controls="LookupsManagement">
+								<span> Lookups Management </span>
+								<span class="menu-arrow"></span>
+							</a>
+							<div class="collapse" id="LookupsManagement">
+								<ul class="side-nav-third-level">
+									<li>
+										<a href="/admin/lookups/manage">Lookups Registration</a>
+									</li>
+									<li>
+										<a href="javascript: void(0);">Other</a>
+									</li>
+								</ul>
+							</div>
+						</li>
+
+					</ul>
+				</div>
+			</li>
+
 			<li class="side-nav-title">Main</li>
 
 			<li class="side-nav-item">

@@ -14,5 +14,8 @@ namespace MuniLK.Web.Interfaces
         /// <returns>The GUID of the lookup item.</returns>
         Task<Guid> GetLookupIdAsync(Guid lookupCategoryId, string value);
         Task<List<LookupDto>> LoadOptionTypesAsync(string CategoryType); // new convenience method
+        // Hierarchy helpers
+        Task<List<LookupDto>> LoadRootLookupsAsync(string categoryName);
+        Task<List<LookupDto>> LoadChildLookupsAsync(Guid parentLookupId);
     }
 }

@@ -19,12 +19,6 @@ namespace MuniLK.API.Controllers
             _authService = authService;
             _dataProtectionProvider = dataProtectionProvider;
         }
-        //dotnet ef migrations add AddingThePlanningCommitteeMeeting --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-        //dotnet ef database update --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-        //dotnet ef migrations remove --context MuniLKDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-
-        //dotnet ef migrations add InitialIdentityMigration --context ApplicationIdentityDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
-        //dotnet ef database update --context ApplicationIdentityDbContext --project MuniLK.Infrastructure --startup-project MuniLK.API
 
         /// <summary>
         /// Registers a new user.
@@ -39,7 +33,7 @@ namespace MuniLK.API.Controllers
             {
                 return BadRequest(response.Errors);
             }
-            return Ok(response);
+            return Ok(response); // Contains UserId now
         }
 
         /// <summary>
@@ -66,77 +60,90 @@ namespace MuniLK.API.Controllers
                 {
                     HttpOnly = true,
                     Secure = true, // Use HTTPS in production
-                    SameSite = SameSiteMode.Strict,
+                    SameSite = SameSiteMode.None, // changed from Strict to None to allow cross-origin Blazor client
                     Expires = DateTimeOffset.UtcNow.AddHours(12)
                 };
 
                 Response.Cookies.Append("refresh_token", protectedRefreshToken, cookieOptions);
             }
 
-            // Return only access token in response body
-            return Ok(new { 
-                Succeeded = response.Succeeded, 
-                AccessToken = response.AccessToken, 
-                Message = response.Message 
+            return Ok(new {
+                response.Succeeded,
+                response.AccessToken,
+                response.RefreshToken,
+                response.Message,
+                response.UserId
             });
         }
 
         /// <summary>
-        /// Refreshes an access token using a refresh token from cookie.
+        /// Refreshes an access token using a refresh token from cookie or X-Refresh-Token header fallback.
         /// </summary>
         [HttpPost("refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> RefreshToken()
         {
-            // Get refresh token from cookie
-            if (!Request.Cookies.TryGetValue("refresh_token", out var protectedRefreshToken))
+            string? rawRefreshToken = null;
+            // Try cookie first
+            if (Request.Cookies.TryGetValue("refresh_token", out var protectedRefreshToken))
+            {
+                try
+                {
+                    var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
+                    rawRefreshToken = protector.Unprotect(protectedRefreshToken);
+                }
+                catch
+                {
+                    Response.Cookies.Delete("refresh_token");
+                    rawRefreshToken = null; // fall through to header/body fallback
+                }
+            }
+
+            // Fallback: custom header containing plain refresh token (not protected). Client can store it.
+            if (string.IsNullOrEmpty(rawRefreshToken) && Request.Headers.TryGetValue("X-Refresh-Token", out var headerToken))
+            {
+                rawRefreshToken = headerToken.ToString();
+            }
+
+            if (string.IsNullOrEmpty(rawRefreshToken))
             {
                 return Unauthorized(new { Errors = new[] { "Refresh token not found." } });
             }
 
-            try
+            var response = await _authService.RefreshTokenAsync(rawRefreshToken);
+            if (!response.Succeeded)
             {
-                var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
-                var refreshToken = protector.Unprotect(protectedRefreshToken);
+                Response.Cookies.Delete("refresh_token");
+                return Unauthorized(response.Errors);
+            }
 
-                var response = await _authService.RefreshTokenAsync(refreshToken);
-                if (!response.Succeeded)
+            // Rotate cookie if we used cookie previously or want to set new one
+            if (!string.IsNullOrEmpty(response.RefreshToken))
+            {
+                try
                 {
-                    // Clear the invalid refresh token cookie
-                    Response.Cookies.Delete("refresh_token");
-                    return Unauthorized(response.Errors);
-                }
-
-                // Set new refresh token as secure httpOnly cookie
-                if (!string.IsNullOrEmpty(response.RefreshToken))
-                {
+                    var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
                     var newProtectedRefreshToken = protector.Protect(response.RefreshToken);
-
                     var cookieOptions = new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = true, // Use HTTPS in production
-                        SameSite = SameSiteMode.Strict,
+                        Secure = true,
+                        SameSite = SameSiteMode.None,
                         Expires = DateTimeOffset.UtcNow.AddHours(12)
                     };
-
                     Response.Cookies.Append("refresh_token", newProtectedRefreshToken, cookieOptions);
                 }
+                catch { /* ignore */ }
+            }
 
-                // Return only access token in response body
-                return Ok(new { 
-                    Succeeded = response.Succeeded, 
-                    AccessToken = response.AccessToken, 
-                    Message = "Token refreshed successfully" 
-                });
-            }
-            catch (Exception)
-            {
-                // Clear the invalid refresh token cookie
-                Response.Cookies.Delete("refresh_token");
-                return Unauthorized(new { Errors = new[] { "Invalid refresh token." } });
-            }
+            return Ok(new {
+                response.Succeeded,
+                response.AccessToken,
+                response.RefreshToken,
+                Message = "Token refreshed successfully",
+                response.UserId
+            });
         }
 
         /// <summary>
@@ -172,7 +179,7 @@ namespace MuniLK.API.Controllers
                 }
                 return BadRequest(response.Errors);
             }
-            return Ok(response.Message); // Return a success message
+            return Ok(new { response.Message, response.UserId }); // Return a success message
         }
     }
 }

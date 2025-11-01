@@ -1,0 +1,331 @@
+﻿@page "/admin/users/register"
+@using MuniLK.Application.Generic.DTOs
+@using MuniLK.Application.Services.DTOs
+@using MuniLK.Domain.Constants
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using Microsoft.AspNetCore.Components.Forms
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+@inject MuniLK.Web.Interfaces.ILookupService LookupService
+
+<h3 class="mb-3">User Registration</h3>
+<div class="container-xxl py-3">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Create New User Account</h5>
+            <SfButton CssClass="btn-sm" OnClick="@(()=> GoToUserList())" IconCss="fas fa-users">Users</SfButton>
+        </div>
+        <div class="card-body">
+            <EditForm Model="RegisterVm" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Username <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="RegisterVm.Username" Placeholder="Unique username" CssClass="form-control" />
+                        <ValidationMessage For="@(() => RegisterVm.Username)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="RegisterVm.Email" Placeholder="user@domain.com" CssClass="form-control" Type="InputType.Email" />
+                        <ValidationMessage For="@(() => RegisterVm.Email)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="RegisterVm.FullName" Placeholder="First Last" CssClass="form-control" />
+                        <ValidationMessage For="@(() => RegisterVm.FullName)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Tenant <span class="text-danger">*</span></label>
+                        <SfDropDownList TValue="Guid" TItem="TenantOption" @bind-Value="SelectedTenantId"
+                                        DataSource="TenantOptions" Placeholder="Select tenant" CssClass="form-control"
+                                        Enabled="@(!IsTenantLocked)" AllowFiltering="true">
+                            <DropDownListFieldSettings Value="Id" Text="Name" />
+                        </SfDropDownList>
+                        @if (IsTenantLocked)
+                        {
+                            <small class="text-muted">Locked to your tenant.</small>
+                        }
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">NIC</label>
+                        <SfTextBox @bind-Value="RegisterVm.NIC" Placeholder="National ID" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Phone</label>
+                        <SfTextBox @bind-Value="RegisterVm.PhoneNumber" Placeholder="+94xxxxxxxxx" CssClass="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <SfTextBox @bind-Value="RegisterVm.Password" Width="80%" Type="(ShowPassword ? InputType.Text : InputType.Password)" CssClass="form-control" Placeholder="Min 8 chars" />
+                            <button type="button" class="btn btn-outline-secondary" @onclick="TogglePassword"><i class="fas @(ShowPassword ? "fa-eye-slash" : "fa-eye")"></i></button>
+                        </div>
+                        <small class="text-muted">Include upper, lower, number.</small>
+                        <ValidationMessage For="@(() => RegisterVm.Password)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="ConfirmPassword" Type="(ShowPassword ? InputType.Text : InputType.Password)" CssClass="form-control" />
+                        <ValidationMessage For="@(() => ConfirmPassword)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Address Line 1</label>
+                        <SfTextBox @bind-Value="RegisterVm.AddressLine1" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Address Line 2</label>
+                        <SfTextBox @bind-Value="RegisterVm.AddressLine2" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">City</label>
+                        <SfTextBox @bind-Value="RegisterVm.City" CssClass="form-control" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Province</label>
+                        <SfDropDownList TValue="Guid?" TItem="LookupDto" @bind-Value="SelectedProvinceId"
+                                        DataSource="ProvinceOptions" Placeholder="Select Province" AllowFiltering="true"
+                                        CssClass="form-control">
+                            <DropDownListFieldSettings Value="Id" Text="Value" />
+                            <DropDownListEvents TValue="Guid?" TItem="LookupDto" ValueChange="@OnProvinceChanged" />
+                        </SfDropDownList>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">District</label>
+                        <SfDropDownList TValue="Guid?" TItem="LookupDto" @bind-Value="SelectedDistrictId"
+                                        DataSource="DistrictOptions" Placeholder="Select District" AllowFiltering="true"
+                                        CssClass="form-control" Enabled="@SelectedProvinceId.HasValue">
+                            <DropDownListFieldSettings Value="Id" Text="Value" />
+                            <DropDownListEvents TValue="Guid?" TItem="LookupDto" ValueChange="@OnDistrictChanged" />
+                        </SfDropDownList>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Postal Code</label>
+                        <SfTextBox @bind-Value="RegisterVm.PostalCode" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Assign Role <span class="text-danger">*</span></label>
+                        <SfDropDownList TValue="string" TItem="string" @bind-Value="SelectedRole" DataSource="Roles" Placeholder="@(RolesLoading ? "Loading roles..." : "Select Role")" CssClass="form-control" AllowFiltering="true" Enabled="@(!RolesLoading && Roles.Any())">
+                            <DropDownListFieldSettings Text="" Value="" />
+                        </SfDropDownList>
+                        <ValidationMessage For="@(() => SelectedRole)" />
+                        <small class="text-muted">User must have a role.</small>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <div class="alert alert-danger mt-3">@ErrorMessage</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(SuccessMessage))
+                {
+                    <div class="alert alert-success mt-3">@SuccessMessage</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(RoleAssignWarning))
+                {
+                    <div class="alert alert-warning mt-3">@RoleAssignWarning</div>
+                }
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <SfButton IsPrimary="true" type="submit" Disabled="@IsSubmitting" IconCss="fas fa-save">
+                        @(IsSubmitting ? "Registering & Assigning..." : "Register User")
+                    </SfButton>
+                    <SfButton type="button" IconCss="fas fa-undo" Disabled="@IsSubmitting" OnClick="@(() => ResetForm())">Reset</SfButton>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest RegisterVm = new();
+    private string? ConfirmPassword;
+    private bool ShowPassword = false;
+    private bool IsSubmitting = false;
+    private string? ErrorMessage;
+    private string? SuccessMessage;
+    private string? RoleAssignWarning;
+    private string? SelectedRole;
+
+    private Guid SelectedTenantId { get; set; }
+    private bool IsTenantLocked = false;
+    private List<TenantOption> TenantOptions = new();
+
+    private List<LookupDto> ProvinceOptions = new();
+    private List<LookupDto> DistrictOptions = new();
+    private Guid? SelectedProvinceId;
+    private Guid? SelectedDistrictId;
+
+    private List<string> Roles = new();
+    private bool RolesLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTenantsAsync();
+        await ResolveCurrentUserTenantAsync();
+        await LoadProvincesAsync();
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadTenantsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            TenantOptions = await client.GetFromJsonAsync<List<TenantOption>>("api/Tenants/list") ?? new List<TenantOption>();
+        }
+        catch { TenantOptions = new(); }
+    }
+
+    private async Task LoadProvincesAsync() => ProvinceOptions = await LookupService.LoadRootLookupsAsync(LookupCategoryNames.Provinces.ToString());
+    private async Task LoadDistrictsAsync() => DistrictOptions = SelectedProvinceId.HasValue ? await LookupService.LoadChildLookupsAsync(SelectedProvinceId.Value) : new List<LookupDto>();
+
+    private async Task LoadRolesAsync()
+    {
+        RolesLoading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var remoteRoles = await client.GetFromJsonAsync<List<string>>("api/Roles/all");
+            Roles = remoteRoles?.OrderBy(r => r).ToList() ?? new List<string>();
+        }
+        catch { Roles = new List<string>(); }
+        finally { RolesLoading = false; StateHasChanged(); }
+    }
+
+    private async Task ResolveCurrentUserTenantAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var tenantClaim = user.Claims.FirstOrDefault(c => c.Type == "tenant_id" || c.Type == "tenantId" || c.Type == "TenantId");
+            if (tenantClaim != null && Guid.TryParse(tenantClaim.Value, out var tenantId))
+            {
+                SelectedTenantId = tenantId;
+                IsTenantLocked = true;
+            }
+        }
+        catch { }
+    }
+
+    private async Task HandleSubmit()
+    {
+        ErrorMessage = SuccessMessage = RoleAssignWarning = null;
+        if (!ValidateClient()) return;
+        IsSubmitting = true;
+        try
+        {
+            RegisterVm.TenantId = SelectedTenantId;
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var resp = await client.PostAsJsonAsync("api/Auth/RegisterUser", RegisterVm);
+            if (resp.IsSuccessStatusCode)
+            {
+                var authResponse = await resp.Content.ReadFromJsonAsync<AuthResponse>();
+                if (authResponse?.Succeeded == true && !string.IsNullOrWhiteSpace(authResponse.UserId))
+                {
+                    // Assign role immediately
+                    var roleDto = new UserRoleDto { UserId = authResponse.UserId, RoleName = SelectedRole! };
+                    var roleResp = await client.PostAsJsonAsync("api/Roles/assign", roleDto);
+                    if (roleResp.IsSuccessStatusCode)
+                    {
+                        SuccessMessage = $"User registered and role '{SelectedRole}' assigned successfully.";
+                        ResetForm(afterSuccess: true);
+                    }
+                    else
+                    {
+                        SuccessMessage = "User registered successfully.";
+                        RoleAssignWarning = "Role assignment failed. Please retry manually.";
+                    }
+                }
+                else
+                {
+                    ErrorMessage = "Registration response invalid.";
+                }
+            }
+            else
+            {
+                var err = await resp.Content.ReadAsStringAsync();
+                ErrorMessage = string.IsNullOrWhiteSpace(err) ? "Registration failed." : err;
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private bool ValidateClient()
+    {
+        if (SelectedTenantId == Guid.Empty) { ErrorMessage = "Tenant selection required."; return false; }
+        if (string.IsNullOrWhiteSpace(RegisterVm.Username) || string.IsNullOrWhiteSpace(RegisterVm.Email) || string.IsNullOrWhiteSpace(RegisterVm.FullName) || string.IsNullOrWhiteSpace(RegisterVm.Password)) { ErrorMessage = "Required fields missing."; return false; }
+        if (RegisterVm.Password?.Length < 8) { ErrorMessage = "Password must be at least 8 characters."; return false; }
+        if (RegisterVm.Password != ConfirmPassword) { ErrorMessage = "Passwords do not match."; return false; }
+        if (RolesLoading) { ErrorMessage = "Roles still loading. Please wait."; return false; }
+        if (!Roles.Any()) { ErrorMessage = "No roles available to assign."; return false; }
+        if (string.IsNullOrWhiteSpace(SelectedRole)) { ErrorMessage = "Role selection is mandatory."; return false; }
+        return true;
+    }
+
+    private void ResetForm(bool afterSuccess = false)
+    {
+        RegisterVm = new RegisterRequest();
+        ConfirmPassword = null;
+        SelectedRole = null;
+        SelectedProvinceId = null; SelectedDistrictId = null; DistrictOptions.Clear();
+        ErrorMessage = null; RoleAssignWarning = null;
+        if (!afterSuccess) SuccessMessage = null;
+    }
+
+    private void TogglePassword() => ShowPassword = !ShowPassword;
+    private void GoToUserList() => Nav.NavigateTo("/admin/users");
+
+    private async Task OnProvinceChanged(ChangeEventArgs<Guid?, LookupDto> args)
+    {
+        if (!args.IsInteracted) return;
+        SelectedProvinceId = args.Value;
+        RegisterVm.Province = args.ItemData?.Value ?? string.Empty;
+        SelectedDistrictId = null; RegisterVm.District = string.Empty;
+        await LoadDistrictsAsync();
+    }
+
+    private Task OnDistrictChanged(ChangeEventArgs<Guid?, LookupDto> args)
+    {
+        if (!args.IsInteracted) return Task.CompletedTask;
+        SelectedDistrictId = args.Value;
+        RegisterVm.District = args.ItemData?.Value ?? string.Empty;
+        return Task.CompletedTask;
+    }
+
+    private class TenantOption
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Subdomain { get; set; }
+    }
+
+    private class UserRoleDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
+    }
+}
+
+<style>
+    .input-group > .e-control.e-textbox {
+        flex: 1;
+    }
+</style>

@@ -75,15 +75,13 @@ namespace MuniLK.Infrastructure.Security
                 Id = Guid.Parse(user.Id),
                 Email = user.Email ?? string.Empty,
                 Username = user.UserName ?? string.Empty,
-                // Assuming TenantId is stored as a claim or custom property in IdentityUser
-                // You might need to add a custom claim type for TenantId during registration/user creation
                 TenantId = tenantId
             };
 
             var accessToken = await _tokenService.GenerateAccessTokenAsync(domainUser);
             var refreshToken = await _tokenService.GenerateRefreshTokenAsync(domainUser);
 
-            return new AuthResponse { Succeeded = true, AccessToken = accessToken, RefreshToken = refreshToken };
+            return new AuthResponse { Succeeded = true, AccessToken = accessToken, RefreshToken = refreshToken, UserId = user.Id };
         }
 
         /// <summary>
@@ -170,7 +168,8 @@ namespace MuniLK.Infrastructure.Security
                 {
                     Succeeded = true,
                     AccessToken = accessToken,
-                    RefreshToken = refreshToken
+                    RefreshToken = refreshToken,
+                    UserId = identityUser.Id
                 };
             }
             catch (Exception ex)
@@ -234,7 +233,7 @@ namespace MuniLK.Infrastructure.Security
                 var newAccessToken = await _tokenService.GenerateAccessTokenAsync(domainUser);
                 var newRefreshToken = await _tokenService.GenerateRefreshTokenAsync(domainUser); // Generate a new refresh token
 
-                return new AuthResponse { Succeeded = true, AccessToken = newAccessToken, RefreshToken = newRefreshToken };
+                return new AuthResponse { Succeeded = true, AccessToken = newAccessToken, RefreshToken = newRefreshToken, UserId = identityUser.Id };
             }
             catch (Exception)
             {
@@ -262,7 +261,7 @@ namespace MuniLK.Infrastructure.Security
                 return new AuthResponse { Succeeded = false, Errors = result.Errors.Select(e => e.Description).ToArray() };
             }
 
-            return new AuthResponse { Succeeded = true, Message = "User deleted successfully." };
+            return new AuthResponse { Succeeded = true, Message = "User deleted successfully.", UserId = user.Id };
         }
     }
 }

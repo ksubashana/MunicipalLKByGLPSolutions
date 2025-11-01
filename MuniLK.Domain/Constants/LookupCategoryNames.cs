@@ -20,6 +20,8 @@ namespace MuniLK.Domain.Constants
         Zone,
         DocumentType,
         Modules,
-        ClearanceTypes
+        ClearanceTypes,
+        Districts,
+        Provinces
     }
 }

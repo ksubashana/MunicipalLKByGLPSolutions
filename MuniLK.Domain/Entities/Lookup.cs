@@ -1,5 +1,6 @@
 ﻿// MuniLK.Domain/Entities/Lookup.cs
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using MuniLK.Domain.Interfaces; // For IHasTenant
 
@@ -8,6 +9,7 @@ namespace MuniLK.Domain.Entities
     /// <summary>
     /// Represents a customizable lookup value in the system.
     /// Belongs to a specific LookupCategory and can be global or tenant-specific.
+    /// Now supports parent-child hierarchy within the same category for cascading dropdowns.
     /// </summary>
     public class Lookup : IHasTenant // Implements IHasTenant, but TenantId is nullable here
     {
@@ -36,6 +38,14 @@ namespace MuniLK.Domain.Entities
         /// Optional: A display order for the value within its category.
         /// </summary>
         public int Order { get; set; } = 0;
+
+        /// <summary>
+        /// Optional parent lookup id to form hierarchy. Must reference another Lookup in same category.
+        /// Null indicates a root node.
+        /// </summary>
+        public Guid? ParentLookupId { get; set; }
+        public Lookup? ParentLookup { get; set; }
+        public ICollection<Lookup> Children { get; set; } = new List<Lookup>();
 
         /// <summary>
         /// The TenantId this lookup value belongs to.

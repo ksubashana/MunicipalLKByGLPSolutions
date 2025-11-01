@@ -91,7 +91,21 @@ namespace MuniLK.Application.Services
         /// </summary>
         Task DeleteEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId);
 
-        // Optional: Get the full Lookup object if more properties are needed
-        // Task<Lookup?> GetLookupByIdAsync(Guid lookupId);
+        // NEW: Hierarchy retrieval helpers
+        /// <summary>
+        /// Retrieves child lookup values for a given parent lookup ID,
+        /// returning all active child values under the specified parent.
+        /// </summary>
+        /// <param name="parentLookupId">The GUID of the parent lookup value.</param>
+        /// <returns>A list of child LookupValueDto objects.</returns>
+        Task<List<LookupDto>> GetChildLookupsAsync(Guid parentLookupId);
+
+        /// <summary>
+        /// Retrieves all root-level lookup values for a specific category (by its programmatic name),
+        /// i.e., values that do not have any parent lookup.
+        /// </summary>
+        /// <param name="categoryName">The programmatic name of the lookup category.</param>
+        /// <returns>A list of root-level LookupValueDto objects for the current tenant.</returns>
+        Task<List<LookupDto>> GetRootLookupsByCategoryNameAsync(string categoryName);
     }
 }

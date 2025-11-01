@@ -45,6 +45,8 @@ namespace MuniLK.Application.Generic.DTOs
         public string? RefreshToken { get; set; }
         public string Message { get; set; }
         public string[] Errors { get; set; } = Array.Empty<string>();
+        // Added: Identity/User Id returned on successful registration/login
+        public string? UserId { get; set; }
     }
 
     /// <summary>

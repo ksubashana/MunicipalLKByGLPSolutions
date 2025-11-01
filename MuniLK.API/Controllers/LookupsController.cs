@@ -1,13 +1,13 @@
 ﻿// MuniLK.API/Controllers/LookupController.cs
-using Microsoft.AspNetCore.Authorization; // For [Authorize] attribute
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MuniLK.Application.Services; // For ILookupService
-using MuniLK.Application.Services.DTOs; // For AddLookupValueRequest
+using MuniLK.Application.Services;
+using MuniLK.Application.Services.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging; // For logging within the controller
-using MuniLK.Application.BuildingAndPlanning.DTOs; // For EntityOptionSelectionsResponse
+using Microsoft.Extensions.Logging;
+using MuniLK.Application.BuildingAndPlanning.DTOs;
 
 namespace MuniLK.API.Controllers
 {
@@ -333,6 +333,38 @@ namespace MuniLK.API.Controllers
             return Ok(response);
         }
 
+        // Hierarchy root retrieval
+        [HttpGet("values/root/byname/{categoryName}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<LookupDto>>> GetRootLookupsByCategory(string categoryName)
+        {
+            try
+            {
+                var roots = await _lookupService.GetRootLookupsByCategoryNameAsync(categoryName);
+                return Ok(roots);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching root lookups for category {CategoryName}", categoryName);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error fetching root lookups.");
+            }
+        }
 
+        // Children retrieval
+        [HttpGet("values/children/{parentLookupId:guid}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<LookupDto>>> GetChildLookups(Guid parentLookupId)
+        {
+            try
+            {
+                var children = await _lookupService.GetChildLookupsAsync(parentLookupId);
+                return Ok(children);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching child lookups for parent {ParentLookupId}", parentLookupId);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error fetching child lookups.");
+            }
+        }
     }
 }

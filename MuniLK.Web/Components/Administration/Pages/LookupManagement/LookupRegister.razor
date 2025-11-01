@@ -1,0 +1,289 @@
+﻿@page "/admin/lookups/manage"
+@using MuniLK.Application.Services.DTOs
+@using Syncfusion.Blazor.Inputs
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Buttons
+@using Microsoft.AspNetCore.Components.Forms
+@inject IHttpClientFactory HttpClientFactory
+
+<h3 class="mb-3">Lookup Management</h3>
+<div class="container-xxl py-3">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Create Lookup Category</h5>
+            <SfButton CssClass="btn-sm" IconCss="fas fa-sync" OnClick="@(()=> LoadCategoriesAsync())">Refresh</SfButton>
+        </div>
+        <div class="card-body">
+            <EditForm Model="NewCategory" OnValidSubmit="HandleAddCategoryAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Programmatic Name <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="NewCategory.Name" Placeholder="e.g. Province" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Display Name <span class="text-danger">*</span></label>
+                        <SfTextBox @bind-Value="NewCategory.DisplayName" Placeholder="e.g. Provinces" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Order</label>
+                        <SfTextBox @bind-Value="CategoryOrderString" Placeholder="0" CssClass="form-control" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="NewCategory.IsGlobal" id="catGlobal" />
+                            <label class="form-check-label" for="catGlobal">Global Category</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <SfTextBox @bind-Value="NewCategory.Description" Multiline="true" CssClass="form-control" />
+                    </div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(CategoryError)) { <div class="alert alert-danger mt-3">@CategoryError</div> }
+                @if (!string.IsNullOrWhiteSpace(CategorySuccess)) { <div class="alert alert-success mt-3">@CategorySuccess</div> }
+                <div class="mt-3 d-flex justify-content-end gap-2">
+                    <SfButton IsPrimary="true" type="submit" Disabled="@IsSavingCategory" IconCss="fas fa-plus">@(IsSavingCategory ? "Saving..." : "Add Category")</SfButton>
+                    <SfButton type="button" IconCss="fas fa-undo" Disabled="@IsSavingCategory" OnClick="@(()=> ResetCategoryForm())">Reset</SfButton>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Add Lookup Values</h5>
+            <div class="d-flex gap-2">
+                <SfButton CssClass="btn-sm" IconCss="fas fa-sync" OnClick="@(()=> ReloadLookupsForSelectedCategory())">Reload Values</SfButton>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Select Category <span class="text-danger">*</span></label>
+                    <SfDropDownList TItem="LookupCategoryDto" TValue="Guid" @bind-Value="SelectedCategoryId" DataSource="Categories" Placeholder="Choose category" AllowFiltering="true" Change="OnCategoryChanged" CssClass="form-control">
+                        <DropDownListFieldSettings Value="Id" Text="DisplayName" />
+                    </SfDropDownList>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Optional Parent (Hierarchy)</label>
+                    <SfDropDownList TItem="LookupDto" TValue="Guid?" @bind-Value="SelectedParentLookupId" DataSource="ExistingLookups" Placeholder="Root (no parent)" AllowFiltering="true" Enabled="@(ExistingLookups.Any())" CssClass="form-control">
+                        <DropDownListFieldSettings Value="Id" Text="Value" />
+                    </SfDropDownList>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <SfButton CssClass="btn btn-primary" IconCss="fas fa-plus" Disabled="@(!CanAddNewRow)" OnClick="AddNewLookupRow">Add Row</SfButton>
+                </div>
+            </div>
+
+            <div class="table-responsive" style="max-height:340px; overflow-y:auto;">
+                <table class="table table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:30%">Value</th>
+                            <th style="width:10%">Order</th>
+                            <th style="width:15%">Global?</th>
+                            <th style="width:25%">Parent</th>
+                            <th style="width:20%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (NewLookupRows.Count == 0)
+                        {
+                            <tr><td colspan="5" class="text-muted text-center">No rows added.</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var row in NewLookupRows)
+                            {
+                                <tr class="@(row.HasError ? "table-danger" : string.Empty)">
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" @bind="row.Value" placeholder="Lookup value" />
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm" @bind="row.Order" />
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input" @bind="row.IsGlobal" />
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" @bind="row.ParentLookupId">
+                                            <option value="">(none)</option>
+                                            @foreach (var l in ExistingLookups)
+                                            {
+                                                <option value="@l.Id">@l.Value</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" title="Remove" @onclick="(()=> RemoveRow(row))"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(LookupError)) { <div class="alert alert-danger mt-3">@LookupError</div> }
+            @if (!string.IsNullOrWhiteSpace(LookupSuccess)) { <div class="alert alert-success mt-3">@LookupSuccess</div> }
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <SfButton IsPrimary="true" Disabled="@(IsSavingLookups || NewLookupRows.Count == 0 || SelectedCategoryId == Guid.Empty)" IconCss="fas fa-save" OnClick="SaveLookupRows">@(IsSavingLookups ? "Saving..." : "Save Lookups")</SfButton>
+                <SfButton CssClass="btn btn-outline-secondary" Disabled="@IsSavingLookups" IconCss="fas fa-undo" OnClick="ResetLookupRows">Reset</SfButton>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AddLookupCategoryRequest NewCategory = new();
+    private string CategoryOrderString = "0";
+    private bool IsSavingCategory = false;
+    private string? CategoryError;
+    private string? CategorySuccess;
+
+    private Guid SelectedCategoryId; // non-nullable Guid
+    private Guid? SelectedParentLookupId;
+    private List<LookupCategoryDto> Categories = new();
+    private List<LookupDto> ExistingLookups = new();
+    private List<LookupRow> NewLookupRows = new();
+    private bool IsSavingLookups = false;
+    private string? LookupError;
+    private string? LookupSuccess;
+
+    private bool CanAddNewRow => SelectedCategoryId != Guid.Empty;
+
+    protected override async Task OnInitializedAsync() => await LoadCategoriesAsync();
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            Categories = await client.GetFromJsonAsync<List<LookupCategoryDto>>("api/Lookups/categories") ?? new();
+        }
+        catch { Categories = new(); }
+    }
+
+    private async Task ReloadLookupsForSelectedCategory()
+    {
+        if (SelectedCategoryId == Guid.Empty) { ExistingLookups = new(); return; }
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            ExistingLookups = await client.GetFromJsonAsync<List<LookupDto>>($"api/Lookups/values/byid/{SelectedCategoryId}") ?? new();
+        }
+        catch { ExistingLookups = new(); }
+    }
+
+    private async void OnCategoryChanged(Syncfusion.Blazor.DropDowns.ChangeEventArgs<Guid, LookupCategoryDto> args)
+    {
+        if (args != null) SelectedCategoryId = args.Value; else SelectedCategoryId = Guid.Empty;
+        SelectedParentLookupId = null;
+        NewLookupRows.Clear();
+        await ReloadLookupsForSelectedCategory();
+        StateHasChanged();
+    }
+
+    private void AddNewLookupRow()
+    {
+        if (SelectedCategoryId == Guid.Empty) return;
+        NewLookupRows.Add(new LookupRow
+        {
+            LookupCategoryId = SelectedCategoryId,
+            ParentLookupId = SelectedParentLookupId,
+            Order = ExistingLookups.Count + NewLookupRows.Count,
+            IsGlobal = false
+        });
+    }
+
+    private void RemoveRow(LookupRow row) => NewLookupRows.Remove(row);
+
+    private void ResetCategoryForm()
+    {
+        NewCategory = new AddLookupCategoryRequest();
+        CategoryOrderString = "0";
+        CategoryError = CategorySuccess = null;
+    }
+
+    private async Task HandleAddCategoryAsync()
+    {
+        CategoryError = CategorySuccess = null;
+        if (!int.TryParse(CategoryOrderString, out var order)) order = 0;
+        NewCategory.Order = order;
+        if (string.IsNullOrWhiteSpace(NewCategory.Name) || string.IsNullOrWhiteSpace(NewCategory.DisplayName)) { CategoryError = "Required fields missing."; return; }
+        IsSavingCategory = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var resp = await client.PostAsJsonAsync("api/Lookups/CreateCategories", NewCategory);
+            if (resp.IsSuccessStatusCode)
+            {
+                CategorySuccess = "Category created.";
+                await LoadCategoriesAsync();
+                ResetCategoryForm();
+            }
+            else
+            {
+                CategoryError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { CategoryError = ex.Message; }
+        finally { IsSavingCategory = false; }
+    }
+
+    private async void SaveLookupRows()
+    {
+        LookupError = LookupSuccess = null;
+        if (SelectedCategoryId == Guid.Empty || NewLookupRows.Count == 0) { LookupError = "Select a category and add rows."; StateHasChanged(); return; }
+        foreach (var r in NewLookupRows) r.HasError = string.IsNullOrWhiteSpace(r.Value);
+        if (NewLookupRows.Any(r => r.HasError)) { LookupError = "Fix errors in rows (value required)."; StateHasChanged(); return; }
+        IsSavingLookups = true;
+        try
+        {
+            var batch = NewLookupRows.Select(r => new AddLookupRequest
+            {
+                LookupCategoryId = r.LookupCategoryId,
+                Value = r.Value!.Trim(),
+                Order = r.Order,
+                IsGlobal = r.IsGlobal,
+                ParentLookupId = r.ParentLookupId
+            }).ToList();
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var resp = await client.PostAsJsonAsync("api/Lookups/AddMultipleLookup", batch);
+            if (resp.IsSuccessStatusCode)
+            {
+                LookupSuccess = "Lookup values saved.";
+                NewLookupRows.Clear();
+                await ReloadLookupsForSelectedCategory();
+            }
+            else
+            {
+                LookupError = await resp.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex) { LookupError = ex.Message; }
+        finally { IsSavingLookups = false; StateHasChanged(); }
+    }
+
+    private void ResetLookupRows()
+    {
+        NewLookupRows.Clear();
+        LookupError = LookupSuccess = null;
+    }
+
+    private class LookupRow
+    {
+        public Guid LookupCategoryId { get; set; }
+        public string? Value { get; set; }
+        public int Order { get; set; }
+        public bool IsGlobal { get; set; }
+        public Guid? ParentLookupId { get; set; }
+        public bool HasError { get; set; }
+    }
+}
+
+<style>
+    .table tbody tr.table-danger input { border-color:#dc3545; }
+</style>

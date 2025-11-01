@@ -1,6 +1,7 @@
 ﻿// MuniLK.Application/Services/DTOs/LookupValueDto.cs
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace MuniLK.Application.Services.DTOs
 {
@@ -17,6 +18,9 @@ namespace MuniLK.Application.Services.DTOs
         public int Order { get; set; }
         public Guid? TenantId { get; set; } // Null for global values
         public bool IsActive { get; set; }
+        // Hierarchy additions
+        public Guid? ParentLookupId { get; set; }
+        public bool HasChildren { get; set; }
     }
 
     public class LookupCategoryDto
@@ -54,6 +58,8 @@ namespace MuniLK.Application.Services.DTOs
         /// Optional: Display order for the value within its category.
         /// </summary>
         public int Order { get; set; } = 0;
+        // Optional parent assignment for hierarchy
+        public Guid? ParentLookupId { get; set; }
     }
 
     public class AddLookupCategoryRequest

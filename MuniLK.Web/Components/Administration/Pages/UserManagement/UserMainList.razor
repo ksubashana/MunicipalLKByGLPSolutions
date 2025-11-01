@@ -1,0 +1,127 @@
+﻿@page "/admin/users"
+@using MuniLK.Application.Users.DTOs
+@using MuniLK.Application.Generic.DTOs
+@using Syncfusion.Blazor.Grids
+@using Syncfusion.Blazor.Buttons
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<h3 class="mb-3 d-flex align-items-center gap-2">Users
+    <SfButton CssClass="e-primary e-small" IconCss="fas fa-user-plus" OnClick="AddNewUser">Add New</SfButton>
+</h3>
+
+@if (Loading)
+{
+    <div class="text-muted">Loading users...</div>
+}
+else if (!string.IsNullOrEmpty(LoadError))
+{
+    <div class="alert alert-danger">@LoadError</div>
+}
+else
+{
+    <SfGrid TItem="UserRow" DataSource="Users" AllowPaging="true" AllowSorting="true" AllowFiltering="true" Width="100%">
+        <GridPageSettings PageSize="10" PageSizes="new int[] { 5, 10, 20, 50 }" />
+        <GridColumns>
+            <GridColumn HeaderText="Actions" Width="130" TextAlign="TextAlign.Left" AllowFiltering="false" AllowSorting="false">
+                <Template>
+                    @{ var item = (context as UserRow)!; }
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary" title="Edit" @onclick="(() => EditUser(item))"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-outline-danger" title="Delete" @onclick="(() => DeleteUser(item))"><i class="fas fa-trash"></i></button>
+                    </div>
+                </Template>
+            </GridColumn>
+            <GridColumn Field=@nameof(UserRow.UserName) HeaderText="Username" Width="160"></GridColumn>
+            <GridColumn Field=@nameof(UserRow.Email) HeaderText="Email" Width="220"></GridColumn>
+            <GridColumn Field=@nameof(UserRow.Role) HeaderText="Role" Width="140"></GridColumn>
+            <GridColumn Field=@nameof(UserRow.Id) HeaderText="Id" Width="260" Visible="false"></GridColumn>
+        </GridColumns>
+    </SfGrid>
+}
+
+@if (!string.IsNullOrWhiteSpace(FeedbackMessage))
+{
+    <div class="mt-3 alert @FeedbackCss">@FeedbackMessage</div>
+}
+
+@code {
+    private List<UserRow> Users = new();
+    private bool Loading = true;
+    private string? LoadError;
+    private string? FeedbackMessage;
+    private string FeedbackCss = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        Loading = true; LoadError = null; FeedbackMessage = null;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var data = await client.GetFromJsonAsync<List<UserRow>>("api/Users/GetUsersByTenant");
+            Users = data ?? new();
+        }
+        catch (Exception ex)
+        {
+            LoadError = $"Failed to load users: {ex.Message}";
+        }
+        finally
+        {
+            Loading = false;
+        }
+    }
+
+    private void AddNewUser() => Nav.NavigateTo("/admin/users/register");
+
+    private void EditUser(UserRow row)
+    {
+        // Navigate to register page with query for potential edit (placeholder) - adjust when edit page implemented
+        Nav.NavigateTo($"/admin/users/register?userId={row.Id}");
+    }
+
+    private async Task DeleteUser(UserRow row)
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete user '{row.UserName}'?");
+        if (!confirm) return;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var request = new HttpRequestMessage(HttpMethod.Delete, "api/Auth/RemoveUser")
+            {
+                Content = JsonContent.Create(new DeleteUserRequest { UserId = row.Id })
+            };
+            var resp = await client.SendAsync(request);
+            if (resp.IsSuccessStatusCode)
+            {
+                Users.Remove(row);
+                FeedbackCss = "alert-success";
+                FeedbackMessage = $"User '{row.UserName}' deleted.";
+            }
+            else
+            {
+                var err = await resp.Content.ReadAsStringAsync();
+                FeedbackCss = "alert-danger";
+                FeedbackMessage = $"Delete failed: {(string.IsNullOrWhiteSpace(err) ? resp.StatusCode.ToString() : err)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            FeedbackCss = "alert-danger";
+            FeedbackMessage = $"Error deleting user: {ex.Message}";
+        }
+    }
+
+    public class UserRow
+    {
+        public string Id { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
+}

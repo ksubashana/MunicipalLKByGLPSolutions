@@ -20,7 +20,6 @@ namespace MuniLK.Infrastructure.Data
         {
             _currentTenantService = currentTenantService;
         }
-        // --- Add this DbSet for your new Tenant entity ---
         public DbSet<Tenant> Tenants { get; set; }
         public DbSet<License> Licenses => Set<License>();
         public DbSet<Property> Properties => Set<Property>();
@@ -52,12 +51,17 @@ namespace MuniLK.Infrastructure.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            // Apply all IEntityTypeConfiguration classes from the current assembly
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(MuniLKDbContext).Assembly);
-
-            // Apply the tenant-specific query filter using your extension method
             modelBuilder.ApplyTenantFilters(_currentTenantService);
-            //Apply global query filter for multi - tenancy
+
+            // Lookup hierarchy configuration
+            modelBuilder.Entity<Lookup>()
+                .HasOne(l => l.ParentLookup)
+                .WithMany(p => p.Children)
+                .HasForeignKey(l => l.ParentLookupId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Lookup>()
+                .HasIndex(l => l.ParentLookupId);
         }
 
         // Override SaveChanges to automatically set TenantId for new IHasTenant entities

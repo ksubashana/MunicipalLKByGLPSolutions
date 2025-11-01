@@ -19,14 +19,13 @@ public class TenantRepository : ITenantRepository
         return tenant.TenantId;
     }
 
-    // Optional helpers
-    //public async Task<Tenant> GetByIdAsync(Guid id)
-    //{
-    //    return await _context.Tenants.FindAsync(id);
-    //}
-
     public async Task<bool> SubdomainExistsAsync(string subdomain)
     {
         return await _context.Tenants.AnyAsync(t => t.Subdomain == subdomain, cancellationToken: CancellationToken.None);
+    }
+
+    public async Task<List<Tenant>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _context.Tenants.OrderBy(t => t.Name).ToListAsync(cancellationToken);
     }
 }

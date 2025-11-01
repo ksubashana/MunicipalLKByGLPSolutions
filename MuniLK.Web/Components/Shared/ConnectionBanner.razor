@@ -1,0 +1,78 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+<div class="connection-banner position-fixed top-0 start-50 translate-middle-x shadow" style="z-index:2000" hidden="@(!ShowBanner)">
+    <div class="banner-content d-flex align-items-center gap-3 px-4 py-2 rounded-pill animate__animated @AnimationClass">
+        <span class="status-dot me-1 @(IsConnected ? "online" : "offline")"></span>
+        <span class="fw-semibold">@Message</span>
+        @if (!IsConnected)
+        {
+            <div class="spinner-border spinner-border-sm text-light" role="status"></div>
+            <button class="btn btn-sm btn-outline-light ms-2" @onclick="ForceReload">Reload</button>
+        }
+    </div>
+</div>
+
+@code {
+    private bool ShowBanner { get; set; }
+    private bool IsConnected { get; set; } = true;
+    private string Message { get; set; } = "Connected";
+    private string AnimationClass { get; set; } = "animate__fadeInDown";
+    private DotNetObjectReference<ConnectionBanner>? _objRef;
+    private CancellationTokenSource? _hideCts;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("ConnectionStatus.init", _objRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task NotifyConnectionDown()
+    {
+        _hideCts?.Cancel();
+        IsConnected = false;
+        Message = "Connection lost - attempting to reconnect...";
+        AnimationClass = "animate__fadeInDown";
+        ShowBanner = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task NotifyConnectionUp()
+    {
+        IsConnected = true;
+        Message = "Reconnected";
+        AnimationClass = "animate__pulse";
+        ShowBanner = true;
+        StateHasChanged();
+        _hideCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(3000, _hideCts.Token);
+            ShowBanner = false;
+            StateHasChanged();
+        }
+        catch { }
+    }
+
+    private void ForceReload() => JS.InvokeVoidAsync("ConnectionStatus.reload");
+
+    public void Dispose()
+    {
+        _objRef?.Dispose();
+        _hideCts?.Cancel();
+        _hideCts?.Dispose();
+    }
+}
+
+<style>
+.connection-banner { pointer-events:none; }
+.connection-banner .banner-content { pointer-events:auto; background:linear-gradient(135deg,#ff6a00,#ee0979); color:#fff; }
+.connection-banner .status-dot { width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow:0 0 4px rgba(0,0,0,.4);} 
+.connection-banner .status-dot.online { background:#32cd32; box-shadow:0 0 6px #32cd32; }
+.connection-banner .status-dot.offline { background:#ff4d4f; box-shadow:0 0 6px #ff4d4f; }
+</style>
