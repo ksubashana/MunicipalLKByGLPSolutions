@@ -43,6 +43,10 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredServ
 builder.Services.AddScoped<AuthTokenHandler>();
 
 builder.Services.AddSingleton<CircuitHandler, GlobalCircuitHandler>();
+// Error notifier singleton
+builder.Services.AddSingleton<ErrorNotifier>();
+// Safe executor scoped
+builder.Services.AddScoped<ISafeExecutor, SafeExecutor>();
 
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("AuthorizedClient", client =>
@@ -72,13 +76,13 @@ builder.Services.AddServerSideBlazor()
 #else
         options.DetailedErrors = false;
 #endif
-        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10); // allow seamless reconnect for idle users
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(10);
     })
     .AddHubOptions(options =>
     {
-        options.EnableDetailedErrors = false; // true only if needed
-        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // detect dead clients
-        options.KeepAliveInterval = TimeSpan.FromSeconds(15); // push keepalive pings
+        options.EnableDetailedErrors = false;
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
     });
 
 builder.Services.AddSyncfusionBlazor();

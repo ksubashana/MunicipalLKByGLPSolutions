@@ -189,7 +189,7 @@ else
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseSerilogRequestLogging();
 app.MapControllers();
 
 AppDomain.CurrentDomain.ProcessExit += (s, e) => Log.CloseAndFlush();

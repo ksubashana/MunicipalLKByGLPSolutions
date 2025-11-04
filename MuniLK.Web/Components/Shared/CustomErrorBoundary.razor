@@ -1,0 +1,43 @@
+@inherits ErrorBoundary
+@using MuniLK.Web.Services
+@inject ILogger<CustomErrorBoundary> Logger
+@inject ErrorNotifier ErrorNotifier
+@inject NavigationManager Nav
+@using Microsoft.AspNetCore.Components
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else if (ErrorContent is not null)
+{
+    @ErrorContent(CurrentException)
+}
+else
+{
+    <div class="alert alert-danger d-flex justify-content-between align-items-center mt-2" role="alert">
+        <div class="me-3">
+            <strong>Unexpected error.</strong>
+            <div class="small text-muted">Please try again or go back.</div>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-light" @onclick="Recover">Retry</button>
+            <button class="btn btn-outline-warning" @onclick="GoHome">Home</button>
+        </div>
+    </div>
+}
+
+@code {
+    protected override async Task OnErrorAsync(Exception exception)
+    {
+        Logger.LogError(exception, "Unhandled component exception");
+        await ErrorNotifier.NotifyAsync(exception, "Component");
+    }
+
+    private void GoHome() => Nav.NavigateTo("/auth-login");
+}
+
+<style>
+.alert-danger { background: linear-gradient(135deg,#ff4d4f,#d80032); color:#fff; border:none; }
+.alert-danger .btn { border-color: rgba(255,255,255,.5); }
+</style>

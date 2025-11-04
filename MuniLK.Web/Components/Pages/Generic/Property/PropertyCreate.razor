@@ -12,11 +12,14 @@
 @using Microsoft.AspNetCore.Components
 @using MuniLK.Web.Components.Pages.Flows
 @using Syncfusion.Blazor.Popups
+@using Microsoft.AspNetCore.Mvc; // for ValidationProblemDetails
+@using System.Text.Json
 
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Navigation
 @inject IStringLocalizer<ContactForm> localizer
 @inject ILookupService LookupService
+@inject MuniLK.Web.Services.ErrorNotifier ErrorNotifier
 
 @if (RenderAsPopup)
 {
@@ -36,21 +39,26 @@ else
 }
 
 @code {
+    private string? SubmitError; // inline error message
+
     private RenderFragment RenderForm() => __builder =>
     {
         <EditForm Model="@PropertyModel" OnValidSubmit="HandleValidSubmit">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
+            @if (!string.IsNullOrEmpty(SubmitError))
+            {
+                <div class="alert alert-danger" role="alert">@SubmitError</div>
+            }
+
             <h3 class="mb-3">Create New Property (නව දේපලක් සෑදීම)</h3>
 
             <div class="row g-3">
-
                 <div class="col-md-6">
                     <SfTextBox Placeholder="Address (ලිපිනය)" @bind-Value="PropertyModel.Address" FloatLabelType="FloatLabelType.Auto" />
                     <ValidationMessage For="@(() => PropertyModel.Address)" />
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid" TItem="LookupDto" DataSource="@PropertyTypes"
                                     @bind-Value="PropertyModel.PropertyTypeId" Placeholder="Select Property Type (දේපල වර්ගය තෝරන්න)"
@@ -59,18 +67,15 @@ else
                     </SfDropDownList>
                     <ValidationMessage For="@(() => PropertyModel.PropertyTypeId)" />
                 </div>
-
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="decimal" @bind-Value="PropertyModel.AssessmentValue"
                                       Placeholder="Assessment Value (ඇගයීම් වටිනාකම)" FloatLabelType="FloatLabelType.Auto" />
                     <ValidationMessage For="@(() => PropertyModel.AssessmentValue)" />
                 </div>
-
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.WardNumber"
                                       Placeholder="Ward Number (වාර්ඩ් අංකය)" FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@Zones"
                                     @bind-Value="PropertyModel.ZoneId" Placeholder="Select Zone (කලාපය තෝරන්න)"
@@ -78,12 +83,10 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="decimal?" @bind-Value="PropertyModel.LandAreaInSqMeters"
                                       Placeholder="Land Area (sq.m) (භූමි ප්‍රමාණය (ච.මී.))" FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@LandExtentUnits"
                                     @bind-Value="PropertyModel.LandExtentId" Placeholder="Land Extent Unit (භූමි ඒකකය)"
@@ -91,12 +94,10 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
                 <div class="col-md-6">
                     <SfTextBox Placeholder="Title Deed Number (ඩීඩ් අංකය)" @bind-Value="PropertyModel.TitleDeedNumber"
                                FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@OwnershipTypes"
                                     @bind-Value="PropertyModel.OwnershipTypeId" Placeholder="Ownership Type (අයිතියේ වර්ගය)"
@@ -104,13 +105,10 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
-
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.NumberOfBuildings"
                                       Placeholder="Number of Buildings (ගොඩනැගිලි ගණන)" FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ConstructionTypes"
                                     @bind-Value="PropertyModel.ConstructionTypeId" Placeholder="Construction Type (ඉදිකිරීමේ වර්ගය)"
@@ -118,7 +116,6 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@RoadAccessTypes"
                                     @bind-Value="PropertyModel.RoadAccessTypeId" Placeholder="Road Access Type (පාර ප්‍රවේශ වර්ගය)"
@@ -126,7 +123,6 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@GSDivisions"
                                     @bind-Value="PropertyModel.GSDivisionId" Placeholder="GS Division (ග්‍රාම නිලධාරී කොට්ටාශය)"
@@ -134,7 +130,6 @@ else
                         <DropDownListFieldSettings Text="Value" Value="Id"></DropDownListFieldSettings>
                     </SfDropDownList>
                 </div>
-
                 <div class="col-md-6">
                     <SfDropDownList TValue="Guid?" TItem="LookupDto" DataSource="@ElectoralDivisions"
                                     @bind-Value="PropertyModel.ElectoralDivisionId" Placeholder="Electoral Division (මැතිවරණ කොට්ටාශය)"
@@ -143,13 +138,12 @@ else
                     </SfDropDownList>
                 </div>
                 <div class="row g-3">
-                <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.WaterConnection" Label="Water Connection (ජල සම්බන්ධතාවය)" />
-                </div>
-
-                <div class="col-md-6">
-                    <SfCheckBox @bind-Checked="PropertyModel.ElectricityConnection" Label="Electricity Connection (විදුලි සම්බන්ධතාවය)" />
-                </div>
+                    <div class="col-md-6">
+                        <SfCheckBox @bind-Checked="PropertyModel.WaterConnection" Label="Water Connection (ජල සම්බන්ධතාවය)" />
+                    </div>
+                    <div class="col-md-6">
+                        <SfCheckBox @bind-Checked="PropertyModel.ElectricityConnection" Label="Electricity Connection (විදුලි සම්බන්ධතාවය)" />
+                    </div>
                     <div class="col-md-6">
                         <SfCheckBox @bind-Checked="PropertyModel.IsDisputed" Label="Disputed Property (වාද විවාදයට ලක් වූ දේපල)" />
                     </div>
@@ -157,25 +151,18 @@ else
                         <SfCheckBox @bind-Checked="PropertyModel.IsCommercialUse" Label="Commercial Use (වාණිජ්‍ය භාවිතය)" />
                     </div>
                 </div>
-
- 
                 <div class="col-md-6">
                     <SfNumericTextBox TValue="int?" @bind-Value="PropertyModel.LastAssessmentYear"
                                       Placeholder="Last Assessment Year (පසුගිය ඇගයීම් අවුරුද්ද)" FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
-   
-
                 <div class="col-md-6">
                     <SfTextBox Placeholder="Photo URL (ඡායාරූප URL)" @bind-Value="PropertyModel.PhotoUrl" FloatLabelType="FloatLabelType.Auto" />
                 </div>
-
                 <div class="col-md-6">
                     <SfTextBox Placeholder="Coordinates (lat,lng) (ස්ථානාංක (අක්ෂාංශ, දේශාංශ))" @bind-Value="PropertyModel.LocationCoordinates"
                                FloatLabelType="FloatLabelType.Auto" />
                 </div>
             </div>
-
             <div class="mt-4">
                 <SfButton Type="Submit" CssClass="e-primary">Submit (ඉදිරිපත් කරන්න)</SfButton>
             </div>
@@ -208,30 +195,61 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        PropertyTypes = await LookupService.LoadLookupAsync("PropertyTypes");
-        Zones = await LookupService.LoadLookupAsync("Zone");
-        LandExtentUnits = await LookupService.LoadLookupAsync("LandExtentUnit");
-        OwnershipTypes = await LookupService.LoadLookupAsync("PropertyOwnershipType");
-        ConstructionTypes = await LookupService.LoadLookupAsync("ConstructionType");
-        RoadAccessTypes = await LookupService.LoadLookupAsync("RoadAccessType");
-        GSDivisions = await LookupService.LoadLookupAsync("GSDivision");
-        ElectoralDivisions = await LookupService.LoadLookupAsync("ElectoralDivision");
+        try
+        {
+            PropertyTypes = await LookupService.LoadLookupAsync("PropertyTypes");
+            Zones = await LookupService.LoadLookupAsync("Zone");
+            LandExtentUnits = await LookupService.LoadLookupAsync("LandExtentUnit");
+            OwnershipTypes = await LookupService.LoadLookupAsync("PropertyOwnershipType");
+            ConstructionTypes = await LookupService.LoadLookupAsync("ConstructionType");
+            RoadAccessTypes = await LookupService.LoadLookupAsync("RoadAccessType");
+            GSDivisions = await LookupService.LoadLookupAsync("GSDivision");
+            ElectoralDivisions = await LookupService.LoadLookupAsync("ElectoralDivision");
+            await ErrorNotifier.NotifyMessageAsync("Lookups loaded","PropertyCreate",ErrorSeverity.Info);
+        }
+        catch (Exception ex)
+        {
+            SubmitError = "Failed to load lookups.";
+            await ErrorNotifier.NotifyAsync(ex, "PropertyCreate Lookups", ErrorSeverity.Warning);
+        }
     }
 
     private async Task HandleValidSubmit()
     {
-        var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var response = await client.PostAsJsonAsync("api/Properties/Create", PropertyModel);
-        if (response.IsSuccessStatusCode)
+        SubmitError = null;
+        await ErrorNotifier.NotifyMessageAsync("Submitting property...","PropertyCreate",ErrorSeverity.Info);
+        try
         {
-            var created = await response.Content.ReadFromJsonAsync<PropertyResponse>();
-            await OnPropertyCreated.InvokeAsync(created);
-            await IsVisibleChanged.InvokeAsync(false);
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var response = await client.PostAsJsonAsync("api/Properties/Create", PropertyModel);
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<PropertyResponse>();
+                await OnPropertyCreated.InvokeAsync(created);
+                await ErrorNotifier.NotifyMessageAsync("Property created","PropertyCreate",ErrorSeverity.Success);
+                await IsVisibleChanged.InvokeAsync(false);
+            }
+            else
+            {
+                var raw = await response.Content.ReadAsStringAsync();
+                var display = raw;
+                try
+                {
+                    var problem = JsonSerializer.Deserialize<ValidationProblemDetails>(raw, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (problem?.Errors?.Count > 0)
+                    {
+                        display = string.Join("; ", problem.Errors.SelectMany(kvp => kvp.Value.Select(v => $"{kvp.Key}: {v}")));
+                    }
+                }
+                catch { }
+                SubmitError = display;
+                await ErrorNotifier.NotifyMessageAsync(display, "PropertyCreate Submit", ErrorSeverity.Warning);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            var errorMessage = await response.Content.ReadAsStringAsync();
-            // handle error (logging/UI) as needed
+            SubmitError = ex.Message;
+            await ErrorNotifier.NotifyAsync(ex, "PropertyCreate Submit", ErrorSeverity.Error);
         }
     }
 }

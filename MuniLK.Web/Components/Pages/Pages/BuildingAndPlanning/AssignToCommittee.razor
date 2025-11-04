@@ -1,5 +1,4 @@
-﻿
-@using MuniLK.Application.BuildingAndPlanning.DTOs
+﻿@using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Domain.Constants.Flows
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.Calendars
@@ -7,6 +6,9 @@
 @using Syncfusion.Blazor.Popups
 @inject IHttpClientFactory HttpClientFactory
 @inject Microsoft.JSInterop.IJSRuntime JS
+@using MuniLK.Web.Services
+@inject ISafeExecutor SafeExecutor
+@inject ErrorNotifier ErrorNotifier
 
 <div class="container-xxl py-3">
     <div class="card shadow-sm position-relative">
@@ -110,9 +112,7 @@
     private bool HasExistingSchedule = false;
 
     private string MeetingDateDisplay => MeetingDate?.ToString("dd MMM yyyy") ?? "-";
-
     private List<CommitteeType> CommitteeTypes = Enum.GetValues(typeof(CommitteeType)).Cast<CommitteeType>().ToList();
-
     private string PrimaryActionText => HasExistingSchedule ? "Reschedule Committee" : "Schedule Committee";
 
     protected override void OnInitialized()
@@ -136,24 +136,44 @@
 
     private async Task SaveSchedule()
     {
-        if (!MeetingDate.HasValue || string.IsNullOrWhiteSpace(MeetingReferenceNo) || string.IsNullOrWhiteSpace(ChairpersonName)) return;
-        var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var req = new {
-            ApplicationId = ApplicationId,
-            MeetingDate = MeetingDate.Value,
-            CommitteeType = SelectedCommitteeType,
-            MeetingReferenceNo,
-            ChairpersonName,
-            MembersPresent,
-            Remarks
-        };
-        var resp = await client.PostAsJsonAsync($"api/BuildingPlans/{ApplicationId}/assign-to-committee", req);
-        if (resp.IsSuccessStatusCode)
+        await SafeExecutor.Run(async () =>
         {
-            HasExistingSchedule = true;
-            DialogVisible = false;
-            if (OnScheduled.HasDelegate) await OnScheduled.InvokeAsync();
-        }
+            if (!MeetingDate.HasValue || string.IsNullOrWhiteSpace(MeetingReferenceNo) || string.IsNullOrWhiteSpace(ChairpersonName))
+            {
+                await ErrorNotifier.NotifyMessageAsync("Missing required fields", "AssignToCommittee", ErrorSeverity.Warning);
+                return;
+            }
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var req = new {
+                ApplicationId,
+                MeetingDate = MeetingDate.Value,
+                CommitteeType = SelectedCommitteeType,
+                MeetingReferenceNo,
+                ChairpersonName,
+                MembersPresent,
+                Remarks
+            };
+            var resp = await client.PostAsJsonAsync($"api/BuildingPlans/{ApplicationId}/assign-to-committee", req);
+            if (resp.IsSuccessStatusCode)
+            {
+                HasExistingSchedule = true;
+                DialogVisible = false;
+                await ErrorNotifier.NotifyMessageAsync("Committee schedule saved", "AssignToCommittee", ErrorSeverity.Success);
+                if (OnScheduled.HasDelegate) await OnScheduled.InvokeAsync();
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                await ErrorNotifier.NotifyMessageAsync($"Schedule failed: {Trim(error)}", "AssignToCommittee", ErrorSeverity.Error);
+            }
+        }, "AssignToCommittee SaveSchedule", ErrorSeverity.Error);
+    }
+
+    private static string Trim(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        raw = raw.Replace("\r", " ").Replace("\n", " ");
+        return raw.Length > 240 ? raw[..240] + "…" : raw;
     }
 }
 

@@ -5,6 +5,7 @@ using MuniLK.Applications.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Application.Services
 {
@@ -14,13 +15,15 @@ namespace Application.Services
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ICurrentTenantService _currentTenantService;
         private readonly IContactRepository _contactRepository;
+        private readonly ILogger<RoleService> _logger;
 
-        public RoleService(RoleManager<IdentityRole> roleManager, UserManager<IdentityUser> userManager, ICurrentTenantService currentTenantService, IContactRepository contactRepository)
+        public RoleService(RoleManager<IdentityRole> roleManager, UserManager<IdentityUser> userManager, ICurrentTenantService currentTenantService, IContactRepository contactRepository, ILogger<RoleService> logger)
         {
             _roleManager = roleManager;
             _userManager = userManager;
             _currentTenantService = currentTenantService;
             _contactRepository = contactRepository;
+            _logger = logger;
         }
 
         public async Task CreateRoleAsync(string roleName)
@@ -84,52 +87,47 @@ namespace Application.Services
         {
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-                throw new ArgumentException("User not found.");
+            {
+                _logger.LogWarning("GetUserRolesAsync: Identity user not found for id {UserId}", userId);
+                return new List<string>();
+            }
 
             return (await _userManager.GetRolesAsync(user)).ToList();
         }
 
-       public async Task<List<ContactResponse>> GetContactsByTenantAndRoleAsync(string roleName)
-{
-    var contactsInRole = new List<ContactResponse>();
+        public async Task<List<ContactResponse>> GetContactsByTenantAndRoleAsync(string roleName)
+        {
+            var contactsInRole = new List<ContactResponse>();
 
-    // Get all users
-    var allUsers = _userManager.Users.ToList();
+            var allUsers = _userManager.Users.ToList();
 
-    foreach (var user in allUsers)
-    {
-        // Check if the user has the tenant claim
-        var claims = await _userManager.GetClaimsAsync(user);
-        var tenantClaim = claims.FirstOrDefault(c => c.Type == "TenantId");
+            foreach (var user in allUsers)
+            {
+                var claims = await _userManager.GetClaimsAsync(user);
+                var tenantClaim = claims.FirstOrDefault(c => c.Type == "TenantId");
                 if (Guid.TryParse(tenantClaim?.Value, out var tenantFromClaim) &&
                     tenantFromClaim == _currentTenantService.GetTenantId())
                 {
-            // Check if user is in role
-            if (await _userManager.IsInRoleAsync(user, roleName))
-            {
-                // Map to ContactResponse
-                var contact = await _contactRepository.GetByIdAsync(Guid.Parse(user.Id));
-                if (contact != null)
-                {
-                    contactsInRole.Add(new ContactResponse
+                    if (await _userManager.IsInRoleAsync(user, roleName))
                     {
-                        Id = contact.Id,
-                        NationalId = contact.NIC,
-                        FullName = contact.FullName,
-                        Address = $"{contact.AddressLine1} {contact.AddressLine2}, {contact.City}, {contact.District}",
-                        Email = contact.Email,
-                        PhoneNumber = contact.PhoneNumber
-                    });
+                        var contact = await _contactRepository.GetByIdAsync(Guid.Parse(user.Id));
+                        if (contact != null)
+                        {
+                            contactsInRole.Add(new ContactResponse
+                            {
+                                Id = contact.Id,
+                                NationalId = contact.NIC,
+                                FullName = contact.FullName,
+                                Address = $"{contact.AddressLine1} {contact.AddressLine2}, {contact.City}, {contact.District}",
+                                Email = contact.Email,
+                                PhoneNumber = contact.PhoneNumber
+                            });
+                        }
+                    }
                 }
             }
+
+            return contactsInRole;
         }
-    }
-
-    return contactsInRole;
-}
-
-
-
-
     }
 }

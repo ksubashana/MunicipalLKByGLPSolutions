@@ -6,6 +6,9 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@using MuniLK.Web.Services
+@inject ISafeExecutor SafeExecutor
+@inject ErrorNotifier ErrorNotifier
 
 <h3 class="mb-3 d-flex align-items-center gap-2">Users
     <SfButton CssClass="e-primary e-small" IconCss="fas fa-user-plus" OnClick="AddNewUser">Add New</SfButton>
@@ -41,17 +44,10 @@ else
     </SfGrid>
 }
 
-@if (!string.IsNullOrWhiteSpace(FeedbackMessage))
-{
-    <div class="mt-3 alert @FeedbackCss">@FeedbackMessage</div>
-}
-
 @code {
     private List<UserRow> Users = new();
     private bool Loading = true;
     private string? LoadError;
-    private string? FeedbackMessage;
-    private string FeedbackCss = "alert-info";
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,36 +56,38 @@ else
 
     private async Task LoadUsersAsync()
     {
-        Loading = true; LoadError = null; FeedbackMessage = null;
-        try
+        Loading = true; LoadError = null;
+        string? httpBody = null; System.Net.HttpStatusCode? status = null;
+        await SafeExecutor.Run(async () =>
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var data = await client.GetFromJsonAsync<List<UserRow>>("api/Users/GetUsersByTenant");
-            Users = data ?? new();
-        }
-        catch (Exception ex)
+            var resp = await client.GetAsync("api/Users/GetUsersByTenant");
+            status = resp.StatusCode;
+            if (!resp.IsSuccessStatusCode)
+            {
+                httpBody = await resp.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Status {(int)resp.StatusCode} {resp.StatusCode}");
+            }
+            var json = await resp.Content.ReadAsStringAsync();
+            Users = System.Text.Json.JsonSerializer.Deserialize<List<UserRow>>(json, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
+            await ErrorNotifier.NotifyMessageAsync($"Users loaded ({Users.Count})", "UserList", ErrorSeverity.Info);
+        }, "UserList LoadUsers", ErrorSeverity.Error, ex => status.HasValue ? $"HTTP {(int)status} {(status)} Body: {httpBody}" : null);
+        if (Users.Count == 0 && string.IsNullOrEmpty(LoadError))
         {
-            LoadError = $"Failed to load users: {ex.Message}";
+            // Optionally show empty state message
         }
-        finally
-        {
-            Loading = false;
-        }
+        Loading = false;
     }
 
     private void AddNewUser() => Nav.NavigateTo("/admin/users/register");
-
-    private void EditUser(UserRow row)
-    {
-        // Navigate to register page with query for potential edit (placeholder) - adjust when edit page implemented
-        Nav.NavigateTo($"/admin/users/register?userId={row.Id}");
-    }
+    private void EditUser(UserRow row) => Nav.NavigateTo($"/admin/users/register?userId={row.Id}");
 
     private async Task DeleteUser(UserRow row)
     {
         var confirm = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete user '{row.UserName}'?");
         if (!confirm) return;
-        try
+        string? body = null; System.Net.HttpStatusCode? status = null;
+        await SafeExecutor.Run(async () =>
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
             var request = new HttpRequestMessage(HttpMethod.Delete, "api/Auth/RemoveUser")
@@ -97,24 +95,15 @@ else
                 Content = JsonContent.Create(new DeleteUserRequest { UserId = row.Id })
             };
             var resp = await client.SendAsync(request);
-            if (resp.IsSuccessStatusCode)
+            status = resp.StatusCode;
+            if (!resp.IsSuccessStatusCode)
             {
-                Users.Remove(row);
-                FeedbackCss = "alert-success";
-                FeedbackMessage = $"User '{row.UserName}' deleted.";
+                body = await resp.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Status {(int)resp.StatusCode} {resp.StatusCode}");
             }
-            else
-            {
-                var err = await resp.Content.ReadAsStringAsync();
-                FeedbackCss = "alert-danger";
-                FeedbackMessage = $"Delete failed: {(string.IsNullOrWhiteSpace(err) ? resp.StatusCode.ToString() : err)}";
-            }
-        }
-        catch (Exception ex)
-        {
-            FeedbackCss = "alert-danger";
-            FeedbackMessage = $"Error deleting user: {ex.Message}";
-        }
+            Users.Remove(row);
+            await ErrorNotifier.NotifyMessageAsync($"User deleted: {row.UserName}", "UserList", ErrorSeverity.Success);
+        }, "UserList DeleteUser", ErrorSeverity.Error, ex => status.HasValue ? $"HTTP {(int)status} {(status)} Body: {body}" : null);
     }
 
     public class UserRow

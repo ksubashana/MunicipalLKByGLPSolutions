@@ -1,16 +1,24 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using MuniLK.Web.Pages
 @using MuniLK.Web.Services
-
+@using MuniLK.Web.Components.Shared
+@using MuniLK.Web.Components.Layout
 
 <CascadingAuthenticationState>
-    <Router AppAssembly="typeof(Program).Assembly">
+    <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
-            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.VerticalLayout)" />
-            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+            <GlobalErrorBoundary>
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.VerticalLayout)" />
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </GlobalErrorBoundary>
         </Found>
         <NotFound>
-            <RedirectToLogin />
+            <div class="container mt-5 text-center">
+                <h4 class="text-danger">Page not found.</h4>
+                <p>
+                    <a class="btn btn-primary" href="/auth-login">Go to Login</a>
+                </p>
+            </div>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>

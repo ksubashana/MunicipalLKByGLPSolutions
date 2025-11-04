@@ -12,6 +12,9 @@
 @using MuniLK.Domain.Entities
 @inject IHttpClientFactory HttpClientFactory
 @inject IJSRuntime JS
+@using MuniLK.Web.Services
+@inject ISafeExecutor SafeExecutor
+@inject ErrorNotifier ErrorNotifier
 
 <style type="text/css"> 
     .status-card {
@@ -229,58 +232,44 @@
     private async Task LoadExistingAsync()
     {
         if (!(ModuleId.HasValue )) return;
-
-        var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var url = $"api/Assignment/by-entity?moduleId={ModuleId.Value}&entityId={EntityId}";
-        var resp = await client.GetAsync(url);
-
-        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound ||
-            resp.StatusCode == System.Net.HttpStatusCode.NoContent)
+        await SafeExecutor.Run(async () =>
         {
-            // No active assignments yet – clear state and exit gracefully
-            ExistingAssignmentId = null;
-            ExistingAssignmentDate = null;
-            ExistingAssignedTo = null;
-            AssignmentOutcome = null;
-            CompletionRemarks = null;
-            Remarks = null;
-            return;
-        }
-
-        resp.EnsureSuccessStatusCode();
-        var details = await resp.Content.ReadFromJsonAsync<MuniLK.Application.Assignments.DTOs.AssignmentResponse>();
-
-        if (details is not null)
-        {
-            ExistingAssignmentId = details.Id;
-            ExistingAssignmentDate = details.AssignmentDate;
-            ExistingAssignedTo = details.AssignedToUserId;
-
-            AssignmentOutcome = details.Outcome;
-            CompletionRemarks = details.OutcomeRemarks;
-            FeatureId = details.FeatureId ?? FeatureId;
-
-            SelectedInspector = UserList.FirstOrDefault(x => x.Id == details.AssignedToUserId);
-            SelectedInspectorId = SelectedInspector?.Id?.ToString();
-            AssignmentDate = details.AssignmentDate;
-            Remarks = details.Notes;
-            StateHasChanged();
-        }
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var url = $"api/Assignment/by-entity?moduleId={ModuleId.Value}&entityId={EntityId}";
+            var resp = await client.GetAsync(url);
+            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound || resp.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                ExistingAssignmentId = null; ExistingAssignmentDate = null; ExistingAssignedTo = null; AssignmentOutcome = null; CompletionRemarks = null; Remarks = null; return;
+            }
+            resp.EnsureSuccessStatusCode();
+            var details = await resp.Content.ReadFromJsonAsync<MuniLK.Application.Assignments.DTOs.AssignmentResponse>();
+            if (details is not null)
+            {
+                ExistingAssignmentId = details.Id;
+                ExistingAssignmentDate = details.AssignmentDate;
+                ExistingAssignedTo = details.AssignedToUserId;
+                AssignmentOutcome = details.Outcome;
+                CompletionRemarks = details.OutcomeRemarks;
+                FeatureId = details.FeatureId ?? FeatureId;
+                SelectedInspector = UserList.FirstOrDefault(x => x.Id == details.AssignedToUserId);
+                SelectedInspectorId = SelectedInspector?.Id?.ToString();
+                AssignmentDate = details.AssignmentDate;
+                Remarks = details.Notes;
+            }
+        }, "AssignInspector LoadExisting", ErrorSeverity.Warning);
     }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadInspectors();
+        await SafeExecutor.Run(() => LoadInspectors(), "AssignInspector LoadInspectors", ErrorSeverity.Warning);
         if (PrefetchedAssignment is not null)
         {
-            // Map domain assignment into existing state model
             ExistingAssignmentId = PrefetchedAssignment.Id;
             ExistingAssignmentDate = PrefetchedAssignment.AssignmentDate;
             ExistingAssignedTo = PrefetchedAssignment.AssignedTo;
             AssignmentOutcome = PrefetchedAssignment.Outcome;
             CompletionRemarks = PrefetchedAssignment.OutcomeRemarks;
             FeatureId = PrefetchedAssignment.FeatureId ?? FeatureId;
-
             SelectedInspector = UserList.FirstOrDefault(x => x.Id == PrefetchedAssignment.AssignedTo);
             SelectedInspectorId = SelectedInspector?.Id?.ToString();
             AssignmentDate = PrefetchedAssignment.AssignmentDate;
@@ -290,7 +279,7 @@
         {
             await LoadExistingAsync();
         }
-       await ClickHandler();
+        await SafeExecutor.Run(() => ClickHandler(), "AssignInspector Spinner", ErrorSeverity.Info);
     }
     private async Task ClickHandler()
     {
@@ -348,73 +337,53 @@
     private async Task SaveAssignment()
     {
         this.VisibleProperty = true;
-        if (SelectedInspectorId != null && AssignmentDate.HasValue && ModuleId.HasValue)
+        await SafeExecutor.Run(async () =>
         {
-            // Option A: keep backend unchanged and create a new assignment (simple reschedule/reassign)
-            var notesPrefix = HasExisting
-                ? (IsPastExisting ? $"Rescheduled from {ExistingAssignmentDate:dd MMM yyyy}. " : "Reassigned. ")
-                : string.Empty;
-
+            if (SelectedInspectorId == null || !AssignmentDate.HasValue || !ModuleId.HasValue)
+            {
+                await ErrorNotifier.NotifyMessageAsync("Missing required fields", "AssignInspector", ErrorSeverity.Warning);
+                return;
+            }
+            var notesPrefix = HasExisting ? (IsPastExisting ? $"Rescheduled from {ExistingAssignmentDate:dd MMM yyyy}. " : "Reassigned. ") : string.Empty;
             var request = new CreateAssignmentRequest
             {
                 AssignedToUserId = Guid.Parse(SelectedInspectorId),
-                AssignedToUser = SelectedInspector.FullName,
+                AssignedToUser = SelectedInspector?.FullName ?? string.Empty,
                 EntityId = EntityId,
-                EntityType = "BuildingPlanApplication" ,
+                EntityType = "BuildingPlanApplication",
                 ModuleId = ModuleId.Value,
                 AssignmentDate = AssignmentDate.Value,
                 TaskType = "Inspection",
                 Notes = $"{notesPrefix}{(Remarks ?? string.Empty)}",
-                // NEW: send the Feature ID (application number)
                 FeatureId = FeatureId
             };
-
-            try
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var response = await client.PostAsJsonAsync("api/Assignment/Create", request);
+            if (response.IsSuccessStatusCode)
             {
-                var client = HttpClientFactory.CreateClient("AuthorizedClient");
-                var url = "api/Assignment/Create";
-                var response = await client.PostAsJsonAsync(url, request);
-
-                if (response.IsSuccessStatusCode)
+                Guid id;
+                try { id = await response.Content.ReadFromJsonAsync<Guid>(); }
+                catch { var raw = await response.Content.ReadAsStringAsync(); id = Guid.Parse(raw.Trim('"')); }
+                CreatedAssignmentId = id; IsAssignmentDialogVisible = false;
+                await ErrorNotifier.NotifyMessageAsync("Inspector assigned", "AssignInspector", ErrorSeverity.Success);
+                if (OnAssigned.HasDelegate && SelectedInspector is not null)
                 {
-                    // Capture the newly created assignment id
-                    Guid id;
-                    try
+                    await OnAssigned.InvokeAsync(new AssignmentScheduledArgs
                     {
-                        id = await response.Content.ReadFromJsonAsync<Guid>();
-                    }
-                    catch
-                    {
-                        var raw = await response.Content.ReadAsStringAsync();
-                        id = Guid.Parse(raw.Trim('"'));
-                    }
-
-                    CreatedAssignmentId = id;
-                    IsAssignmentDialogVisible = false;
-                    if (OnAssigned.HasDelegate && SelectedInspector is not null)
-                    {
-                        await OnAssigned.InvokeAsync(new AssignmentScheduledArgs
-                        {
-                            AssignmentId = id,
-                            AssignmentDate = AssignmentDate.Value,
-                            InspectorUserId = Guid.Parse(SelectedInspectorId),
-                            InspectorName = SelectedInspector.FullName
-                        });
-                    }
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    // handle error (e.g., show toast)
+                        AssignmentId = id,
+                        AssignmentDate = AssignmentDate.Value,
+                        InspectorUserId = Guid.Parse(SelectedInspectorId),
+                        InspectorName = SelectedInspector.FullName
+                    });
                 }
             }
-            catch (Exception)
+            else
             {
-                // handle exception (e.g., show toast)
+                var err = await response.Content.ReadAsStringAsync();
+                await ErrorNotifier.NotifyMessageAsync($"Assign failed: {Trim(err)}", "AssignInspector", ErrorSeverity.Error);
             }
-        }
+        }, "AssignInspector SaveAssignment", ErrorSeverity.Error);
         this.VisibleProperty = false;
-
     }
 
     private Task MarkCompleted() => CompleteInspection("Passed");
@@ -423,42 +392,40 @@
     private async Task CompleteInspection(string outcome)
     {
         if (!EffectiveAssignmentId.HasValue) return;
-
-        var req = new CompleteAssignmentRequest
+        await SafeExecutor.Run(async () =>
         {
-            AssignmentId = EffectiveAssignmentId.Value,
-            Outcome = outcome,
-            Remarks = CompletionRemarks,
-            CompletedAt = DateTime.UtcNow
-        };
-
-        try
-        {
+            var req = new CompleteAssignmentRequest
+            {
+                AssignmentId = EffectiveAssignmentId.Value,
+                Outcome = outcome,
+                Remarks = CompletionRemarks,
+                CompletedAt = DateTime.UtcNow
+            };
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
             var url = $"api/Assignment/{EffectiveAssignmentId.Value}/complete";
             var resp = await client.PostAsJsonAsync(url, req);
-
             if (resp.IsSuccessStatusCode)
             {
                 AssignmentOutcome = outcome;
-
-                // If completed (passed), move to next step
+                await ErrorNotifier.NotifyMessageAsync($"Inspection {outcome}", "AssignInspector", outcome == "Passed" ? ErrorSeverity.Success : ErrorSeverity.Warning);
                 if (outcome == "Passed" && InspectionCompleted.HasDelegate)
-                {
                     await InspectionCompleted.InvokeAsync();
-                }
             }
             else
             {
-                var error = await resp.Content.ReadAsStringAsync();
-                // handle error (e.g, toast)
+                var raw = await resp.Content.ReadAsStringAsync();
+                await ErrorNotifier.NotifyMessageAsync($"Completion failed: {Trim(raw)}", "AssignInspector", ErrorSeverity.Error);
             }
-        }
-        catch (Exception)
-        {
-            // handle exception (e.g, toast)
-        }
+        }, "AssignInspector CompleteInspection", ErrorSeverity.Error);
     }
+
+    private static string Trim(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        raw = raw.Replace("\r", " ").Replace("\n", " ");
+        return raw.Length > 240 ? raw[..240] + "…" : raw;
+    }
+
     public class AssignmentScheduledArgs
     {
         public Guid AssignmentId { get; set; }

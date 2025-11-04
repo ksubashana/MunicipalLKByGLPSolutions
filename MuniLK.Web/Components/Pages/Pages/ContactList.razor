@@ -1,6 +1,9 @@
 ﻿@page "/pages-contact-list"
 @rendermode InteractiveServer
 @inject IJSRuntime JsRuntime;
+@using MuniLK.Web.Services
+@inject ISafeExecutor SafeExecutor
+@inject ErrorNotifier ErrorNotifier
 
 <PageBreadcrumb Title="Starter" SubTitle="Pages" />
 
@@ -422,8 +425,12 @@
 	{
 		if (firstRender)
 		{
-			await JsRuntime.InvokeVoidAsync("loadThemeConfig");
-      await JsRuntime.InvokeVoidAsync("loadApps");
+			await SafeExecutor.Run(async () =>
+			{
+				await JsRuntime.InvokeVoidAsync("loadThemeConfig");
+				await JsRuntime.InvokeVoidAsync("loadApps");
+				await ErrorNotifier.NotifyMessageAsync("Contact list resources loaded","ContactList", ErrorSeverity.Info);
+			}, "ContactList Init", ErrorSeverity.Warning);
 		}
 	}
 }

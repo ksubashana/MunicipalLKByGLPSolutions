@@ -1,0 +1,38 @@
+@using MuniLK.Web.Services
+@using MuniLK.Web.Components.Pages.Notifications
+@inject ErrorNotifier Notifier
+
+<AlertToast @ref="Toast" />
+
+@code {
+    private AlertToast? Toast;
+
+    protected override void OnInitialized() => Notifier.OnError += OnErrorAsync;
+
+    private async Task OnErrorAsync(ErrorInfo info)
+    {
+        if (Toast == null) return;
+        var type = info.Severity switch
+        {
+            ErrorSeverity.Success => AlertToast.ToastType.Success,
+            ErrorSeverity.Info => AlertToast.ToastType.Info,
+            ErrorSeverity.Warning => AlertToast.ToastType.Warning,
+            ErrorSeverity.Error => AlertToast.ToastType.Error,
+            ErrorSeverity.Critical => AlertToast.ToastType.Error,
+            _ => AlertToast.ToastType.Error
+        };
+        var prefix = info.Severity switch
+        {
+            ErrorSeverity.Success => "Success",
+            ErrorSeverity.Info => "Info",
+            ErrorSeverity.Warning => "Warning",
+            ErrorSeverity.Error => "Error",
+            ErrorSeverity.Critical => "Critical",
+            _ => "Info"
+        };
+        var msg = string.IsNullOrWhiteSpace(info.Context) ? info.Message : $"{info.Context}: {info.Message}";
+        await Toast.ShowToastAsync($"[{prefix}] {msg}", type);
+    }
+
+    public void Dispose() => Notifier.OnError -= OnErrorAsync;
+}
