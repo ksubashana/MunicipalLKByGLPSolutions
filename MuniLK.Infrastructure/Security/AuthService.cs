@@ -10,6 +10,7 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using System.Threading; // added
 
 namespace MuniLK.Infrastructure.Security
 {
@@ -32,10 +33,10 @@ namespace MuniLK.Infrastructure.Security
             SignInManager<IdentityUser> signInManager,
             ITokenService tokenService,
             IPasswordHasher passwordHasher,
-            ICurrentTenantService currentTenantService,IContactRepository contactRepository, IUserRepository userRepository,IUnitOfWork unitOfWork)
+            ICurrentTenantService currentTenantService, IContactRepository contactRepository, IUserRepository userRepository, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
-            _signInManager = signInManager; 
+            _signInManager = signInManager;
             _tokenService = tokenService;
             _passwordHasher = passwordHasher; // Inject your custom password hasher
             _currentTenantService = currentTenantService;
@@ -89,6 +90,38 @@ namespace MuniLK.Infrastructure.Security
         /// </summary>
         public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
+            // Duplicate checks prior to any creation
+            var duplicateMessages = new System.Collections.Generic.List<string>();
+
+            // Username
+            var existingByUsername = await _userManager.FindByNameAsync(request.Username);
+            if (existingByUsername != null) duplicateMessages.Add("Username already exists.");
+
+            // Email
+            if (!string.IsNullOrWhiteSpace(request.Email))
+            {
+                var existingByEmail = await _userManager.FindByEmailAsync(request.Email);
+                if (existingByEmail != null) duplicateMessages.Add("Email already exists.");
+            }
+
+            // Contact unique composite (NIC / Email / Phone within tenant)
+            var existingContact = await _contactRepository.GetByUniqueFieldsAsync(request.NIC, request.Email, request.PhoneNumber, request.TenantId, CancellationToken.None);
+            if (existingContact != null)
+            {
+                if (!string.IsNullOrWhiteSpace(request.NIC) && existingContact.NIC == request.NIC) duplicateMessages.Add("NIC already exists.");
+                if (!string.IsNullOrWhiteSpace(request.PhoneNumber) && existingContact.PhoneNumber == request.PhoneNumber) duplicateMessages.Add("Phone number already exists.");
+                // Email duplicate already covered, but include if needed
+            }
+
+            if (duplicateMessages.Count > 0)
+            {
+                return new AuthResponse
+                {
+                    Succeeded = false,
+                    Errors = duplicateMessages.Distinct().ToArray()
+                };
+            }
+
             // Start domain transaction (covers domain entities only)
             using var domainTx = await _unitOfWork.BeginTransactionAsync();
 

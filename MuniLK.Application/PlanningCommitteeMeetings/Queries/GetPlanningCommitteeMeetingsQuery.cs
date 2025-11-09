@@ -5,7 +5,8 @@ using MuniLK.Application.Generic.Interfaces;
 
 namespace MuniLK.Application.PlanningCommitteeMeetings.Queries
 {
-    public record GetPlanningCommitteeMeetingsQuery(DateTime? Start, DateTime? End, Guid? ChairpersonContactId) : IRequest<List<PlanningCommitteeMeetingResponse>>;
+    // Removed ChairpersonContactId from query
+    public record GetPlanningCommitteeMeetingsQuery(DateTime? Start, DateTime? End) : IRequest<List<PlanningCommitteeMeetingResponse>>;
 
     public class GetPlanningCommitteeMeetingsQueryHandler : IRequestHandler<GetPlanningCommitteeMeetingsQuery, List<PlanningCommitteeMeetingResponse>>
     {
@@ -18,7 +19,7 @@ namespace MuniLK.Application.PlanningCommitteeMeetings.Queries
         {
             var start = request.Start ?? DateTime.UtcNow.AddDays(-30);
             var end = request.End ?? DateTime.UtcNow.AddDays(60);
-            var meetings = await _repo.GetRangeAsync(start, end, request.ChairpersonContactId, cancellationToken);
+            var meetings = await _repo.GetRangeAsync(start, end, cancellationToken);
             return meetings.Select(m => new PlanningCommitteeMeetingResponse
             {
                 Id = m.Id,

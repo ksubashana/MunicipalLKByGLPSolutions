@@ -48,6 +48,7 @@ using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.OpenApi;
 using MuniLK.Application.PlanningCommitteeMeetings.Interfaces;
+using MuniLK.API.Middleware; // added
 
 var builder = WebApplication.CreateBuilder(args);
 SelfLog.Enable(msg => Console.Error.WriteLine("[Serilog SelfLog] " + msg));
@@ -172,9 +173,12 @@ builder.Services.AddScoped<ISiteInspectionRepository, SiteInspectionRepository>(
 builder.Services.AddScoped<IPlanningCommitteeReviewRepository, PlanningCommitteeReviewRepository>();
 builder.Services.AddScoped<IEntityOptionSelectionRepository, EntityOptionSelectionRepository>();
 builder.Services.AddScoped<IPlanningCommitteeMeetingRepository, PlanningCommitteeMeetingRepository>();
+builder.Services.AddScoped<IRefreshTokenStore, RefreshTokenStore>(); // added
 
 var app = builder.Build();
 app.UseCors("AllowBlazor");
+
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -185,6 +189,8 @@ else
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+// Custom exception logging middleware first to capture all downstream errors
+app.UseExceptionLogging(); // added
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

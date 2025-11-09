@@ -23,51 +23,78 @@ namespace MuniLK.Infrastructure.Logging
         {
             var options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true, // Handles "Properties" vs "properties", "@t" vs "@T"
-                ReadCommentHandling = JsonCommentHandling.Skip, // Skips comments if any
-                AllowTrailingCommas = true // Allows trailing commas in JSON
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
             };
 
-            // 1. Deserialize the incoming JSON message into the SerilogLogEvent structure
-            var serilogEvent = JsonSerializer.Deserialize<SerilogLogEvent>(message, options);
-
-            if (serilogEvent != null)
+            SerilogLogEvent? serilogEvent = null;
+            try
             {
-                // 2. Map the deserialized SerilogLogEvent data to your database LogEntry entity
-                var logEntry = new LogEntry
-                {
-                    Timestamp = serilogEvent.Timestamp,
-                    Level = serilogEvent.Level,
-                    MessageTemplate = serilogEvent.MessageTemplate,
-                    Message = serilogEvent.Message, // Populated from SerilogLogEvent.Message (rendered message)
+                serilogEvent = JsonSerializer.Deserialize<SerilogLogEvent>(message, options);
+            }
+            catch (Exception)
+            {
+                // Fallback minimal parse
+                using var doc = JsonDocument.Parse(message);
+                var root = doc.RootElement;
 
-                    // Serialize Exception and Properties dictionary back to JSON strings for storage
-                    Exception = serilogEvent.Exception != null ? JsonSerializer.Serialize(serilogEvent.Exception, options) : null,
-                    // Serialize AdditionalProperties dictionary if present (extra props not mapped directly)
-                    PropertiesJson = serilogEvent.AdditionalProperties != null
+                // Create minimal LogEntry directly
+                var fallbackEntry = new LogEntry
+                {
+                    Timestamp = root.TryGetProperty("@t", out var t) && t.ValueKind == JsonValueKind.String
+                        ? DateTimeOffset.Parse(t.GetString()!)
+                        : DateTimeOffset.UtcNow,
+                    Level = root.TryGetProperty("@l", out var l) ? l.GetString() ?? "Error" : "Error",
+                    Message = root.TryGetProperty("@m", out var m) ? m.GetString() ?? string.Empty : string.Empty,
+                    MessageTemplate = root.TryGetProperty("@mt", out var mt) ? mt.GetString() ?? string.Empty : string.Empty,
+                    Exception = root.TryGetProperty("@x", out var x) ? x.GetString() : null,
+                    PropertiesJson = message, // store raw for later inspection
+                    SourceContext = root.TryGetProperty("SourceContext", out var sc) ? sc.GetString() : null,
+                    RequestId = root.TryGetProperty("RequestId", out var rid) ? rid.GetString() : null,
+                    RequestPath = root.TryGetProperty("RequestPath", out var rpath) ? rpath.GetString() : null,
+                    Host = root.TryGetProperty("Host", out var host) ? host.GetString() : null,
+                    Method = root.TryGetProperty("Method", out var method) ? method.GetString() : null,
+                    Protocol = root.TryGetProperty("Protocol", out var proto) ? proto.GetString() : null,
+                    ConnectionId = root.TryGetProperty("ConnectionId", out var cid) ? cid.GetString() : null,
+                    TraceId = root.TryGetProperty("@tr", out var tr) ? tr.GetString() : null,
+                    SpanId = root.TryGetProperty("@sp", out var sp) ? sp.GetString() : null,
+                    TenantId = root.TryGetProperty("TenantId", out var ten) && Guid.TryParse(ten.GetString(), out var g) ? g : null
+                };
+
+                _context.LogEntries.Add(fallbackEntry);
+                await _context.SaveChangesAsync();
+                return;
+            }
+
+            if (serilogEvent == null) return;
+
+            var logEntry = new LogEntry
+            {
+                Timestamp = serilogEvent.Timestamp,
+                Level = serilogEvent.Level,
+                MessageTemplate = serilogEvent.MessageTemplate,
+                Message = serilogEvent.Message,
+                Exception = serilogEvent.Exception != null ? JsonSerializer.Serialize(serilogEvent.Exception, options) : null,
+                PropertiesJson = serilogEvent.AdditionalProperties != null
                     ? JsonSerializer.Serialize(serilogEvent.AdditionalProperties, options)
                     : null,
-                    SourceContext = serilogEvent.SourceContext,
-                    RequestId = serilogEvent.RequestId,
-                    RequestPath = serilogEvent.RequestPath,
-                    MachineName = serilogEvent.AdditionalProperties != null && serilogEvent.AdditionalProperties.TryGetValue("MachineName", out var machineName) ? machineName?.ToString() : null,
-                    ThreadId = serilogEvent.AdditionalProperties != null && serilogEvent.AdditionalProperties.TryGetValue("ThreadId", out var threadIdObj) && int.TryParse(threadIdObj?.ToString(), out var threadId) ? threadId : (int?)null,
+                SourceContext = serilogEvent.SourceContext,
+                RequestId = serilogEvent.RequestId,
+                RequestPath = serilogEvent.RequestPath,
+                MachineName = serilogEvent.AdditionalProperties != null && serilogEvent.AdditionalProperties.TryGetValue("MachineName", out var machineName) ? machineName?.ToString() : null,
+                ThreadId = serilogEvent.AdditionalProperties != null && serilogEvent.AdditionalProperties.TryGetValue("ThreadId", out var threadIdObj) && int.TryParse(threadIdObj?.ToString(), out var threadId) ? threadId : (int?)null,
+                Protocol = serilogEvent.Protocol,
+                Method = serilogEvent.Method,
+                Host = serilogEvent.Host,
+                ConnectionId = serilogEvent.ConnectionId,
+                TraceId = serilogEvent.TraceId,
+                SpanId = serilogEvent.SpanId,
+                TenantId = serilogEvent.TenantId
+            };
 
-                    Protocol = serilogEvent.Protocol,
-                    Method = serilogEvent.Method,
-                    Host = serilogEvent.Host,
-                    ConnectionId = serilogEvent.ConnectionId,
-
-                    TraceId = serilogEvent.TraceId,
-                    SpanId = serilogEvent.SpanId,
-                    TenantId = serilogEvent.TenantId 
-
-                };
-           
-                // 4. Add the LogEntry to DbContext and Save
-                _context.LogEntries.Add(logEntry);
-                await _context.SaveChangesAsync();
-            }
+            _context.LogEntries.Add(logEntry);
+            await _context.SaveChangesAsync();
         }
     }
 }

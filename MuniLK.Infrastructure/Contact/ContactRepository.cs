@@ -21,20 +21,14 @@ namespace MuniLK.Infrastructure.Contact
 
         public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdWithPropOwnersAsync(Guid id)
         {
-            // Use FindAsync for primary key lookup, which is optimized.
-            // If you need to include navigation properties, use .Include()
-            //Guid id = Guid.Parse(id2.ToString());
-
             return await _context.Contacts
-                                 .Include(c => c.PropertyOwners) // Example: include related property owners
+                                 .Include(c => c.PropertyOwners)
                                  .FirstOrDefaultAsync(c => c.Id == id);
         }
         public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdAsync(Guid id)
         {
-            // Use FindAsync for primary key lookup, which is optimized.
-
-            return await _context.Contacts.FindAsync(id);
-
+            // Bypass global/tenant query filters to ensure retrieval by Id.
+            return await _context.Contacts.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
         }
         public async Task AddAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact)
         {
@@ -43,7 +37,6 @@ namespace MuniLK.Infrastructure.Contact
                 throw new ArgumentNullException(nameof(contact));
             }
             await _context.Contacts.AddAsync(contact);
-            //await _context.SaveChangesAsync(); unit of work
         }
 
         public async Task UpdateAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact)
@@ -52,7 +45,6 @@ namespace MuniLK.Infrastructure.Contact
             {
                 throw new ArgumentNullException(nameof(contact));
             }
-            // Attach the entity if it's not already tracked and mark as modified
             _context.Contacts.Update(contact);
             await _context.SaveChangesAsync();
         }
@@ -65,15 +57,12 @@ namespace MuniLK.Infrastructure.Contact
                 _context.Contacts.Remove(contactToDelete);
                 await _context.SaveChangesAsync();
             }
-            // Optional: Handle case where contact is not found (e.g., throw NotFoundException)
         }
 
         public async Task<IEnumerable<MuniLK.Domain.Entities.ContactEntities.Contact>> GetAllAsync()
         {
-            // Use ToListAsync() to execute the query and return all contacts
-            // You might want to include navigation properties here too if always needed
             return await _context.Contacts
-                                 .Include(c => c.PropertyOwners) // Example: include related property owners
+                                 .Include(c => c.PropertyOwners)
                                  .ToListAsync();
         }
 

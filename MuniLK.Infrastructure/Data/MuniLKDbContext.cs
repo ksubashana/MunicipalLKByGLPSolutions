@@ -47,6 +47,7 @@ namespace MuniLK.Infrastructure.Data
         public DbSet<PlanningCommitteeMeeting> PlanningCommitteeMeetings { get; set; }
         public DbSet<PlanningCommitteeMeetingMember> PlanningCommitteeMeetingMembers { get; set; }
         public DbSet<PlanningCommitteeMeetingApplication> PlanningCommitteeMeetingApplications { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; } // added
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

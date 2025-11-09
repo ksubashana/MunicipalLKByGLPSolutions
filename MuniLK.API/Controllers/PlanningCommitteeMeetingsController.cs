@@ -17,9 +17,9 @@ namespace MuniLK.API.Controllers
         public PlanningCommitteeMeetingsController(IMediator mediator) => _mediator = mediator;
 
         [HttpGet("GetMeetings")]
-        public async Task<ActionResult<List<PlanningCommitteeMeetingResponse>>> GetMeetings([FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null, [FromQuery] Guid? chairpersonContactId = null)
+        public async Task<ActionResult<List<PlanningCommitteeMeetingResponse>>> GetMeetings([FromQuery] DateTime? start = null, [FromQuery] DateTime? end = null)
         {
-            var list = await _mediator.Send(new GetPlanningCommitteeMeetingsQuery(start, end, chairpersonContactId));
+            var list = await _mediator.Send(new GetPlanningCommitteeMeetingsQuery(start, end));
             return Ok(list);
         }
 

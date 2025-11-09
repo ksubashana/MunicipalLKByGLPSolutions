@@ -18,11 +18,15 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
                 .Include(m => m.Applications)
                 .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted, ct);
 
-        public async Task<List<PlanningCommitteeMeeting>> GetRangeAsync(DateTime start, DateTime end, Guid? chairpersonContactId, CancellationToken ct = default)
+        public async Task<List<PlanningCommitteeMeeting>> GetRangeAsync(DateTime start, DateTime end, CancellationToken ct = default)
         {
-            var q = _db.Set<PlanningCommitteeMeeting>().Where(m => !m.IsDeleted && m.StartTime >= start && m.EndTime <= end);
-            if (chairpersonContactId.HasValue) q = q.Where(m => m.ChairpersonContactId == chairpersonContactId);
-            return await q.Include(m => m.Members).Include(m => m.Applications).ToListAsync(ct);
+            // Ignore global query filters (e.g., tenant filter) as requested
+            var q = _db.Set<PlanningCommitteeMeeting>()
+                .IgnoreQueryFilters()
+                .Where(m => !m.IsDeleted && m.StartTime >= start && m.EndTime <= end)
+                .Include(m => m.Members)
+                .Include(m => m.Applications);
+            return await q.ToListAsync(ct);
         }
 
         public async Task<bool> ExistsOverlapAsync(DateTime start, DateTime end, Guid? tenantId, Guid? excludeMeetingId = null, CancellationToken ct = default)

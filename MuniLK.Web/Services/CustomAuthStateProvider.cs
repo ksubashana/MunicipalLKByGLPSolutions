@@ -18,10 +18,6 @@ namespace MuniLK.Web.Services
         private readonly string _jwtIssuer;
         private readonly string _jwtAudience;
         private readonly string _jwtKey;
-        // Configuration values should not be hardcoded. 
-        // For a production app, fetch these from a secure source.
-        // For a client-side app, these are typically stored in appsettings.json or similar config.
-
 
         public CustomAuthStateProvider(IJSRuntime jsRuntime, TokenProvider tokenProvider, IConfiguration configuration)
         {
@@ -37,8 +33,8 @@ namespace MuniLK.Web.Services
         {
             _isPrerendering = false;
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-
         }
+
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var identity = new ClaimsIdentity();
@@ -57,26 +53,20 @@ namespace MuniLK.Web.Services
                         {
                             user = principal;
                             _tokenProvider.SetToken(token); // Store token in memory
-
                         }
                         else
                         {
                             _tokenProvider.ClearToken(); // Token is invalid, clear it
-
                         }
                     }
                     else
                     {
                         _tokenProvider.ClearToken();
-
                     }
                 }
-                // If in prerendering mode, we deliberately return an unauthenticated user.
-                // The client-side will then re-render with the correct state.
             }
             catch
             {
-                // During prerender, JS interop will fail. Just return anonymous user.
                 identity = new ClaimsIdentity();
             }
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
@@ -84,9 +74,13 @@ namespace MuniLK.Web.Services
             return new AuthenticationState(user);
         }
 
-        public async Task MarkUserAsAuthenticated(string token)
+        public async Task MarkUserAsAuthenticated(string token, string? refreshToken = null)
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshToken);
+            }
             _tokenProvider.SetToken(token);
 
             var principal = ValidateAndParseToken(token);
@@ -98,6 +92,7 @@ namespace MuniLK.Web.Services
         public async Task MarkUserAsLoggedOut()
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
             _tokenProvider.ClearToken();
 
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
@@ -107,16 +102,13 @@ namespace MuniLK.Web.Services
         public async Task MarkUserAsUnauthenticated()
         {
             await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
             _tokenProvider.ClearToken();
 
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymousUser)));
         }
 
-        /// <summary>
-        /// Validates the JWT and returns a ClaimsPrincipal if valid.
-        /// Returns null otherwise.
-        /// </summary>
         private ClaimsPrincipal? ValidateAndParseToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -135,10 +127,8 @@ namespace MuniLK.Web.Services
 
             try
             {
-                // The handler will throw an exception if the token is invalid.
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out var validatedToken);
 
-                // Check if the token is an HmacSha256 JWT
                 if (validatedToken is not JwtSecurityToken jwtSecurityToken ||
                     !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -149,7 +139,6 @@ namespace MuniLK.Web.Services
             }
             catch (Exception)
             {
-                // Return null for any validation failure (e.g., expired token, bad signature)
                 return null;
             }
         }
@@ -176,7 +165,7 @@ namespace MuniLK.Web.Services
         {
             bool isInRole = false;
             var state = await GetAuthenticationStateAsync();
-            isInRole= state.User.IsInRole(role);
+            isInRole = state.User.IsInRole(role);
             return isInRole;
         }
     }

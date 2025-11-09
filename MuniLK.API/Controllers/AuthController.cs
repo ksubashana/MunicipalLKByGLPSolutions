@@ -1,9 +1,12 @@
 ﻿// MuniLK.API/Controllers/AuthController.cs
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using MuniLK.Application.Generic.DTOs;
 using MuniLK.Application.Generic.Interfaces;
 using System.Threading.Tasks;
+using MuniLK.Domain.Interfaces; // added for store
+using MuniLK.Infrastructure.Security; // for RefreshTokenStore.Hash
+using System;
+using System.Linq;
 
 namespace MuniLK.API.Controllers
 {
@@ -12,12 +15,12 @@ namespace MuniLK.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-        private readonly IDataProtectionProvider _dataProtectionProvider;
+        private readonly IRefreshTokenStore _refreshStore;
 
-        public AuthController(IAuthService authService, IDataProtectionProvider dataProtectionProvider)
+        public AuthController(IAuthService authService, IRefreshTokenStore refreshStore)
         {
             _authService = authService;
-            _dataProtectionProvider = dataProtectionProvider;
+            _refreshStore = refreshStore;
         }
 
         /// <summary>
@@ -32,6 +35,19 @@ namespace MuniLK.API.Controllers
             if (!response.Succeeded)
             {
                 return BadRequest(response.Errors);
+            }
+
+            if (!string.IsNullOrEmpty(response.RefreshToken) && Guid.TryParse(response.UserId, out var userIdGuid))
+            {
+                var hashed = RefreshTokenStore.Hash(response.RefreshToken);
+                await _refreshStore.AddAsync(new Domain.Entities.RefreshToken
+                {
+                    UserId = userIdGuid,
+                    TenantId = request.TenantId,
+                    TokenHash = hashed,
+                    ExpiresUtc = DateTime.UtcNow.AddHours(8) // 8 hour lifetime
+                });
+                await _refreshStore.SaveChangesAsync();
             }
             return Ok(response); // Contains UserId now
         }
@@ -50,23 +66,17 @@ namespace MuniLK.API.Controllers
                 return Unauthorized(response.Errors);
             }
 
-            // Set refresh token as secure httpOnly cookie
-            if (!string.IsNullOrEmpty(response.RefreshToken))
+            if (!string.IsNullOrEmpty(response.RefreshToken) && Guid.TryParse(response.UserId, out var userIdGuid))
             {
-                var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
-                var protectedRefreshToken = protector.Protect(response.RefreshToken);
-
-                var cookieOptions = new CookieOptions
+                var hashed = RefreshTokenStore.Hash(response.RefreshToken);
+                await _refreshStore.AddAsync(new Domain.Entities.RefreshToken
                 {
-                    HttpOnly = true,
-                    Secure = true, // Use HTTPS in production
-                    SameSite = SameSiteMode.None, // changed from Strict to None to allow cross-origin Blazor client
-                    Expires = DateTimeOffset.UtcNow.AddHours(12)
-                };
-
-                Response.Cookies.Append("refresh_token", protectedRefreshToken, cookieOptions);
+                    UserId = userIdGuid,
+                    TokenHash = hashed,
+                    ExpiresUtc = DateTime.UtcNow.AddHours(8)
+                });
+                await _refreshStore.SaveChangesAsync();
             }
-
             return Ok(new {
                 response.Succeeded,
                 response.AccessToken,
@@ -77,71 +87,52 @@ namespace MuniLK.API.Controllers
         }
 
         /// <summary>
-        /// Refreshes an access token using a refresh token from cookie or X-Refresh-Token header fallback.
+        /// Refreshes an access token. Token can be supplied in body, X-Refresh-Token header or refreshToken cookie.
         /// </summary>
         [HttpPost("refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> RefreshToken()
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? body)
         {
-            string? rawRefreshToken = null;
-            // Try cookie first
-            if (Request.Cookies.TryGetValue("refresh_token", out var protectedRefreshToken))
-            {
-                try
-                {
-                    var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
-                    rawRefreshToken = protector.Unprotect(protectedRefreshToken);
-                }
-                catch
-                {
-                    Response.Cookies.Delete("refresh_token");
-                    rawRefreshToken = null; // fall through to header/body fallback
-                }
-            }
+            // Allow multiple input mechanisms so caller need not post JSON explicitly
+            var rawToken = body?.RefreshToken;
+            if (string.IsNullOrWhiteSpace(rawToken)) rawToken = Request.Headers["X-Refresh-Token"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(rawToken)) rawToken = Request.Cookies["refreshToken"];
 
-            // Fallback: custom header containing plain refresh token (not protected). Client can store it.
-            if (string.IsNullOrEmpty(rawRefreshToken) && Request.Headers.TryGetValue("X-Refresh-Token", out var headerToken))
-            {
-                rawRefreshToken = headerToken.ToString();
-            }
+            if (string.IsNullOrWhiteSpace(rawToken)) return Unauthorized(new { Errors = new[] { "Refresh token missing." } });
 
-            if (string.IsNullOrEmpty(rawRefreshToken))
-            {
-                return Unauthorized(new { Errors = new[] { "Refresh token not found." } });
-            }
+            var hashed = RefreshTokenStore.Hash(rawToken);
+            var existing = await _refreshStore.GetByHashAsync(hashed);
+            if (existing == null || !existing.IsActive) return Unauthorized(new { Errors = new[] { "Invalid refresh token." } });
 
-            var response = await _authService.RefreshTokenAsync(rawRefreshToken);
+            var response = await _authService.RefreshTokenAsync(rawToken);
             if (!response.Succeeded)
             {
-                Response.Cookies.Delete("refresh_token");
+                await _refreshStore.RevokeAsync(existing.Id);
+                await _refreshStore.SaveChangesAsync();
                 return Unauthorized(response.Errors);
             }
 
-            // Rotate cookie if we used cookie previously or want to set new one
+            // Rotate token
             if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                try
+                var newHashed = RefreshTokenStore.Hash(response.RefreshToken);
+                var newToken = new Domain.Entities.RefreshToken
                 {
-                    var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
-                    var newProtectedRefreshToken = protector.Protect(response.RefreshToken);
-                    var cookieOptions = new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = true,
-                        SameSite = SameSiteMode.None,
-                        Expires = DateTimeOffset.UtcNow.AddHours(12)
-                    };
-                    Response.Cookies.Append("refresh_token", newProtectedRefreshToken, cookieOptions);
-                }
-                catch { /* ignore */ }
+                    UserId = existing.UserId,
+                    TenantId = existing.TenantId,
+                    TokenHash = newHashed,
+                    ExpiresUtc = DateTime.UtcNow.AddHours(8)
+                };
+                await _refreshStore.AddAsync(newToken);
+                await _refreshStore.RevokeAsync(existing.Id, newToken.Id);
+                await _refreshStore.SaveChangesAsync();
             }
 
             return Ok(new {
                 response.Succeeded,
                 response.AccessToken,
                 response.RefreshToken,
-                Message = "Token refreshed successfully",
                 response.UserId
             });
         }
@@ -151,11 +142,17 @@ namespace MuniLK.API.Controllers
         /// </summary>
         [HttpPost("logout")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest body)
         {
-            // Clear the refresh token cookie
-            Response.Cookies.Delete("refresh_token");
-            return Ok(new { Message = "Logged out successfully" });
+            if (string.IsNullOrWhiteSpace(body.RefreshToken)) return Ok(new { Message = "Logged out." });
+            var hashed = RefreshTokenStore.Hash(body.RefreshToken);
+            var existing = await _refreshStore.GetByHashAsync(hashed);
+            if (existing != null && existing.IsActive)
+            {
+                await _refreshStore.RevokeAsync(existing.Id);
+                await _refreshStore.SaveChangesAsync();
+            }
+            return Ok(new { Message = "Logged out." });
         }
 
         /// <summary>

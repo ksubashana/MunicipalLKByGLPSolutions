@@ -1,7 +1,7 @@
 ﻿@using Syncfusion.Blazor.Notifications
 
 <SfToast @ref="ToastRef"
-         Timeout="3000"
+         Timeout="@GlobalTimeout"
          ShowCloseButton="true"
          Target=".content">
     <ToastPosition X="Right" Y="Top"></ToastPosition>
@@ -9,6 +9,7 @@
 
 @code {
     private SfToast? ToastRef;
+    private int GlobalTimeout = 3000; // fallback for non-error toasts
 
     public async Task ShowToastAsync(string message, ToastType type = ToastType.Info)
     {
@@ -22,11 +23,15 @@
             _ => "e-toast-info"
         };
 
+        // Per-toast timeout: 0 keeps it open until manually closed.
+        var perToastTimeout = type == ToastType.Error ? 0 : 3000;
+
         var toastModel = new ToastModel
         {
             Content = message,
             CssClass = cssClass,
-            ShowCloseButton = true
+            ShowCloseButton = true,
+            Timeout = perToastTimeout
         };
 
         await ToastRef.ShowAsync(toastModel);

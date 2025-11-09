@@ -11,7 +11,7 @@ namespace MuniLK.Application.PlanningCommitteeMeetings.Interfaces
     {
         IUnitOfWork UnitOfWork { get; }
         Task<PlanningCommitteeMeeting?> GetByIdAsync(Guid id, CancellationToken ct = default);
-        Task<List<PlanningCommitteeMeeting>> GetRangeAsync(DateTime start, DateTime end, Guid? chairpersonContactId, CancellationToken ct = default);
+        Task<List<PlanningCommitteeMeeting>> GetRangeAsync(DateTime start, DateTime end, CancellationToken ct = default);
         Task<bool> ExistsOverlapAsync(DateTime start, DateTime end, Guid? tenantId, Guid? excludeMeetingId = null, CancellationToken ct = default);
         Task AddAsync(PlanningCommitteeMeeting meeting, CancellationToken ct = default);
         Task UpdateAsync(PlanningCommitteeMeeting meeting, CancellationToken ct = default);

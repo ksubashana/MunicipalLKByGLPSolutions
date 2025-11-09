@@ -12,24 +12,27 @@ namespace MuniLK.Web.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly CustomAuthStateProvider _authStateProvider;
         private readonly ILogger<AuthTokenHandler> _logger;
+        private readonly IJSRuntime _jsRuntime;
 
         public AuthTokenHandler(
-            TokenProvider tokenProvider, 
+            TokenProvider tokenProvider,
             IHttpClientFactory httpClientFactory,
             CustomAuthStateProvider authStateProvider,
-            ILogger<AuthTokenHandler> logger)
+            ILogger<AuthTokenHandler> logger,
+            IJSRuntime jsRuntime)
         {
             _tokenProvider = tokenProvider;
             _httpClientFactory = httpClientFactory;
             _authStateProvider = authStateProvider;
             _logger = logger;
+            _jsRuntime = jsRuntime;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var token = _tokenProvider.GetToken();
             _logger.LogDebug("AuthTokenHandler called with token: {TokenExists}", !string.IsNullOrEmpty(token));
-            
+
             if (!string.IsNullOrEmpty(token))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -41,16 +44,16 @@ namespace MuniLK.Web.Services
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized && !string.IsNullOrEmpty(token))
             {
                 _logger.LogInformation("Received 401, attempting token refresh");
-                
+
                 var refreshSucceeded = await TryRefreshTokenAsync();
-                
+
                 if (refreshSucceeded)
                 {
                     _logger.LogInformation("Token refresh succeeded, retrying request");
-                    
+
                     // Clone the original request (we need to re-read the content)
                     var clonedRequest = await CloneRequestAsync(request);
-                    
+
                     // Set the new token
                     var newToken = _tokenProvider.GetToken();
                     if (!string.IsNullOrEmpty(newToken))
@@ -64,10 +67,11 @@ namespace MuniLK.Web.Services
                 }
                 else
                 {
-                    _logger.LogWarning("Token refresh failed, redirecting to login");
-                    
+                    _logger.LogWarning("Token refresh failed, logging user out");
+
                     // Clear tokens and notify auth state change
                     _tokenProvider.ClearToken();
+                    await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "refreshToken");
                     await _authStateProvider.MarkUserAsUnauthenticated();
                 }
             }
@@ -79,25 +83,44 @@ namespace MuniLK.Web.Services
         {
             try
             {
-                // Create a fresh HTTP client without the AuthTokenHandler to avoid recursion
-                using var httpClient = new HttpClient();
-                httpClient.BaseAddress = new Uri("http://localhost:5164/"); // API base URL
-
-                var response = await httpClient.PostAsync("api/auth/refresh", null);
-                
-                if (response.IsSuccessStatusCode)
+                // Obtain refresh token from localStorage
+                var refreshToken = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "refreshToken");
+                if (string.IsNullOrWhiteSpace(refreshToken))
                 {
-                    var jsonContent = await response.Content.ReadAsStringAsync();
-                    var refreshResponse = JsonSerializer.Deserialize<AuthRefreshResponse>(jsonContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    
-                    if (refreshResponse?.Succeeded == true && !string.IsNullOrEmpty(refreshResponse.AccessToken))
-                    {
-                        _tokenProvider.SetToken(refreshResponse.AccessToken);
-                        await _authStateProvider.MarkUserAsAuthenticated(refreshResponse.AccessToken);
-                        return true;
-                    }
+                    _logger.LogWarning("No refresh token found in localStorage");
+                    return false;
                 }
-                
+
+                using var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5164/") };
+
+                var payload = JsonSerializer.Serialize(new { refreshToken });
+                using var content = new StringContent(payload, Encoding.UTF8, "application/json");
+                var response = await httpClient.PostAsync("api/auth/refresh", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Refresh endpoint returned status {StatusCode}", response.StatusCode);
+                    return false;
+                }
+
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var refreshResponse = JsonSerializer.Deserialize<AuthRefreshResponse>(jsonContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (refreshResponse?.Succeeded == true && !string.IsNullOrEmpty(refreshResponse.AccessToken))
+                {
+                    _tokenProvider.SetToken(refreshResponse.AccessToken);
+
+                    // Update refresh token if rotated
+                    if (!string.IsNullOrEmpty(refreshResponse.RefreshToken))
+                    {
+                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "refreshToken", refreshResponse.RefreshToken);
+                    }
+
+                    await _authStateProvider.MarkUserAsAuthenticated(refreshResponse.AccessToken, refreshResponse.RefreshToken);
+                    return true;
+                }
+
+                _logger.LogWarning("Refresh response deserialization failed or unsuccessful");
                 return false;
             }
             catch (Exception ex)
@@ -141,6 +164,7 @@ namespace MuniLK.Web.Services
     {
         public bool Succeeded { get; set; }
         public string? AccessToken { get; set; }
+        public string? RefreshToken { get; set; }
         public string? Message { get; set; }
     }
 }
