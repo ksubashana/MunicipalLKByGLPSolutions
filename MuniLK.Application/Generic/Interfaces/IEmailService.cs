@@ -6,5 +6,6 @@ namespace MuniLK.Application.Generic.Interfaces
     public interface IEmailService
     {
         Task SendInspectionAssignmentEmailAsync(string toEmail, string inspectorName, string applicationNumber, DateTime assignmentDate, string remarks = null);
+        Task SendCommitteeMeetingAssignmentEmailAsync(string toEmail, string applicationNumber, DateTime meetingStart, DateTime meetingEnd, string venue, string chairpersonName);
     }
 }

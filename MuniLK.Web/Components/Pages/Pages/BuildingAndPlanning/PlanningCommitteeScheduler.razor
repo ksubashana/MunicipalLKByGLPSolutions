@@ -173,7 +173,7 @@
     private async Task LoadMeetings()
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        var list = await client.GetFromJsonAsync<List<PlanningCommitteeMeetingResponse>>($"api/PlanningCommitteeMeetings/GetMeetings?start={DateTime.UtcNow.AddDays(-7):o}&end={DateTime.UtcNow.AddDays(30):o}");
+        var list = await client.GetFromJsonAsync<List<PlanningCommitteeMeetingResponse>>($"api/PlanningCommitteeMeetings/GetMeetings?start={DateTime.UtcNow:o}&end={DateTime.UtcNow.AddDays(60):o}");
         Meetings = list ?? new();
     }
 

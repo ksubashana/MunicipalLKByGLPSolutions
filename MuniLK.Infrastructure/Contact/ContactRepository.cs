@@ -28,7 +28,7 @@ namespace MuniLK.Infrastructure.Contact
         public async Task<MuniLK.Domain.Entities.ContactEntities.Contact> GetByIdAsync(Guid id)
         {
             // Bypass global/tenant query filters to ensure retrieval by Id.
-            return await _context.Contacts.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+            return await _context.Contacts.FirstOrDefaultAsync(c => c.Id == id);
         }
         public async Task AddAsync(MuniLK.Domain.Entities.ContactEntities.Contact contact)
         {

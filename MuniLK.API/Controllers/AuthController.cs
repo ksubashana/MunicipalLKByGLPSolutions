@@ -1,12 +1,13 @@
 ﻿// MuniLK.API/Controllers/AuthController.cs
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using MuniLK.Application.Generic.DTOs;
 using MuniLK.Application.Generic.Interfaces;
-using System.Threading.Tasks;
 using MuniLK.Domain.Interfaces; // added for store
 using MuniLK.Infrastructure.Security; // for RefreshTokenStore.Hash
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MuniLK.API.Controllers
 {
@@ -16,11 +17,14 @@ namespace MuniLK.API.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IRefreshTokenStore _refreshStore;
+        private readonly IDataProtectionProvider _dataProtectionProvider;
 
-        public AuthController(IAuthService authService, IRefreshTokenStore refreshStore)
+        public AuthController(IAuthService authService, IRefreshTokenStore refreshStore,IDataProtectionProvider dataProtectionProvider)
         {
             _authService = authService;
             _refreshStore = refreshStore;
+            _dataProtectionProvider = dataProtectionProvider;
+
         }
 
         /// <summary>
@@ -65,18 +69,32 @@ namespace MuniLK.API.Controllers
             {
                 return Unauthorized(response.Errors);
             }
-
-            if (!string.IsNullOrEmpty(response.RefreshToken) && Guid.TryParse(response.UserId, out var userIdGuid))
+            if (!string.IsNullOrEmpty(response.RefreshToken))
             {
-                var hashed = RefreshTokenStore.Hash(response.RefreshToken);
-                await _refreshStore.AddAsync(new Domain.Entities.RefreshToken
+                var protector = _dataProtectionProvider.CreateProtector("RefreshTokens");
+                var protectedRefreshToken = protector.Protect(response.RefreshToken);
+
+                var cookieOptions = new CookieOptions
                 {
-                    UserId = userIdGuid,
-                    TokenHash = hashed,
-                    ExpiresUtc = DateTime.UtcNow.AddHours(8)
-                });
-                await _refreshStore.SaveChangesAsync();
+                    HttpOnly = true,
+                    Secure = true, // Use HTTPS in production
+                    SameSite = SameSiteMode.None, // changed from Strict to None to allow cross-origin Blazor client
+                    Expires = DateTimeOffset.UtcNow.AddHours(12)
+                };
+
+                Response.Cookies.Append("refresh_token", protectedRefreshToken, cookieOptions);
             }
+            //if (!string.IsNullOrEmpty(response.RefreshToken) && Guid.TryParse(response.UserId, out var userIdGuid))
+            //{
+            //    var hashed = RefreshTokenStore.Hash(response.RefreshToken);
+            //    await _refreshStore.AddAsync(new Domain.Entities.RefreshToken
+            //    {
+            //        UserId = userIdGuid,
+            //        TokenHash = hashed,
+            //        ExpiresUtc = DateTime.UtcNow.AddHours(8)
+            //    });
+            //    await _refreshStore.SaveChangesAsync();
+            //}
             return Ok(new {
                 response.Succeeded,
                 response.AccessToken,

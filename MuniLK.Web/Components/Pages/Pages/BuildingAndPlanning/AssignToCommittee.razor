@@ -1,12 +1,11 @@
 ﻿@using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Contact.DTOs
+@using MuniLK.Application.PlanningCommitteeMeetings.DTOs
 @using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
-@using Syncfusion.Blazor.Calendars
-@using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Popups
 @inject IHttpClientFactory HttpClientFactory
-@inject Microsoft.JSInterop.IJSRuntime JS
-@using MuniLK.Web.Services
 @inject ISafeExecutor SafeExecutor
 @inject ErrorNotifier ErrorNotifier
 
@@ -28,57 +27,119 @@
         <div class="card-body">
             <SfButton OnClick="OpenDialog">@PrimaryActionText</SfButton>
 
-            <SfDialog @bind-Visible="DialogVisible" Width="700px" IsModal="true" CssClass="assign-committee-dialog" Header="@PrimaryActionText">
+            <SfDialog @bind-Visible="DialogVisible" Width="900px" IsModal="true" CssClass="assign-committee-dialog" Header="@PrimaryActionText">
                 <DialogTemplates>
                     <Content>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Meeting Date</label>
-                                <SfDatePicker TValue="DateTime?" @bind-Value="MeetingDate" Min="DateTime.Today" Placeholder="Select meeting date" />
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="modeExisting" checked="@UseExisting" @onchange="_ => SetMode(true)" />
+                                <label class="form-check-label" for="modeExisting">Select Existing Meeting</label>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Committee Type</label>
-                                <SfDropDownList TValue="CommitteeType" TItem="CommitteeType" DataSource="CommitteeTypes" @bind-Value="SelectedCommitteeType" Placeholder="Select type">
-                                    <DropDownListFieldSettings Text="@nameof(CommitteeType)" Value="@nameof(CommitteeType)" />
-                                </SfDropDownList>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Meeting Reference No.</label>
-                                <InputText class="form-control" @bind-Value="MeetingReferenceNo" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Chairperson Name</label>
-                                <InputText class="form-control" @bind-Value="ChairpersonName" />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Remarks (Optional)</label>
-                                <InputTextArea class="form-control" @bind-Value="Remarks" />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Committee Members Present</label>
-                                <div class="mb-2">
-                                    @for (int i = 0; i < MembersPresent.Count; i++)
-                                    {
-                                        <div class="d-flex align-items-center mb-2 gap-2" @key="i">
-                                            <InputText class="form-control" style="max-width:220px" placeholder="Name" @bind-Value="MembersPresent[i].Name" />
-                                            <InputText class="form-control" style="max-width:220px" placeholder="Designation" @bind-Value="MembersPresent[i].Designation" />
-                                            <SfButton CssClass="btn btn-sm btn-outline-danger" @onclick="() => RemoveMember(i)"><i class="fas fa-times"></i></SfButton>
-                                        </div>
-                                    }
-                                    <SfButton CssClass="btn btn-sm btn-outline-primary" @onclick="AddMember"><i class="fas fa-plus me-1"></i>Add Member</SfButton>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="alert alert-info small" role="alert">
-                                    Scheduling creates a placeholder record; decisions will be recorded later in the Committee Review step.
-                                </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="modeNew" checked="@(!UseExisting)" @onchange="_ => SetMode(false)" />
+                                <label class="form-check-label" for="modeNew">Create New Meeting</label>
                             </div>
                         </div>
+
+                        @if (UseExisting)
+                        {
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Upcoming Scheduled Meetings</h6>
+                                <SfButton CssClass="btn btn-sm btn-outline-secondary" OnClick="RefreshMeetings"><i class="fas fa-sync"></i></SfButton>
+                            </div>
+                            @if (IsLoadingMeetings)
+                            {
+                                <div class="p-3 text-center"><SfSpinner Visible="true" /></div>
+                            }
+                            else if (MeetingLoadError != null)
+                            {
+                                <div class="alert alert-danger">@MeetingLoadError</div>
+                            }
+                            else if (Meetings.Count == 0)
+                            {
+                                <div class="alert alert-info">No scheduled meetings found in range.</div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+                                    <table class="table table-sm table-hover align-middle mb-2">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th></th>
+                                                <th>Date</th>
+                                                <th>Time</th>
+                                                <th>Venue</th>
+                                                <th>Chairperson</th>
+                                                <th>Apps</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var m in Meetings.OrderBy(x => x.StartTime))
+                                            {
+                                                var alreadyAttached = m.ApplicationIds.Contains(ApplicationId);
+                                                <tr class="@(SelectedMeetingId == m.Id ? "table-primary" : string.Empty)">
+                                                    <td>
+                                                        <input type="radio" name="meetingSelect" value="@m.Id" checked="@(SelectedMeetingId == m.Id)" @onchange="_ => SelectMeeting(m.Id)" />
+                                                    </td>
+                                                    <td>@m.StartTime.ToString("dd MMM yyyy")</td>
+                                                    <td>@m.StartTime.ToString("HH:mm") - @m.EndTime.ToString("HH:mm")</td>
+                                                    <td>@m.Venue</td>
+                                                    <td>@GetContactName(m.ChairpersonContactId)</td>
+                                                    <td>@m.ApplicationIds.Count</td>
+                                                    <td><span class="badge @(m.Status switch { PlanningCommitteeMeetingStatus.Scheduled => "bg-info", PlanningCommitteeMeetingStatus.Completed => "bg-success", PlanningCommitteeMeetingStatus.Cancelled => "bg-secondary", _ => "bg-light" })">@m.Status</span></td>
+                                                </tr>
+                                                @if (SelectedMeetingId == m.Id)
+                                                {
+                                                    <tr class="bg-light">
+                                                        <td colspan="7">
+                                                            <div class="small">Subject: <strong>@m.Subject</strong> | Agenda: @m.Agenda</div>
+                                                            <div class="small">Members: @m.MemberContactIds.Count (excl. chairperson)</div>
+                                                            @if (alreadyAttached)
+                                                            {
+                                                                <div class="text-success small mt-1"><i class="fas fa-check-circle"></i> This application is already attached to this meeting.</div>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <SfButton CssClass="btn btn-outline-primary" OnClick="OpenScheduler"><i class="fas fa-calendar-plus me-1"></i>New Meeting</SfButton>
+                                    <SfButton CssClass="btn btn-primary" Disabled="@(!CanAttach)" OnClick="AttachToExistingMeeting">
+                                        <i class="fas fa-link me-1"></i>Attach Application
+                                    </SfButton>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(ExistingModeError))
+                                {
+                                    <div class="alert alert-danger mt-2">@ExistingModeError</div>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">
+                                Use the meeting scheduler to create a new committee meeting. Once you close it, refresh and attach.
+                            </div>
+                            <SfButton CssClass="btn btn-outline-primary" OnClick="OpenScheduler"><i class="fas fa-calendar-plus me-1"></i>Open Meeting Scheduler</SfButton>
+                        }
                     </Content>
                 </DialogTemplates>
                 <DialogButtons>
-                    <DialogButton Content="Save" IsPrimary="true" OnClick="SaveSchedule" />
-                    <DialogButton Content="Cancel" OnClick="() => DialogVisible = false" />
+                    <DialogButton Content="Close" OnClick="() => DialogVisible = false" />
+                </DialogButtons>
+            </SfDialog>
+
+            <SfDialog @bind-Visible="SchedulerVisible" Width="1100px" IsModal="true" Header="Planning Committee Scheduler" ShowCloseIcon="true">
+                <DialogTemplates>
+                    <Content>
+                        <iframe src="/buildingplan/committeemeeting" style="width:100%;height:650px;border:0;" title="Meeting Scheduler"></iframe>
+                    </Content>
+                </DialogTemplates>
+                <DialogButtons>
+                    <DialogButton Content="Done" IsPrimary="true" OnClick="OnSchedulerClosed" />
                 </DialogButtons>
             </SfDialog>
 
@@ -88,9 +149,8 @@
                 <h6>Current Schedule</h6>
                 <ul class="list-group list-group-flush better-list">
                     <li class="list-group-item px-0"><span class="label">Meeting Date</span><span class="value">@MeetingDateDisplay</span></li>
-                    <li class="list-group-item px-0"><span class="label">Reference No</span><span class="value">@MeetingReferenceNo</span></li>
-                    <li class="list-group-item px-0"><span class="label">Chairperson</span><span class="value">@ChairpersonName</span></li>
-                    <li class="list-group-item px-0"><span class="label">Members Count</span><span class="value">@MembersPresent.Count</span></li>
+                    <li class="list-group-item px-0"><span class="label">Chairperson</span><span class="value">@DisplayChairperson</span></li>
+                    <li class="list-group-item px-0"><span class="label">Members Count</span><span class="value">@CurrentMembersCount</span></li>
                 </ul>
             }
         </div>
@@ -103,80 +163,120 @@
     [Parameter] public EventCallback OnScheduled { get; set; }
 
     private bool DialogVisible = false;
-    private DateTime? MeetingDate;
-    private CommitteeType SelectedCommitteeType;
-    private string MeetingReferenceNo = string.Empty;
-    private string ChairpersonName = string.Empty;
-    private string? Remarks;
-    private List<CommitteeMember> MembersPresent = new();
+    private bool SchedulerVisible = false;
+    private bool UseExisting = true;
+
+    private List<PlanningCommitteeMeetingResponse> Meetings = new();
+    private Guid? SelectedMeetingId;
+    private bool IsLoadingMeetings = false;
+    private string? MeetingLoadError;
+    private string? ExistingModeError;
+
     private bool HasExistingSchedule = false;
+    private DateTime? MeetingDate;
 
-    private string MeetingDateDisplay => MeetingDate?.ToString("dd MMM yyyy") ?? "-";
-    private List<CommitteeType> CommitteeTypes = Enum.GetValues(typeof(CommitteeType)).Cast<CommitteeType>().ToList();
-    private string PrimaryActionText => HasExistingSchedule ? "Reschedule Committee" : "Schedule Committee";
+    private string DisplayChairperson => OfficerContacts.FirstOrDefault(c => c.Id == (SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.ChairpersonContactId : Guid.Empty))?.FullName ?? "-";
+    private int CurrentMembersCount => SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.MemberContactIds.Count ?? 0 : 0;
+    private string MeetingDateDisplay => MeetingDate?.ToString("dd MMM yyyy") ?? (SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.StartTime.ToString("dd MMM yyyy") ?? "-" : "-");
+    private string PrimaryActionText => HasExistingSchedule ? "Reassign / Change Meeting" : "Assign to Committee";
 
-    protected override void OnInitialized()
+    private List<ContactResponse> OfficerContacts = new();
+
+    protected override async void OnInitialized()
     {
-        CommitteeTypes = Enum.GetValues(typeof(CommitteeType)).Cast<CommitteeType>().ToList();
-        SelectedCommitteeType = CommitteeTypes.FirstOrDefault();
+        await LoadOfficerContacts();
     }
 
     private void OpenDialog()
     {
-        if (!MeetingDate.HasValue) MeetingDate = DateTime.Today.AddDays(7);
-        if (MembersPresent.Count == 0) MembersPresent.Add(new CommitteeMember { Name = string.Empty, Designation = string.Empty });
         DialogVisible = true;
+        if (Meetings.Count == 0) _ = LoadMeetings();
     }
 
-    private void AddMember() => MembersPresent.Add(new CommitteeMember { Name = string.Empty, Designation = string.Empty });
-    private void RemoveMember(int index)
+    private void SetMode(bool existing)
     {
-        if (index >= 0 && index < MembersPresent.Count) MembersPresent.RemoveAt(index);
+        UseExisting = existing;
+        ExistingModeError = null; 
     }
 
-    private async Task SaveSchedule()
+    private async Task LoadMeetings()
     {
+        try
+        {
+            IsLoadingMeetings = true; MeetingLoadError = null;
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var list = await client.GetFromJsonAsync<List<PlanningCommitteeMeetingResponse>>($"api/PlanningCommitteeMeetings/GetMeetings?start={DateTime.UtcNow:o}&end={DateTime.UtcNow.AddDays(60):o}");
+            Meetings = (list ?? new()).Where(m => m.Status == PlanningCommitteeMeetingStatus.Scheduled).ToList();
+        }
+        catch (Exception ex)
+        {
+            MeetingLoadError = ex.Message;
+        }
+        finally { IsLoadingMeetings = false; StateHasChanged(); }
+    }
+
+    private async Task RefreshMeetings() => await LoadMeetings();
+
+    private void SelectMeeting(Guid id)
+    {
+        SelectedMeetingId = id; ExistingModeError = null;
+    }
+
+    private bool CanAttach => SelectedMeetingId.HasValue && Meetings.FirstOrDefault(m => m.Id == SelectedMeetingId) is { } sel && !sel.ApplicationIds.Contains(ApplicationId);
+
+    private async Task AttachToExistingMeeting()
+    {
+        if (!SelectedMeetingId.HasValue)
+        {
+            ExistingModeError = "Please select a meeting."; return;
+        }
+        var meeting = Meetings.FirstOrDefault(m => m.Id == SelectedMeetingId);
+        if (meeting == null) { ExistingModeError = "Meeting not found."; return; }
+        if (meeting.ApplicationIds.Contains(ApplicationId)) { ExistingModeError = "Application already attached."; return; }
+
         await SafeExecutor.Run(async () =>
         {
-            if (!MeetingDate.HasValue || string.IsNullOrWhiteSpace(MeetingReferenceNo) || string.IsNullOrWhiteSpace(ChairpersonName))
-            {
-                await ErrorNotifier.NotifyMessageAsync("Missing required fields", "AssignToCommittee", ErrorSeverity.Warning);
-                return;
-            }
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var req = new {
-                ApplicationId,
-                MeetingDate = MeetingDate.Value,
-                CommitteeType = SelectedCommitteeType,
-                MeetingReferenceNo,
-                ChairpersonName,
-                MembersPresent,
-                Remarks
-            };
-            var resp = await client.PostAsJsonAsync($"api/BuildingPlans/{ApplicationId}/assign-to-committee", req);
+            var resp = await client.PostAsJsonAsync($"api/PlanningCommitteeMeetings/{SelectedMeetingId}/assign-application", ApplicationId);
             if (resp.IsSuccessStatusCode)
             {
+                meeting.ApplicationIds.Add(ApplicationId);
                 HasExistingSchedule = true;
+                MeetingDate = meeting.StartTime;
                 DialogVisible = false;
-                await ErrorNotifier.NotifyMessageAsync("Committee schedule saved", "AssignToCommittee", ErrorSeverity.Success);
+                await ErrorNotifier.NotifyMessageAsync("Application attached to meeting", "AssignToCommittee", ErrorSeverity.Success);
                 if (OnScheduled.HasDelegate) await OnScheduled.InvokeAsync();
             }
             else
             {
-                var error = await resp.Content.ReadAsStringAsync();
-                await ErrorNotifier.NotifyMessageAsync($"Schedule failed: {Trim(error)}", "AssignToCommittee", ErrorSeverity.Error);
+                ExistingModeError = await resp.Content.ReadAsStringAsync();
             }
-        }, "AssignToCommittee SaveSchedule", ErrorSeverity.Error);
+        }, "AssignToCommittee Attach", ErrorSeverity.Error);
     }
 
-    private static string Trim(string raw)
+    private async Task LoadOfficerContacts()
     {
-        if (string.IsNullOrWhiteSpace(raw)) return raw;
-        raw = raw.Replace("\r", " ").Replace("\n", " ");
-        return raw.Length > 240 ? raw[..240] + "…" : raw;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var list = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName={MuniLK.Domain.Constants.Roles.Inspector}");
+            OfficerContacts = list ?? new();
+        }
+        catch { OfficerContacts = new(); }
     }
+
+    private void OpenScheduler() => SchedulerVisible = true;
+
+    private async Task OnSchedulerClosed()
+    {
+        SchedulerVisible = false;
+        await LoadMeetings(); // refresh list after creating/editing
+    }
+
+    private string GetContactName(Guid id) => OfficerContacts.FirstOrDefault(c => c.Id == id)?.FullName ?? "-";
 }
 
 <style>
     .assign-committee-dialog .e-dlg-content { max-height: 70vh; overflow-y:auto; }
+    .assign-committee-dialog table tbody tr { cursor:pointer; }
 </style>
