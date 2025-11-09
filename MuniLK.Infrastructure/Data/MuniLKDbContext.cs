@@ -55,6 +55,9 @@ namespace MuniLK.Infrastructure.Data
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(MuniLKDbContext).Assembly);
             modelBuilder.ApplyTenantFilters(_currentTenantService);
 
+            // Configure planning committee meeting relationships (explicit because FK renamed)
+            PlanningCommitteeMeetingModelConfiguration.Configure(modelBuilder);
+
             // Lookup hierarchy configuration
             modelBuilder.Entity<Lookup>()
                 .HasOne(l => l.ParentLookup)

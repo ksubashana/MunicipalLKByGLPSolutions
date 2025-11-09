@@ -301,8 +301,7 @@
                         <MuniLK.Web.Components.Pages.Pages.Inspections.SiteInspectionForm ApplicationId="EntityId" AssignmentId="ActiveAssignmentId" ApplicationNumber="GeneratedFeatureId" DocumentCategory="DocumentCategory" DocumentTypeId="DocumentTypeId" ModuleId="ModuleId" PrefilledInspectionDate="ActiveAssignmentDate" PrefilledAssignedTo="@ActiveInspectorName" PropertyAddress="@SelectedProperty?.Address" LockMetadata="@true" OnSubmit="OnSiteInspectionSubmitted" />
                         break;
                     case 3:
-
-                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.AssignToCommittee ApplicationId="EntityId" ApplicationNumber="GeneratedFeatureId" />
+                        <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.AssignToCommittee ApplicationId="EntityId" ApplicationNumber="GeneratedFeatureId" OnScheduled="OnCommitteeScheduled" />
                         break;
                     case 4:
                         <MuniLK.Web.Components.Pages.Pages.BuildingAndPlanning.PlanningCommitteeReview Model="BuildingPlanSummery" />
@@ -499,15 +498,17 @@
         if (!IsApplicationCreated) return 0;
         if (snap == null) return CurrentStep; // fallback
 
-        // Force assignment step if assignment missing or expired
+        // Inspector assignment step
         if (!snap.HasAssignment || snap.IsAssignmentExpired) return 1;
-
-        // Site inspection pending
+        // Site inspection step
         if (snap.HasAssignment && !snap.IsInspectionCompleted) return 2;
-
-        // Move to committee if inspection approved
+        // Committee assignment (new mapping for AssignToCommittee status)
+        if (snap.CurrentStatus == BuildingAndPlanSteps.AssignToCommittee) return 3;
+        // Committee review step
         if (snap.CanProceedToCommittee || snap.CurrentStatus == BuildingAndPlanSteps.PlanningCommitteeReview) return 3;
+        // Commissioner approval
         if (snap.CurrentStatus == BuildingAndPlanSteps.CommissionerApproval) return 4;
+        // Final / rejected terminal
         if (snap.CurrentStatus is BuildingAndPlanSteps.Finalized or BuildingAndPlanSteps.Rejected) return 5;
 
         // Default mapping
@@ -515,9 +516,19 @@
         {
             BuildingAndPlanSteps.Submission => 0,
             BuildingAndPlanSteps.AssignInspector => 1,
-            BuildingAndPlanSteps.ToReview or BuildingAndPlanSteps.PlanningCommitteeReview  => 3,
+            BuildingAndPlanSteps.ToReview => 2,
+            BuildingAndPlanSteps.AssignToCommittee => 3,
+            BuildingAndPlanSteps.PlanningCommitteeReview => 3,
+            BuildingAndPlanSteps.CommissionerApproval => 4,
             _ => CurrentStep
         };
+    }
+
+    private async Task OnCommitteeScheduled()
+    {
+        await RefreshWorkflowSnapshotAsync();
+        CurrentStep = DeriveStep(WorkflowSnapshot);
+        StateHasChanged();
     }
 
     private async Task RefreshWorkflowSnapshotAsync()

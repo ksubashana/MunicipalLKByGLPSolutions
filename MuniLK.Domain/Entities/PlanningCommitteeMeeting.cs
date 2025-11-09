@@ -31,7 +31,9 @@ namespace MuniLK.Domain.Entities
     {
         public Guid Id { get; set; }
         public Guid? TenantId { get; set; }
-        public Guid MeetingId { get; set; }
+        // Renamed FK to match principal name for EF conventions
+        public Guid PlanningCommitteeMeetingId { get; set; }
+        public PlanningCommitteeMeeting? PlanningCommitteeMeeting { get; set; } // navigation back to meeting
         public Guid ContactId { get; set; }
         public bool IsChair { get; set; }
         public string? Role { get; set; }
@@ -44,7 +46,9 @@ namespace MuniLK.Domain.Entities
     {
         public Guid Id { get; set; }
         public Guid? TenantId { get; set; }
-        public Guid MeetingId { get; set; }
+        // Renamed FK to match principal name for EF conventions
+        public Guid PlanningCommitteeMeetingId { get; set; }
+        public PlanningCommitteeMeeting? PlanningCommitteeMeeting { get; set; } // navigation back to meeting
         public Guid BuildingPlanApplicationId { get; set; }
         public bool IsPrimaryDiscussion { get; set; } = true;
         public bool IsDeleted { get; set; }

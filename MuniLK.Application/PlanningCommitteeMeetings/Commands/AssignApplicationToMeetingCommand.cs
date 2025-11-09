@@ -48,7 +48,7 @@ namespace MuniLK.Application.PlanningCommitteeMeetings.Commands
             // Add link if not exists
             if (!meeting.Applications.Any(a => a.BuildingPlanApplicationId == request.ApplicationId && !a.IsDeleted))
             {
-                await _repo.AddApplicationAsync(new PlanningCommitteeMeetingApplication { Id = Guid.NewGuid(), TenantId= tenantId, MeetingId = meeting.Id, BuildingPlanApplicationId = request.ApplicationId }, cancellationToken);
+                await _repo.AddApplicationAsync(new PlanningCommitteeMeetingApplication { Id = Guid.NewGuid(), TenantId= tenantId, PlanningCommitteeMeetingId = meeting.Id, BuildingPlanApplicationId = request.ApplicationId }, cancellationToken);
             }
 
             var app = await _bpRepo.GetForUpdateAsync(request.ApplicationId, cancellationToken);

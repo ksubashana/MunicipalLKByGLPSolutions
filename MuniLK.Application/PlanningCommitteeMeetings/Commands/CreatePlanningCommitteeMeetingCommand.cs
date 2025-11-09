@@ -52,16 +52,16 @@ namespace MuniLK.Application.PlanningCommitteeMeetings.Commands
             await _repo.AddAsync(meeting, cancellationToken);
 
             // Add members (include chairperson as IsChair)
-            await _repo.AddMemberAsync(new PlanningCommitteeMeetingMember { Id = Guid.NewGuid(),TenantId=tenantId, MeetingId = meeting.Id, ContactId = r.ChairpersonContactId, IsChair = true }, cancellationToken);
+            await _repo.AddMemberAsync(new PlanningCommitteeMeetingMember { Id = Guid.NewGuid(),TenantId=tenantId, PlanningCommitteeMeetingId = meeting.Id, ContactId = r.ChairpersonContactId, IsChair = true }, cancellationToken);
             foreach (var m in r.MemberContactIds.Distinct())
             {
-                await _repo.AddMemberAsync(new PlanningCommitteeMeetingMember { Id = Guid.NewGuid(), TenantId = tenantId, MeetingId = meeting.Id, ContactId = m, IsChair = false }, cancellationToken);
+                await _repo.AddMemberAsync(new PlanningCommitteeMeetingMember { Id = Guid.NewGuid(), TenantId = tenantId, PlanningCommitteeMeetingId = meeting.Id, ContactId = m, IsChair = false }, cancellationToken);
             }
 
             // Link applications & add workflow logs
             foreach (var appId in r.ApplicationIds.Distinct())
             {
-                await _repo.AddApplicationAsync(new PlanningCommitteeMeetingApplication { Id = Guid.NewGuid(), TenantId = tenantId, MeetingId = meeting.Id, BuildingPlanApplicationId = appId }, cancellationToken);
+                await _repo.AddApplicationAsync(new PlanningCommitteeMeetingApplication { Id = Guid.NewGuid(), TenantId = tenantId, PlanningCommitteeMeetingId = meeting.Id, BuildingPlanApplicationId = appId }, cancellationToken);
                 var app = await _bpRepo.GetForUpdateAsync(appId, cancellationToken);
                 if (app != null)
                 {
@@ -94,7 +94,6 @@ namespace MuniLK.Application.PlanningCommitteeMeetings.Commands
             }
 
             await _repo.SaveChangesAsync(cancellationToken);
-            // Save building plan changes
             await _bpRepo.UnitOfWork.SaveChangesAsync(cancellationToken);
 
             var resp = new PlanningCommitteeMeetingResponse

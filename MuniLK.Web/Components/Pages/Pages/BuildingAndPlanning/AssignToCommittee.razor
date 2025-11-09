@@ -25,7 +25,19 @@
             </div>
         </div>
         <div class="card-body">
-            <SfButton OnClick="OpenDialog">@PrimaryActionText</SfButton>
+            @if (HasExistingSchedule && SelectedMeetingId.HasValue)
+            {
+                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Scheduled:</strong> @MeetingDateDisplay @("(" + DisplayChairperson + ")") | Venue: @Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.Venue
+                    </div>
+                    <SfButton CssClass="btn btn-sm btn-outline-secondary" OnClick="OpenDialog"><i class="fas fa-edit me-1"></i>Change</SfButton>
+                </div>
+            }
+            else
+            {
+                <SfButton OnClick="OpenDialog">@PrimaryActionText</SfButton>
+            }
 
             <SfDialog @bind-Visible="DialogVisible" Width="900px" IsModal="true" CssClass="assign-committee-dialog" Header="@PrimaryActionText">
                 <DialogTemplates>
@@ -143,13 +155,14 @@
                 </DialogButtons>
             </SfDialog>
 
-            @if (HasExistingSchedule)
+            @if (HasExistingSchedule && SelectedMeetingId.HasValue)
             {
                 <hr />
                 <h6>Current Schedule</h6>
                 <ul class="list-group list-group-flush better-list">
                     <li class="list-group-item px-0"><span class="label">Meeting Date</span><span class="value">@MeetingDateDisplay</span></li>
                     <li class="list-group-item px-0"><span class="label">Chairperson</span><span class="value">@DisplayChairperson</span></li>
+                    <li class="list-group-item px-0"><span class="label">Venue</span><span class="value">@Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.Venue</span></li>
                     <li class="list-group-item px-0"><span class="label">Members Count</span><span class="value">@CurrentMembersCount</span></li>
                 </ul>
             }
@@ -175,7 +188,7 @@
     private bool HasExistingSchedule = false;
     private DateTime? MeetingDate;
 
-    private string DisplayChairperson => OfficerContacts.FirstOrDefault(c => c.Id == (SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.ChairpersonContactId : Guid.Empty))?.FullName ?? "-";
+    private string DisplayChairperson => SelectedMeetingId.HasValue ? GetContactName(Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.ChairpersonContactId ?? Guid.Empty) : "-";
     private int CurrentMembersCount => SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.MemberContactIds.Count ?? 0 : 0;
     private string MeetingDateDisplay => MeetingDate?.ToString("dd MMM yyyy") ?? (SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.StartTime.ToString("dd MMM yyyy") ?? "-" : "-");
     private string PrimaryActionText => HasExistingSchedule ? "Reassign / Change Meeting" : "Assign to Committee";
@@ -185,6 +198,8 @@
     protected override async void OnInitialized()
     {
         await LoadOfficerContacts();
+        await LoadMeetings(); // initial load
+        EvaluateExistingSchedule(); // set existing schedule if already assigned
     }
 
     private void OpenDialog()
@@ -215,7 +230,22 @@
         finally { IsLoadingMeetings = false; StateHasChanged(); }
     }
 
-    private async Task RefreshMeetings() => await LoadMeetings();
+    private void EvaluateExistingSchedule()
+    {
+        var upcoming = Meetings.FirstOrDefault(m => m.Status == PlanningCommitteeMeetingStatus.Scheduled && m.ApplicationIds.Contains(ApplicationId) && m.EndTime >= DateTime.UtcNow);
+        if (upcoming != null)
+        {
+            HasExistingSchedule = true;
+            SelectedMeetingId = upcoming.Id;
+            MeetingDate = upcoming.StartTime;
+        }
+    }
+
+    private async Task RefreshMeetings()
+    {
+        await LoadMeetings();
+        EvaluateExistingSchedule();
+    }
 
     private void SelectMeeting(Guid id)
     {
@@ -270,7 +300,8 @@
     private async Task OnSchedulerClosed()
     {
         SchedulerVisible = false;
-        await LoadMeetings(); // refresh list after creating/editing
+        await LoadMeetings();
+        EvaluateExistingSchedule();
     }
 
     private string GetContactName(Guid id) => OfficerContacts.FirstOrDefault(c => c.Id == id)?.FullName ?? "-";

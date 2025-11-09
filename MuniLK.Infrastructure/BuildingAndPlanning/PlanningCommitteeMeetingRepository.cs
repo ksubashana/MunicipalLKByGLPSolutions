@@ -63,7 +63,7 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
 
         public async Task RemoveMemberAsync(Guid meetingId, Guid contactId, CancellationToken ct = default)
         {
-            var m = await _db.Set<PlanningCommitteeMeetingMember>().FirstOrDefaultAsync(x => x.MeetingId == meetingId && x.ContactId == contactId, ct);
+            var m = await _db.Set<PlanningCommitteeMeetingMember>().FirstOrDefaultAsync(x => x.PlanningCommitteeMeetingId == meetingId && x.ContactId == contactId, ct);
             if (m != null)
             {
                 m.IsDeleted = true;
@@ -76,7 +76,7 @@ namespace MuniLK.Infrastructure.BuildingAndPlanning
 
         public async Task RemoveApplicationAsync(Guid meetingId, Guid applicationId, CancellationToken ct = default)
         {
-            var a = await _db.Set<PlanningCommitteeMeetingApplication>().FirstOrDefaultAsync(x => x.MeetingId == meetingId && x.BuildingPlanApplicationId == applicationId, ct);
+            var a = await _db.Set<PlanningCommitteeMeetingApplication>().FirstOrDefaultAsync(x => x.PlanningCommitteeMeetingId == meetingId && x.BuildingPlanApplicationId == applicationId, ct);
             if (a != null)
             {
                 a.IsDeleted = true;
