@@ -1,7 +1,4 @@
-﻿@page "/buildingplan/committeemeeting"
-
-
-<h3>PlanningCommitteeScheduler</h3>
+﻿<h3>PlanningCommitteeScheduler</h3>
 
 @using MuniLK.Application.Contact.DTOs
 @using MuniLK.Application.PlanningCommitteeMeetings.DTOs
@@ -65,7 +62,7 @@
                     <h5 class="mb-0">@FormTitle</h5>
                 </div>
                 <div class="card-body">
-                    <EditForm Model="MeetingModel" OnValidSubmit="SaveMeeting">
+                    <EditForm Model="MeetingModel">
                         <DataAnnotationsValidator />
                         <div class="mb-2">
                             <label class="form-label">Subject</label>
@@ -128,7 +125,7 @@
                             </SfMultiSelect>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn btn-primary" disabled="@IsSaving">@SaveButtonText</button>
+                            <button type="button" class="btn btn-primary" disabled="@IsSaving" @onclick="SaveMeeting">@SaveButtonText</button>
                             <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">Reset</button>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(FormError))
@@ -180,7 +177,6 @@
     private async Task LoadOfficerContacts()
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
-        // expects an endpoint that returns officers; adjust if different
         var response = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName={MuniLK.Domain.Constants.Roles.Inspector}");
         OfficerContacts = response ?? new List<ContactResponse>();
     }
@@ -188,6 +184,7 @@
     private async Task LoadApplications()
     {
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        // Intentionally left commented until endpoint confirmed
         // var list = await client.GetFromJsonAsync<List<ApplicationLite>>("api/BuildingPlans/search-list?take=100");
         // AvailableApplications = list ?? new();
     }
@@ -223,15 +220,6 @@
 
     private void OnStartTimeChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => StartTimeString = e.Value?.ToString() ?? "09:00";
     private void OnEndTimeChanged(Microsoft.AspNetCore.Components.ChangeEventArgs e) => EndTimeString = e.Value?.ToString() ?? "11:00";
-
-    private void ToggleMember(Guid id)
-    {
-        if (SelectedMemberIds.Contains(id)) SelectedMemberIds.Remove(id); else SelectedMemberIds.Add(id);
-    }
-    private void ToggleApplication(Guid id)
-    {
-        if (SelectedApplicationIds.Contains(id)) SelectedApplicationIds.Remove(id); else SelectedApplicationIds.Add(id);
-    }
 
     private async Task SaveMeeting()
     {

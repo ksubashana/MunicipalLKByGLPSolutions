@@ -89,7 +89,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ModuleId");
 
-                    b.ToTable("Assignments");
+                    b.ToTable("Assignments", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.BuildingPlanApplication", b =>
@@ -223,7 +223,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("DocumentId");
 
-                    b.ToTable("buildingPlanApplicationDocuments");
+                    b.ToTable("buildingPlanApplicationDocuments", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.ClientConfiguration", b =>
@@ -253,7 +253,7 @@ namespace MuniLK.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[TenantId] IS NOT NULL");
 
-                    b.ToTable("ClientConfigurations");
+                    b.ToTable("ClientConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.ContactEntities.Contact", b =>
@@ -329,7 +329,7 @@ namespace MuniLK.Infrastructure.Migrations
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
 
-                    b.ToTable("Contacts");
+                    b.ToTable("Contacts", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Document", b =>
@@ -395,7 +395,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("DocumentTypeId");
 
-                    b.ToTable("Documents");
+                    b.ToTable("Documents", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.DocumentLink", b =>
@@ -440,7 +440,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ModuleId");
 
-                    b.ToTable("DocumentLinks");
+                    b.ToTable("DocumentLinks", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.EntityOptionSelection", b =>
@@ -480,7 +480,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("EntityId", "EntityType", "ModuleId");
 
-                    b.ToTable("EntityOptionSelections");
+                    b.ToTable("EntityOptionSelections", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.FeatureIdAudit", b =>
@@ -510,7 +510,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("FeatureIdAudit");
+                    b.ToTable("FeatureIdAudit", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.License", b =>
@@ -566,7 +566,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Licenses");
+                    b.ToTable("Licenses", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.LicenseDocument", b =>
@@ -603,7 +603,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("LicenseId");
 
-                    b.ToTable("licenseDocuments");
+                    b.ToTable("licenseDocuments", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.LogEntry", b =>
@@ -682,7 +682,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LogEntries");
+                    b.ToTable("LogEntries", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Lookup", b =>
@@ -725,7 +725,7 @@ namespace MuniLK.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[TenantId] IS NOT NULL");
 
-                    b.ToTable("Lookups");
+                    b.ToTable("Lookups", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.LookupCategory", b =>
@@ -769,7 +769,7 @@ namespace MuniLK.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[TenantId] IS NOT NULL");
 
-                    b.ToTable("LookupCategories");
+                    b.ToTable("LookupCategories", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Module", b =>
@@ -812,7 +812,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ParentModuleId");
 
-                    b.ToTable("Modules");
+                    b.ToTable("Modules", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeMeeting", b =>
@@ -868,7 +868,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PlanningCommitteeMeetings");
+                    b.ToTable("PlanningCommitteeMeetings", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeMeetingApplication", b =>
@@ -886,7 +886,10 @@ namespace MuniLK.Infrastructure.Migrations
                     b.Property<bool>("IsPrimaryDiscussion")
                         .HasColumnType("bit");
 
-                    b.Property<Guid>("PlanningCommitteeMeetingId")
+                    b.Property<Guid>("MeetingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PlanningCommitteeMeetingId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("TenantId")
@@ -894,9 +897,9 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlanningCommitteeMeetingId", "IsDeleted");
+                    b.HasIndex("PlanningCommitteeMeetingId");
 
-                    b.ToTable("PlanningCommitteeMeetingApplications");
+                    b.ToTable("PlanningCommitteeMeetingApplications", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeMeetingMember", b =>
@@ -920,7 +923,10 @@ namespace MuniLK.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<Guid>("PlanningCommitteeMeetingId")
+                    b.Property<Guid>("MeetingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PlanningCommitteeMeetingId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Role")
@@ -931,9 +937,9 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlanningCommitteeMeetingId", "IsDeleted");
+                    b.HasIndex("PlanningCommitteeMeetingId");
 
-                    b.ToTable("PlanningCommitteeMeetingMembers");
+                    b.ToTable("PlanningCommitteeMeetingMembers", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeReview", b =>
@@ -1066,7 +1072,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ContactId");
 
-                    b.ToTable("PropertyOwners");
+                    b.ToTable("PropertyOwners", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.RefreshToken", b =>
@@ -1099,7 +1105,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Report", b =>
@@ -1136,7 +1142,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ModuleId");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.ScheduleAppointments", b =>
@@ -1276,7 +1282,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("OwnerId", "StartTime");
 
-                    b.ToTable("ScheduleAppointments");
+                    b.ToTable("ScheduleAppointments", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.SiteInspection", b =>
@@ -1398,7 +1404,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SiteInspections");
+                    b.ToTable("SiteInspections", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Tenant", b =>
@@ -1431,7 +1437,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasKey("TenantId");
 
-                    b.ToTable("Tenants");
+                    b.ToTable("Tenants", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.User", b =>
@@ -1467,7 +1473,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ContactId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.WorkflowLog", b =>
@@ -1516,7 +1522,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ApplicationId");
 
-                    b.ToTable("WorkflowLogs");
+                    b.ToTable("WorkflowLogs", (string)null);
                 });
 
             modelBuilder.Entity("Property", b =>
@@ -1632,7 +1638,7 @@ namespace MuniLK.Infrastructure.Migrations
 
                     b.HasIndex("ZoneId");
 
-                    b.ToTable("Properties");
+                    b.ToTable("Properties", (string)null);
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.Assignment", b =>
@@ -1813,24 +1819,16 @@ namespace MuniLK.Infrastructure.Migrations
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeMeetingApplication", b =>
                 {
-                    b.HasOne("MuniLK.Domain.Entities.PlanningCommitteeMeeting", "PlanningCommitteeMeeting")
+                    b.HasOne("MuniLK.Domain.Entities.PlanningCommitteeMeeting", null)
                         .WithMany("Applications")
-                        .HasForeignKey("PlanningCommitteeMeetingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlanningCommitteeMeeting");
+                        .HasForeignKey("PlanningCommitteeMeetingId");
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PlanningCommitteeMeetingMember", b =>
                 {
-                    b.HasOne("MuniLK.Domain.Entities.PlanningCommitteeMeeting", "PlanningCommitteeMeeting")
+                    b.HasOne("MuniLK.Domain.Entities.PlanningCommitteeMeeting", null)
                         .WithMany("Members")
-                        .HasForeignKey("PlanningCommitteeMeetingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("PlanningCommitteeMeeting");
+                        .HasForeignKey("PlanningCommitteeMeetingId");
                 });
 
             modelBuilder.Entity("MuniLK.Domain.Entities.PropertyOwner", b =>

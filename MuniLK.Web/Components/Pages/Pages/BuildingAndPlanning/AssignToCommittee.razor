@@ -25,18 +25,28 @@
             </div>
         </div>
         <div class="card-body">
-            @if (HasExistingSchedule && SelectedMeetingId.HasValue)
+            @if (InitialLoading)
             {
-                <div class="alert alert-success d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Scheduled:</strong> @MeetingDateDisplay @("(" + DisplayChairperson + ")") | Venue: @Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.Venue
-                    </div>
-                    <SfButton CssClass="btn btn-sm btn-outline-secondary" OnClick="OpenDialog"><i class="fas fa-edit me-1"></i>Change</SfButton>
-                </div>
+                <div class="p-3 text-center"><SfSpinner Visible="true" /></div>
             }
             else
             {
-                <SfButton OnClick="OpenDialog">@PrimaryActionText</SfButton>
+                @if (HasExistingSchedule && SelectedMeetingId.HasValue)
+                {
+                    <div class="alert alert-success d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Scheduled:</strong> @MeetingDateDisplay @("(" + DisplayChairperson + ")") | Venue: @Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.Venue
+                        </div>
+                        <SfButton CssClass="btn btn-sm btn-outline-secondary" OnClick="OpenDialog"><i class="fas fa-edit me-1"></i>Change</SfButton>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info d-flex justify-content-between align-items-center">
+                        <span>No committee meeting assigned yet. Assign now.</span>
+                        <SfButton CssClass="btn btn-sm btn-primary" OnClick="OpenDialog">@PrimaryActionText</SfButton>
+                    </div>
+                }
             }
 
             <SfDialog @bind-Visible="DialogVisible" Width="900px" IsModal="true" CssClass="assign-committee-dialog" Header="@PrimaryActionText">
@@ -147,7 +157,7 @@
             <SfDialog @bind-Visible="SchedulerVisible" Width="1100px" IsModal="true" Header="Planning Committee Scheduler" ShowCloseIcon="true">
                 <DialogTemplates>
                     <Content>
-                        <iframe src="/buildingplan/committeemeeting" style="width:100%;height:650px;border:0;" title="Meeting Scheduler"></iframe>
+                        <PlanningCommitteeScheduler />
                     </Content>
                 </DialogTemplates>
                 <DialogButtons>
@@ -155,7 +165,7 @@
                 </DialogButtons>
             </SfDialog>
 
-            @if (HasExistingSchedule && SelectedMeetingId.HasValue)
+            @if (!InitialLoading && HasExistingSchedule && SelectedMeetingId.HasValue)
             {
                 <hr />
                 <h6>Current Schedule</h6>
@@ -187,6 +197,7 @@
 
     private bool HasExistingSchedule = false;
     private DateTime? MeetingDate;
+    private bool InitialLoading = true;
 
     private string DisplayChairperson => SelectedMeetingId.HasValue ? GetContactName(Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.ChairpersonContactId ?? Guid.Empty) : "-";
     private int CurrentMembersCount => SelectedMeetingId.HasValue ? Meetings.FirstOrDefault(x=>x.Id==SelectedMeetingId)?.MemberContactIds.Count ?? 0 : 0;
@@ -195,11 +206,16 @@
 
     private List<ContactResponse> OfficerContacts = new();
 
-    protected override async void OnInitialized()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadOfficerContacts();
-        await LoadMeetings(); // initial load
-        EvaluateExistingSchedule(); // set existing schedule if already assigned
+        if (InitialLoading && ApplicationId != Guid.Empty)
+        {
+            await LoadOfficerContacts();
+            await LoadMeetings();
+            EvaluateExistingSchedule();
+            InitialLoading = false;
+            StateHasChanged();
+        }
     }
 
     private void OpenDialog()
@@ -227,7 +243,7 @@
         {
             MeetingLoadError = ex.Message;
         }
-        finally { IsLoadingMeetings = false; StateHasChanged(); }
+        finally { IsLoadingMeetings = false; }
     }
 
     private void EvaluateExistingSchedule()

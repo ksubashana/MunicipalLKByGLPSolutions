@@ -498,16 +498,22 @@
         if (!IsApplicationCreated) return 0;
         if (snap == null) return CurrentStep; // fallback
 
+        // If committee schedule already exists, skip assignment step and go directly to review stage
+        if (snap.CurrentStatus == BuildingAndPlanSteps.AssignToCommittee && snap.HasCommitteeSchedule)
+        {
+            return 4; // Planning Committee Review stage index
+        }
+
         // Inspector assignment step
         if (!snap.HasAssignment || snap.IsAssignmentExpired) return 1;
         // Site inspection step
         if (snap.HasAssignment && !snap.IsInspectionCompleted) return 2;
-        // Committee assignment (new mapping for AssignToCommittee status)
+        // Committee assignment (stay here only if not yet scheduled)
         if (snap.CurrentStatus == BuildingAndPlanSteps.AssignToCommittee) return 3;
         // Committee review step
-        if (snap.CanProceedToCommittee || snap.CurrentStatus == BuildingAndPlanSteps.PlanningCommitteeReview) return 3;
+        if (snap.CanProceedToCommittee || snap.CurrentStatus == BuildingAndPlanSteps.PlanningCommitteeReview) return 4;
         // Commissioner approval
-        if (snap.CurrentStatus == BuildingAndPlanSteps.CommissionerApproval) return 4;
+        if (snap.CurrentStatus == BuildingAndPlanSteps.CommissionerApproval) return 5;
         // Final / rejected terminal
         if (snap.CurrentStatus is BuildingAndPlanSteps.Finalized or BuildingAndPlanSteps.Rejected) return 5;
 
@@ -517,9 +523,9 @@
             BuildingAndPlanSteps.Submission => 0,
             BuildingAndPlanSteps.AssignInspector => 1,
             BuildingAndPlanSteps.ToReview => 2,
-            BuildingAndPlanSteps.AssignToCommittee => 3,
-            BuildingAndPlanSteps.PlanningCommitteeReview => 3,
-            BuildingAndPlanSteps.CommissionerApproval => 4,
+            BuildingAndPlanSteps.AssignToCommittee => snap.HasCommitteeSchedule ? 4 : 3,
+            BuildingAndPlanSteps.PlanningCommitteeReview => 4,
+            BuildingAndPlanSteps.CommissionerApproval => 5,
             _ => CurrentStep
         };
     }
