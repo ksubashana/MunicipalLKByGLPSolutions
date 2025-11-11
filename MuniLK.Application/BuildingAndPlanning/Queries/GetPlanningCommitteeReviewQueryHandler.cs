@@ -7,30 +7,20 @@ using System.Text.Json;
 namespace MuniLK.Application.BuildingAndPlanning.Queries
 {
     /// <summary>
-    /// Handler for getting planning committee review
+    /// Handler for getting planning committee review (simplified review-only model)
     /// </summary>
     public class GetPlanningCommitteeReviewQueryHandler : IRequestHandler<GetPlanningCommitteeReviewQuery, Result<PlanningCommitteeReviewResponse?>>
     {
         private readonly IPlanningCommitteeReviewRepository _repository;
 
-        public GetPlanningCommitteeReviewQueryHandler(IPlanningCommitteeReviewRepository repository)
-        {
-            _repository = repository;
-        }
+        public GetPlanningCommitteeReviewQueryHandler(IPlanningCommitteeReviewRepository repository) => _repository = repository;
 
-        public async Task<Result<PlanningCommitteeReviewResponse?>> Handle(
-            GetPlanningCommitteeReviewQuery request, 
-            CancellationToken cancellationToken)
+        public async Task<Result<PlanningCommitteeReviewResponse?>> Handle(GetPlanningCommitteeReviewQuery request, CancellationToken cancellationToken)
         {
             try
             {
                 var review = await _repository.GetByApplicationIdAsync(request.ApplicationId, cancellationToken);
-
-                if (review == null)
-                {
-                    return Result<PlanningCommitteeReviewResponse?>.Success(null);
-                }
-
+                if (review == null) return Result<PlanningCommitteeReviewResponse?>.Success(null);
                 var response = MapEntityToResponse(review);
                 return Result<PlanningCommitteeReviewResponse?>.Success(response);
             }
@@ -40,20 +30,13 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
             }
         }
 
-        /// <summary>
-        /// Maps entity to response DTO
-        /// </summary>
         private static PlanningCommitteeReviewResponse MapEntityToResponse(Domain.Entities.PlanningCommitteeReview entity)
         {
             return new PlanningCommitteeReviewResponse
             {
                 Id = entity.Id,
                 ApplicationId = entity.ApplicationId,
-                MeetingDate = entity.MeetingDate,
-                CommitteeType = entity.CommitteeType,
-                MeetingReferenceNo = entity.MeetingReferenceNo,
-                ChairpersonName = entity.ChairpersonName,
-                MembersPresent = JsonSerializer.Deserialize<List<CommitteeMember>>(entity.MembersPresent) ?? new(),
+                PlanningCommitteeMeetingId = entity.PlanningCommitteeMeetingId,
                 InspectionReportsReviewed = string.IsNullOrEmpty(entity.InspectionReportsReviewed)
                     ? new() : JsonSerializer.Deserialize<List<string>>(entity.InspectionReportsReviewed) ?? new(),
                 DocumentsReviewed = string.IsNullOrEmpty(entity.DocumentsReviewed)

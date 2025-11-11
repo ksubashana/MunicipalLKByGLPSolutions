@@ -13,7 +13,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
         private readonly IBuildingPlanRepository _repo;
         private readonly IContactRepository _contactRepo;
 
-        public GetBuildingPlanSummaryQueryHandler(IBuildingPlanRepository repo,IContactRepository contactRepository)
+        public GetBuildingPlanSummaryQueryHandler(IBuildingPlanRepository repo, IContactRepository contactRepository)
         {
             _repo = repo;
             _contactRepo = contactRepository;
@@ -29,14 +29,11 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
 
             if (app.Assignment != null)
             {
-                // Load AssignedTo contact only if a valid Guid
                 if (app.Assignment.AssignedTo != Guid.Empty)
                 {
                     var assignedToContact = await _contactRepo.GetByIdAsync(app.Assignment.AssignedTo);
                     assignedToName = assignedToContact?.FullName ?? string.Empty;
                 }
-
-                // Load AssignedBy contact (ensure you use AssignedBy, not AssignedTo again)
                 if (app.Assignment.AssignedBy.HasValue && app.Assignment.AssignedBy.Value != Guid.Empty)
                 {
                     var assignedByContact = await _contactRepo.GetByIdAsync(app.Assignment.AssignedBy.Value);
@@ -44,7 +41,6 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 }
             }
 
-            // Map minimal fields needed by the page; project navigation entities to lightweight DTOs
             return new BuildingPlanResponse
             {
                 Id = app.Id,
@@ -88,9 +84,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                     InspectionDate = app.SiteInspection.InspectionDate,
                     OfficersPresent = app.SiteInspection.OfficersPresent,
                     GpsCoordinates = app.SiteInspection.GpsCoordinates,
-                    // PhotoUrls, SiteConditions, ComplianceChecks left empty in summary context
                     RequiredModifications = app.SiteInspection.RequiredModifications,
-                    ClearanceOptionItemIds = null, // parse JSON only in detailed query
+                    ClearanceOptionItemIds = null,
                     FinalRecommendation = app.SiteInspection.FinalRecommendation,
                     CreatedDate = app.SiteInspection.CreatedDate,
                     CreatedBy = app.SiteInspection.CreatedBy,
@@ -102,13 +97,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 {
                     Id = app.PlanningCommitteeReview.Id,
                     ApplicationId = app.PlanningCommitteeReview.ApplicationId,
-                    MeetingDate = app.PlanningCommitteeReview.MeetingDate,
-                    CommitteeType = app.PlanningCommitteeReview.CommitteeType,
-                    MeetingReferenceNo = app.PlanningCommitteeReview.MeetingReferenceNo,
-                    ChairpersonName = app.PlanningCommitteeReview.ChairpersonName,
-                    // MembersPresent, DocumentsReviewed etc. require JSON deserialization -> omit in summary
+                    PlanningCommitteeMeetingId = app.PlanningCommitteeReview.PlanningCommitteeMeetingId,
                     CommitteeDecision = app.PlanningCommitteeReview.CommitteeDecision,
-                    // Other optional textual fields omitted for brevity in summary
                     RecordedByOfficer = app.PlanningCommitteeReview.RecordedByOfficer,
                     ApprovalTimestamp = app.PlanningCommitteeReview.ApprovalTimestamp,
                     CreatedDate = app.PlanningCommitteeReview.CreatedDate,
@@ -116,9 +106,8 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                     ModifiedDate = app.PlanningCommitteeReview.ModifiedDate,
                     ModifiedBy = app.PlanningCommitteeReview.ModifiedBy
                 },
-                Documents = new(),   // not needed for summary
-                Workflow = new()     // not needed for summary
-                // Status can be populated later if you have a Lookup projection
+                Documents = new(),
+                Workflow = new()
             };
         }
     }

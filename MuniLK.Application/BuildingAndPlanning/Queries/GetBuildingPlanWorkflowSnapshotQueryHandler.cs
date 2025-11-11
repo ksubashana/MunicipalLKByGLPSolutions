@@ -21,7 +21,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
             InspectionStatus? inspectionStatus = app.SiteInspection?.Status;
             if (app.SiteInspection?.FinalRecommendation is FinalRecommendation.ApproveAsSubmitted or FinalRecommendation.ApproveWithModifications)
             {
-                inspectionStatus = InspectionStatus.Approve; // normalize
+                inspectionStatus = InspectionStatus.Approve;
             }
             else if (app.SiteInspection?.FinalRecommendation == FinalRecommendation.ReInspectionRequired)
             {
@@ -38,13 +38,10 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
             bool hasAssignment = app.AssignmentId.HasValue;
             bool assignmentExpired = assignmentDate.HasValue && assignmentDate.Value.Date < DateTime.Today && !isInspectionCompleted;
 
-            // Committee scheduling context
-            bool hasCommitteeSchedule = app.PlanningCommitteeReviewId.HasValue;
-            DateTime? committeeMeetingDate = app.PlanningCommitteeReview?.MeetingDate;
+            bool hasCommitteeSchedule = app.PlanningCommitteeReviewId.HasValue; // review exists -> scheduled
             CommitteeDecision? committeeDecision = hasCommitteeSchedule ? app.PlanningCommitteeReview?.CommitteeDecision : null;
 
             string? nextStage = null;
-            // Derive next stage considering new AssignToCommittee step
             if (app.Status == BuildingAndPlanSteps.ToReview && canProceedToCommittee && !hasCommitteeSchedule)
             {
                 nextStage = BuildingAndPlanSteps.AssignToCommittee.ToString();
@@ -63,7 +60,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
             }
             else if (app.Status == BuildingAndPlanSteps.PlanningCommitteeReview && committeeDecision is Domain.Constants.Flows.CommitteeDecision.DeferForClarifications)
             {
-                nextStage = BuildingAndPlanSteps.PlanningCommitteeReview.ToString(); // stays in review until clarified
+                nextStage = BuildingAndPlanSteps.PlanningCommitteeReview.ToString();
             }
             else if (canProceedToCommittee && app.Status == BuildingAndPlanSteps.ToReview)
             {
@@ -82,7 +79,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 IsInspectionCompleted = isInspectionCompleted,
                 CanProceedToCommittee = canProceedToCommittee,
                 HasCommitteeSchedule = hasCommitteeSchedule,
-                CommitteeMeetingDate = committeeMeetingDate,
+                CommitteeMeetingDate = null, // removed from review entity; can be populated by joining meeting if needed
                 CommitteeDecision = committeeDecision,
                 SubmittedOn = app.SubmittedOn,
                 NextStage = nextStage

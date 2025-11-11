@@ -9,7 +9,7 @@ using System.Text.Json;
 namespace MuniLK.Application.BuildingAndPlanning.Commands
 {
     /// <summary>
-    /// Handler for saving/updating planning committee reviews
+    /// Handler for saving/updating planning committee reviews (simplified review-only model)
     /// </summary>
     public class SavePlanningCommitteeReviewCommandHandler : IRequestHandler<SavePlanningCommitteeReviewCommand, Result<PlanningCommitteeReviewResponse>>
     {
@@ -31,35 +31,34 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
         }
 
         public async Task<Result<PlanningCommitteeReviewResponse>> Handle(
-            SavePlanningCommitteeReviewCommand request, 
+            SavePlanningCommitteeReviewCommand request,
             CancellationToken cancellationToken)
         {
             try
             {
-                var tenantId = _tenantService.GetTenantId() 
+                var tenantId = _tenantService.GetTenantId()
                     ?? throw new InvalidOperationException("Tenant not found.");
 
-                // Check if the building plan application exists
+                // Validate application exists
                 var application = await _buildingPlanRepository.GetByIdAsync(request.Request.ApplicationId, cancellationToken);
-
                 if (application == null)
                 {
                     return Result<PlanningCommitteeReviewResponse>.Failure("Building plan application not found");
                 }
 
-                // Check if committee review already exists
+                // Load existing review if any (one per application)
                 var existingReview = await _repository.GetByApplicationIdAsync(request.Request.ApplicationId, cancellationToken);
 
                 PlanningCommitteeReview review;
-                bool isNewReview = existingReview == null;
-
-                if (isNewReview)
+                var isNew = existingReview == null;
+                if (isNew)
                 {
                     review = new PlanningCommitteeReview
                     {
                         Id = Guid.NewGuid(),
                         TenantId = tenantId,
                         ApplicationId = request.Request.ApplicationId,
+                        PlanningCommitteeMeetingId = request.Request.PlanningCommitteeMeetingId,
                         CreatedDate = DateTime.UtcNow,
                         CreatedBy = request.UserId
                     };
@@ -67,31 +66,25 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 else
                 {
                     review = existingReview;
+                    review.PlanningCommitteeMeetingId = request.Request.PlanningCommitteeMeetingId; // allow re-link if needed
                     review.ModifiedDate = DateTime.UtcNow;
                     review.ModifiedBy = request.UserId;
                 }
 
-                // Update review data
                 MapRequestToEntity(request.Request, review);
 
-                if (isNewReview)
-                {
+                if (isNew)
                     await _repository.AddAsync(review, cancellationToken);
-                }
                 else
-                {
                     await _repository.UpdateAsync(review, cancellationToken);
-                }
 
-                // Add workflow log for committee review
+                // Workflow log (status transition external; here just record action)
                 await _workflowService.AddLogAsync(
                     applicationId: request.Request.ApplicationId,
                     actionTaken: GetActionDescription(request.Request.CommitteeDecision),
                     previousStatus: application.Status.ToString(),
-                    newStatus: application.Status.ToString(), // Status may change based on decision
-                    remarks: $"Committee Decision: {request.Request.CommitteeDecision}. " +
-                            (string.IsNullOrEmpty(request.Request.CommitteeDiscussionsSummary) ? "" : 
-                             $"Summary: {request.Request.CommitteeDiscussionsSummary[..Math.Min(200, request.Request.CommitteeDiscussionsSummary.Length)]}"),
+                    newStatus: application.Status.ToString(), // unchanged here; orchestration command handles status
+                    remarks: BuildRemarks(request.Request),
                     performedByUserId: request.UserId,
                     performedByRole: "CommitteeMember",
                     assignedToUserId: null,
@@ -109,17 +102,18 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             }
         }
 
-        /// <summary>
-        /// Maps request DTO to entity
-        /// </summary>
+        private static string BuildRemarks(PlanningCommitteeReviewRequest req)
+        {
+            var summary = string.IsNullOrWhiteSpace(req.CommitteeDiscussionsSummary)
+                ? string.Empty
+                : $" Summary: {req.CommitteeDiscussionsSummary[..Math.Min(200, req.CommitteeDiscussionsSummary.Length)]}";
+            return $"Decision: {req.CommitteeDecision}.{summary}";
+        }
+
+        /// <summary>Map simplified request DTO to entity.</summary>
         private static void MapRequestToEntity(PlanningCommitteeReviewRequest request, PlanningCommitteeReview entity)
         {
-            entity.MeetingDate = request.MeetingDate;
-            entity.CommitteeType = request.CommitteeType;
-            entity.MeetingReferenceNo = request.MeetingReferenceNo;
-            entity.ChairpersonName = request.ChairpersonName;
-            entity.MembersPresent = JsonSerializer.Serialize(request.MembersPresent);
-            entity.InspectionReportsReviewed = request.InspectionReportsReviewed.Any() 
+            entity.InspectionReportsReviewed = request.InspectionReportsReviewed.Any()
                 ? JsonSerializer.Serialize(request.InspectionReportsReviewed) : null;
             entity.DocumentsReviewed = request.DocumentsReviewed.Any()
                 ? JsonSerializer.Serialize(request.DocumentsReviewed) : null;
@@ -136,20 +130,14 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
                 ? JsonSerializer.Serialize(request.DigitalSignatures) : null;
         }
 
-        /// <summary>
-        /// Maps entity to response DTO
-        /// </summary>
+        /// <summary>Map entity to response DTO.</summary>
         private static PlanningCommitteeReviewResponse MapEntityToResponse(PlanningCommitteeReview entity)
         {
             return new PlanningCommitteeReviewResponse
             {
                 Id = entity.Id,
                 ApplicationId = entity.ApplicationId,
-                MeetingDate = entity.MeetingDate,
-                CommitteeType = entity.CommitteeType,
-                MeetingReferenceNo = entity.MeetingReferenceNo,
-                ChairpersonName = entity.ChairpersonName,
-                MembersPresent = JsonSerializer.Deserialize<List<CommitteeMember>>(entity.MembersPresent) ?? new(),
+                PlanningCommitteeMeetingId = entity.PlanningCommitteeMeetingId,
                 InspectionReportsReviewed = string.IsNullOrEmpty(entity.InspectionReportsReviewed)
                     ? new() : JsonSerializer.Deserialize<List<string>>(entity.InspectionReportsReviewed) ?? new(),
                 DocumentsReviewed = string.IsNullOrEmpty(entity.DocumentsReviewed)
@@ -173,19 +161,13 @@ namespace MuniLK.Application.BuildingAndPlanning.Commands
             };
         }
 
-        /// <summary>
-        /// Gets action description for workflow logging
-        /// </summary>
-        private static string GetActionDescription(Domain.Constants.Flows.CommitteeDecision decision)
+        private static string GetActionDescription(Domain.Constants.Flows.CommitteeDecision decision) => decision switch
         {
-            return decision switch
-            {
-                Domain.Constants.Flows.CommitteeDecision.Approve => "Committee Approved",
-                Domain.Constants.Flows.CommitteeDecision.ApproveWithConditions => "Committee Approved with Conditions", 
-                Domain.Constants.Flows.CommitteeDecision.Reject => "Committee Rejected",
-                Domain.Constants.Flows.CommitteeDecision.DeferForClarifications => "Committee Deferred for Clarifications",
-                _ => "Committee Review Updated"
-            };
-        }
+            Domain.Constants.Flows.CommitteeDecision.Approve => "Committee Approved",
+            Domain.Constants.Flows.CommitteeDecision.ApproveWithConditions => "Committee Approved with Conditions",
+            Domain.Constants.Flows.CommitteeDecision.Reject => "Committee Rejected",
+            Domain.Constants.Flows.CommitteeDecision.DeferForClarifications => "Committee Deferred for Clarifications",
+            _ => "Committee Review Updated"
+        };
     }
 }

@@ -1,12 +1,13 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
+@using MuniLK.Application.Contact.DTOs
 @using MuniLK.Application.Documents.DTOs
+@using MuniLK.Application.PlanningCommitteeMeetings.DTOs
 @using MuniLK.Domain.Constants
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.DropDowns
 @using Syncfusion.Blazor.Inputs
-@using Syncfusion.Blazor.Calendars
 @using Syncfusion.Blazor.Grids
 @using Syncfusion.Blazor.Popups
 @using Microsoft.JSInterop
@@ -16,100 +17,15 @@
 @inject IPermissionService PermissionService
 
 <style>
-    /* Container spacing & visual alignment */
-    .pc-form-section + .pc-form-section {
-        margin-top: 1.75rem;
-        padding-top: 1.25rem;
-        border-top: 1px solid var(--bs-border-color);
-    }
-
-    .pc-grid .form-label {
-        font-weight: 600;
-        margin-bottom: .25rem;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    /* Modern minimal required indicator - small black dot */
-    .pc-grid .form-label .req {
-        width: 4px;
-        height: 4px;
-        display: inline-block;
-        border-radius: 50%;
-        background: #333;
-        font-size: 0;
-        line-height: 0;
-        flex-shrink: 0;
-    }
-
-    /* Normalize vertical rhythm */
-    .pc-grid .mb-3 { margin-bottom: 1rem !important; }
-
-    /* Members grid */
-    .members-wrapper {
-        background: var(--bs-light);
-        border: 1px solid var(--bs-border-color);
-        border-radius: .5rem;
-        padding: .75rem .85rem;
-    }
-
-    .member-row {
-        background: #fff;
-        border: 1px solid var(--bs-border-color);
-        border-radius: .4rem;
-        padding: .5rem .65rem;
-        margin-bottom: .6rem;
-        box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    }
-
-    .member-row:last-child { margin-bottom: .2rem; }
-
-    .member-actions {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-    }
-
-    /* Clean minimal remove button */
-    .btn-remove {
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        border: 1px solid #ddd;
-        border-radius: .375rem;
-        background: #fff;
-        color: #666;
-        font-size: 14px;
-        transition: all 0.15s ease;
-    }
-
-    .btn-remove:hover:not(:disabled) {
-        background: #f8f9fa;
-        border-color: #aaa;
-        color: #333;
-    }
-
-    .btn-remove:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Compact multi-line text areas */
-    textarea.e-input, .e-control-wrapper textarea {
-        min-height: 90px;
-    }
-
-
+    .pc-form-section + .pc-form-section { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--bs-border-color); }
+    .pc-grid .form-label { font-weight: 600; margin-bottom: .25rem; display: inline-flex; align-items: center; gap: 4px; }
+    .pc-grid .form-label .req { width: 4px; height: 4px; display: inline-block; border-radius: 50%; background: #333; font-size: 0; line-height: 0; flex-shrink: 0; }
+    textarea.e-input, .e-control-wrapper textarea { min-height: 90px; }
 </style>
 
 <div class="container-fluid">
     <div class="row">
-        <!-- LEFT SUMMARY (unchanged - trim if needed) -->
+        <!-- LEFT SUMMARY -->
         <div class="col-lg-4 mb-4">
             <div class="card h-100">
                 <div class="card-header bg-success text-white"><h5 class="mb-0">Application Summary</h5></div>
@@ -136,35 +52,46 @@
 
             <!-- Documents Section -->
             <div class="card mt-3">
-                <div class="card-header bg-light">
-                    <h6 class="mb-0">📄 Application Documents</h6>
-                </div>
+                <div class="card-header bg-light"><h6 class="mb-0">📄 Application Documents</h6></div>
                 <div class="card-body p-2">
                     @if (ApplicationDocuments?.Any() == true)
                     {
-                        <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" 
-                                AllowPaging="false" AllowSorting="true" Height="300px">
+                        <SfGrid TValue="DocumentLinkResponse" DataSource="@ApplicationDocuments" AllowPaging="false" AllowSorting="true" Height="300px">
                             <GridColumns>
                                 <GridColumn Field="FileName" HeaderText="Document" Width="150" />
                                 <GridColumn Field="DocumentTypeName" HeaderText="Type" Width="100" />
                                 <GridColumn Field="UploadedDate" HeaderText="Date" Format="d" Width="80" />
                                 <GridColumn HeaderText="Actions" Width="100" TextAlign="TextAlign.Center">
                                     <Template Context="docContext">
-                                        @{
-                                            var doc = (docContext as DocumentLinkResponse);
-                                        }
-                                        <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" 
-                                                  @onclick="() => PreviewDocument(doc)" />
-                                        <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" 
-                                                  @onclick="() => DownloadDocument(doc)" />
+                                        @{ var doc = docContext as DocumentLinkResponse; }
+                                        <SfButton IconCss="fas fa-eye" CssClass="btn-sm btn-outline-primary me-1" @onclick="() => PreviewDocument(doc)" />
+                                        <SfButton IconCss="fas fa-download" CssClass="btn-sm btn-outline-secondary" @onclick="() => DownloadDocument(doc)" />
                                     </Template>
                                 </GridColumn>
                             </GridColumns>
                         </SfGrid>
                     }
+                    else { <p class="text-muted small mb-0">No documents available</p>; }
+                </div>
+            </div>
+
+            <!-- Meeting Summary (read-only) -->
+            <div class="card mt-3">
+                <div class="card-header bg-light"><h6 class="mb-0">Meeting Summary</h6></div>
+                <div class="card-body p-2">
+                    @if (SelectedMeeting != null)
+                    {
+                        <ul class="list-group list-group-flush small">
+                            <li class="list-group-item px-0 d-flex justify-content-between"><span>Date</span><span>@SelectedMeeting.StartTime.ToString("dd MMM yyyy")</span></li>
+                            <li class="list-group-item px-0 d-flex justify-content-between"><span>Time</span><span>@SelectedMeeting.StartTime.ToString("HH:mm") - @SelectedMeeting.EndTime.ToString("HH:mm")</span></li>
+                            <li class="list-group-item px-0 d-flex justify-content-between"><span>Venue</span><span>@SelectedMeeting.Venue</span></li>
+                            <li class="list-group-item px-0 d-flex justify-content-between"><span>Chairperson</span><span>@ChairpersonName</span></li>
+                            <li class="list-group-item px-0 d-flex justify-content-between"><span>Status</span><span><span class="badge @(SelectedMeeting.Status switch { PlanningCommitteeMeetingStatus.Scheduled => "bg-info", PlanningCommitteeMeetingStatus.Completed => "bg-success", PlanningCommitteeMeetingStatus.Cancelled => "bg-secondary", _ => "bg-light"})">@SelectedMeeting.Status</span></span></li>
+                        </ul>
+                    }
                     else
                     {
-                        <p class="text-muted small mb-0">No documents available</p>
+                        <p class="text-muted small mb-0">No meeting linked. (Assign in previous step)</p>
                     }
                 </div>
             </div>
@@ -178,78 +105,29 @@
                     <EditForm Model="ReviewForm" OnValidSubmit="HandleValidSubmit">
                         <DataAnnotationsValidator />
 
-                        <!-- Session Metadata -->
-                        <div class="pc-form-section pc-grid row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Meeting Date <span class="req" aria-hidden="true"></span></label>
-                                <SfDatePicker @bind-Value="ReviewForm.MeetingDate" />
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Committee Type <span class="req">*</span></label>
-                                <SfDropDownList @bind-Value="ReviewForm.CommitteeType" DataSource="CommitteeTypeOptions" Placeholder="Select">
-                                    <DropDownListFieldSettings Value="Value" Text="DisplayName"/>
-                                </SfDropDownList>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Reference No <span class="req">*</span></label>
-                                <SfTextBox @bind-Value="ReviewForm.MeetingReferenceNo" Placeholder="PC/2025/001"/>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Chairperson <span class="req">*</span></label>
-                                <SfTextBox @bind-Value="ReviewForm.ChairpersonName" />
-                            </div>
+                        <input type="hidden" value="@ReviewForm.PlanningCommitteeMeetingId" />
 
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Members Present <span class="req">*</span></label>
-                                <div class="members-wrapper">
-                                    @foreach (var member in ReviewForm.MembersPresent)
-                                    {
-                                        <div class="row g-2 member-row">
-                                            <div class="col-md-5">
-                                                <SfTextBox @bind-Value="member.Name" Placeholder="Name"/>
-                                            </div>
-                                            <div class="col-md-5">
-                                                <SfTextBox @bind-Value="member.Designation" Placeholder="Designation"/>
-                                            </div>
-                                            <div class="col-md-2 member-actions">
-                                                <button type="button" 
-                                                        class="btn-remove" 
-                                                        title="Remove member"
-                                                        @onclick="() => RemoveMember(member)"
-                                                        disabled="@(ReviewForm.MembersPresent.Count==1)">
-                                                    �
-                                                </button>
-                                            </div>
-                                        </div>
-                                    }
-                                    <SfButton CssClass="btn-outline-primary btn-sm mt-1" @onclick="AddMember">
-                                        <i class="fa fa-plus me-1"></i>Add Member
-                                    </SfButton>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Inputs -->
+                        <!-- Review Context Inputs -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Inspection Reports</label>
                                 <SfMultiSelect @bind-Value="ReviewForm.InspectionReportsReviewed" DataSource="AvailableInspectionReports" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text"/>
+                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
                                 </SfMultiSelect>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Documents Reviewed</label>
                                 <SfMultiSelect @bind-Value="ReviewForm.DocumentsReviewed" DataSource="AvailableDocumentTypes" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text"/>
+                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
                                 </SfMultiSelect>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <SfCheckBox @bind-Checked="ReviewForm.ApplicantRepresented" Label="Applicant Represented"/>
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <SfCheckBox @bind-Checked="ReviewForm.ApplicantRepresented" Label="Applicant Represented" />
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">External Agencies</label>
                                 <SfMultiSelect @bind-Value="ReviewForm.ExternalAgenciesConsulted" DataSource="AvailableExternalAgencies" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text"/>
+                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
                                 </SfMultiSelect>
                             </div>
                             <div class="col-md-12 mb-3">
@@ -261,34 +139,34 @@
                         <!-- Decision -->
                         <div class="pc-form-section pc-grid row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Decision <span class="req">*</span></label>
+                                <label class="form-label">Decision <span class="req" /></label>
                                 <SfDropDownList @bind-Value="ReviewForm.CommitteeDecision" DataSource="CommitteeDecisionOptions" Placeholder="Select decision">
-                                    <DropDownListFieldSettings Value="Value" Text="DisplayName"/>
+                                    <DropDownListFieldSettings Value="Value" Text="DisplayName" />
                                 </SfDropDownList>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Recorded By <span class="req">*</span></label>
+                                <label class="form-label">Recorded By <span class="req" /></label>
                                 <SfTextBox @bind-Value="ReviewForm.RecordedByOfficer" />
                             </div>
 
                             @if (ReviewForm.CommitteeDecision == CommitteeDecision.ApproveWithConditions)
                             {
                                 <div class="col-12 mb-3">
-                                    <label class="form-label">Conditions <span class="req">*</span></label>
+                                    <label class="form-label">Conditions <span class="req" /></label>
                                     <SfTextArea @bind-Value="ReviewForm.ConditionsImposed" Rows="3" Width="100%" />
                                 </div>
                             }
                             @if (ReviewForm.CommitteeDecision == CommitteeDecision.Reject || ReviewForm.CommitteeDecision == CommitteeDecision.DeferForClarifications)
                             {
                                 <div class="col-12 mb-3">
-                                    <label class="form-label">Reason <span class="req">*</span></label>
+                                    <label class="form-label">Reason <span class="req" /></label>
                                     <SfTextArea @bind-Value="ReviewForm.ReasonForRejectionOrDeferral" Rows="3" Width="100%" />
                                 </div>
                             }
 
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">Digital Signatures</label>
-                                <SfTextArea @bind-Value="DigitalSignaturesText" Width="100%" Rows="2" Placeholder="One per line"/>
+                                <SfTextArea @bind-Value="DigitalSignaturesText" Width="100%" Rows="2" Placeholder="One per line" />
                             </div>
                         </div>
 
@@ -296,39 +174,21 @@
                         @if (CanUserTakeAction)
                         {
                             <div class="d-flex flex-wrap gap-2 mt-2">
-                                <SfButton CssClass="btn-outline-secondary" Disabled="@IsSubmitting" @onclick="SaveDraft">
-                                    <i class="fas fa-save me-1"></i>Draft
-                                </SfButton>
-
-                                <SfButton CssClass="btn-success" Disabled="@(!CanSubmitApprove || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.Approve))">
-                                    <i class="fas fa-check me-1"></i>Approve
-                                </SfButton>
-
-                                <SfButton CssClass="btn-primary" Disabled="@(!CanSubmitApproveWithConditions || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.ApproveWithConditions))">
-                                    <i class="fas fa-clipboard-check me-1"></i>Approve w/ Conditions
-                                </SfButton>
-
-                                <SfButton CssClass="btn-warning" Disabled="@(!CanSubmitClarify || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.DeferForClarifications))">
-                                    <i class="fas fa-question-circle me-1"></i>Request Clarification
-                                </SfButton>
-
-                                <SfButton CssClass="btn-danger" Disabled="@(!CanSubmitReject || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.Reject))">
-                                    <i class="fas fa-times me-1"></i>Reject
-                                </SfButton>
-                            </div>
-                        }else{
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                You do not have permission to take action on this application.
+                                <SfButton CssClass="btn-outline-secondary" Disabled="@IsSubmitting" @onclick="SaveDraft"><i class="fas fa-save me-1"></i>Draft</SfButton>
+                                <SfButton CssClass="btn-success" Disabled="@(!CanSubmitApprove || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.Approve))"><i class="fas fa-check me-1"></i>Approve</SfButton>
+                                <SfButton CssClass="btn-primary" Disabled="@(!CanSubmitApproveWithConditions || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.ApproveWithConditions))"><i class="fas fa-clipboard-check me-1"></i>Approve w/ Conditions</SfButton>
+                                <SfButton CssClass="btn-warning" Disabled="@(!CanSubmitClarify || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.DeferForClarifications))"><i class="fas fa-question-circle me-1"></i>Request Clarification</SfButton>
+                                <SfButton CssClass="btn-danger" Disabled="@(!CanSubmitReject || IsSubmitting)" @onclick="(() => SubmitImmediate(CommitteeDecision.Reject))"><i class="fas fa-times me-1"></i>Reject</SfButton>
                             </div>
                         }
-                        
+                        else
+                        {
+                            <div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>You do not have permission to take action on this application.</div>
+                        }
 
                         @if (IsSubmitting)
                         {
-                            <div class="mt-3 small text-muted">
-                                <i class="fas fa-spinner fa-spin me-1"></i>Processing...
-                            </div>
+                            <div class="mt-3 small text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Processing...</div>
                         }
                     </EditForm>
                 </div>
@@ -340,30 +200,22 @@
 <!-- Document Preview Dialog -->
 <SfDialog @bind-Visible="@IsPreviewDialogVisible" Width="80%" Height="80%" ShowCloseIcon="true">
     <DialogTemplates>
-        <Header>
-            <div>Document Preview - @(SelectedPreviewDocument?.FileName)</div>
-        </Header>
+        <Header><div>Document Preview - @(SelectedPreviewDocument?.FileName)</div></Header>
         <Content>
             @if (SelectedPreviewDocument != null)
             {
                 <div class="row">
                     <div class="col-8">
                         @if (IsImageFile(SelectedPreviewDocument.FileExtension))
-                        {
-                            <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" />
-                        }
+                        { <img src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" class="img-fluid" alt="@SelectedPreviewDocument.FileName" /> }
                         else if (IsPdfFile(SelectedPreviewDocument.FileExtension))
-                        {
-                            <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" width="100%" height="500px"></iframe>
-                        }
+                        { <iframe src="@GetDocumentPreviewUrl(SelectedPreviewDocument.DocumentId)" width="100%" height="500px"></iframe> }
                         else
                         {
                             <div class="text-center p-4">
                                 <i class="fas fa-file fa-3x text-muted mb-3"></i>
                                 <p>Preview not available for this file type.</p>
-                                <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)">
-                                    <i class="fas fa-download me-2"></i>Download File
-                                </SfButton>
+                                <SfButton @onclick="() => DownloadDocument(SelectedPreviewDocument)"><i class="fas fa-download me-2"></i>Download File</SfButton>
                             </div>
                         }
                     </div>
@@ -376,9 +228,7 @@
                             <tr><td><strong>Uploaded:</strong></td><td>@SelectedPreviewDocument.UploadedDate.ToString("dd/MM/yyyy")</td></tr>
                             <tr><td><strong>Uploaded By:</strong></td><td>@SelectedPreviewDocument.UploadedBy</td></tr>
                         </table>
-                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(SelectedPreviewDocument)">
-                            <i class="fas fa-download me-2"></i>Download
-                        </SfButton>
+                        <SfButton IsPrimary="true" @onclick="() => DownloadDocument(SelectedPreviewDocument)"><i class="fas fa-download me-2"></i>Download</SfButton>
                     </div>
                 </div>
             }
@@ -389,25 +239,26 @@
 @code {
     [Parameter] public BuildingPlanApplicationDto? Model { get; set; }
 
+    // Updated Request model (assumes DTO updated to match new entity)
     private PlanningCommitteeReviewRequest ReviewForm = new();
     private bool IsSubmitting;
     private bool CanUserTakeAction;
     private string DigitalSignaturesText = string.Empty;
 
-    // Options (same as before)
-    private List<DropdownOption> CommitteeTypeOptions = new()
-    {
-        new() { Value = CommitteeType.PlanningCommittee, DisplayName = "Planning Committee" },
-        new() { Value = CommitteeType.SubCommittee, DisplayName = "Sub Committee" },
-        new() { Value = CommitteeType.MainCommittee, DisplayName = "Main Committee" }
-    };
+    // Meeting summary info
+    private PlanningCommitteeMeetingResponse? SelectedMeeting;
+    private string ChairpersonName => SelectedMeeting == null ? "-" : GetContactName(SelectedMeeting.ChairpersonContactId);
+
+    // Decision options retained
     private List<DropdownOption> CommitteeDecisionOptions = new()
     {
         new() { Value = CommitteeDecision.Approve, DisplayName = "Approve" },
         new() { Value = CommitteeDecision.ApproveWithConditions, DisplayName = "Approve with Conditions" },
         new() { Value = CommitteeDecision.Reject, DisplayName = "Reject" },
-        new() { Value = CommitteeDecision.DeferForClarifications, DisplayName = "Defer for Clarifications" }
+        new() { Value = CommitteeDecision.DeferForClarifications, DisplayName = "Defer for Clarifications" },
+        new() { Value = CommitteeDecision.Pending, DisplayName = "Pending" }
     };
+
     private List<SelectOption> AvailableInspectionReports = new()
     {
         new() { Value = "site_inspection_1", Text = "Site Inspection Report #1" },
@@ -431,44 +282,43 @@
         new() { Value = "UDA", Text = "Urban Development Authority" }
     };
 
-    // Button state helpers
-    private bool BaseFormOk =>
-        Model != null &&
-        ReviewForm.MeetingDate != default &&
-        !string.IsNullOrWhiteSpace(ReviewForm.MeetingReferenceNo) &&
-        !string.IsNullOrWhiteSpace(ReviewForm.ChairpersonName) &&
-        ReviewForm.MembersPresent.Any(m => !string.IsNullOrWhiteSpace(m.Name)) &&
-        !string.IsNullOrWhiteSpace(ReviewForm.RecordedByOfficer);
-
+    // Validation helpers adapted
+    private bool BaseFormOk => Model != null && ReviewForm.PlanningCommitteeMeetingId != Guid.Empty && !string.IsNullOrWhiteSpace(ReviewForm.RecordedByOfficer);
     private bool CanSubmitApprove => BaseFormOk;
     private bool CanSubmitApproveWithConditions => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ConditionsImposed);
     private bool CanSubmitClarify => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
     private bool CanSubmitReject => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
 
-    // Document management variables
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;
     private DocumentLinkResponse? SelectedPreviewDocument = null;
     private Guid ModuleId = Guid.Empty;
+    private List<ContactResponse> OfficerContacts = new();
 
     protected override async Task OnInitializedAsync()
     {
-        CanUserTakeAction = await PermissionService.IsInAnyRoleAsync(
-    Roles.Officer,
-    Roles.Admin,
-    Roles.SuperAdmin);
-
-        if (ReviewForm.MembersPresent.Count == 0)
-            ReviewForm.MembersPresent.Add(new CommitteeMember());
+        CanUserTakeAction = await PermissionService.IsInAnyRoleAsync(Roles.Officer, Roles.Admin, Roles.SuperAdmin);
 
         if (Model != null)
         {
             ReviewForm.ApplicationId = Model.Id;
             await LoadExistingApplicationAsync(Model.Id);
+            await LoadMeetingForApplication(Model.Id);
         }
 
-        ReviewForm.MeetingDate = DateTime.Today;
         ReviewForm.CommitteeDecision = CommitteeDecision.Pending;
+        ReviewForm.PlanningCommitteeMeetingId = SelectedMeeting?.Id ?? Guid.Empty;
+    }
+
+    private async Task LoadMeetingForApplication(Guid applicationId)
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            var meetings = await client.GetFromJsonAsync<List<PlanningCommitteeMeetingResponse>>("api/PlanningCommitteeMeetings/GetMeetings?start=" + DateTime.UtcNow.AddDays(-30).ToString("o") + "&end=" + DateTime.UtcNow.AddDays(90).ToString("o"));
+            SelectedMeeting = meetings?.FirstOrDefault(m => m.ApplicationIds.Contains(applicationId));
+        }
+        catch { SelectedMeeting = null; }
     }
 
     private async Task LoadExistingApplicationAsync(Guid applicationId)
@@ -476,51 +326,32 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            
-            // Get the Building and Planning module ID
             var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
-            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId))
-            {
-                ModuleId = parsedModuleId;
-            }
+            if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId)) ModuleId = parsedModuleId;
 
-            // Load existing committee review if exists
+            // Existing review fetch (assumes API updated)
             try
             {
-                var existingReview = await client.GetFromJsonAsync<PlanningCommitteeReviewResponse>(
-                    $"api/BuildingPlans/{applicationId}/committee-review");
-                if (existingReview != null)
-                {
-                    PopulateFormFromExistingReview(existingReview);
-                }
+                var existingReview = await client.GetFromJsonAsync<PlanningCommitteeReviewResponse>($"api/BuildingPlans/{applicationId}/committee-review");
+                if (existingReview != null) PopulateFormFromExistingReview(existingReview);
             }
-            catch
-            {
-                // No existing review found, continue with empty form
-            }
+            catch { }
 
-            // Load documents
             if (ModuleId != Guid.Empty)
             {
-                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>(
-                    $"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
-                ApplicationDocuments = documents ?? new List<DocumentLinkResponse>();
+                var documents = await client.GetFromJsonAsync<List<DocumentLinkResponse>>($"api/Documents/linked?moduleId={ModuleId}&entityId={applicationId}&linkContext=Building and Planning");
+                ApplicationDocuments = documents ?? new();
             }
+
+            // Load contacts for chairperson display
+            OfficerContacts = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName={Roles.Inspector}") ?? new();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading existing application: {ex.Message}");
-            ApplicationDocuments = new List<DocumentLinkResponse>();
-        }
+        catch { ApplicationDocuments = new(); }
     }
 
     private void PopulateFormFromExistingReview(PlanningCommitteeReviewResponse review)
     {
-        ReviewForm.MeetingDate = review.MeetingDate;
-        ReviewForm.CommitteeType = review.CommitteeType;
-        ReviewForm.MeetingReferenceNo = review.MeetingReferenceNo ?? string.Empty;
-        ReviewForm.ChairpersonName = review.ChairpersonName ?? string.Empty;
-        ReviewForm.MembersPresent = review.MembersPresent ?? new List<CommitteeMember> { new() };
+        ReviewForm.PlanningCommitteeMeetingId = review.PlanningCommitteeMeetingId; // assumes field exists in response after DTO update
         ReviewForm.DocumentsReviewed = review.DocumentsReviewed ?? new List<string>();
         ReviewForm.ApplicantRepresented = review.ApplicantRepresented;
         ReviewForm.ExternalAgenciesConsulted = review.ExternalAgenciesConsulted ?? new List<string>();
@@ -532,24 +363,15 @@
         DigitalSignaturesText = string.Join("\n", review.DigitalSignatures ?? new List<string>());
     }
 
-    private void AddMember() => ReviewForm.MembersPresent.Add(new CommitteeMember());
-    private void RemoveMember(CommitteeMember m)
-    {
-        if (ReviewForm.MembersPresent.Count > 1)
-            ReviewForm.MembersPresent.Remove(m);
-    }
-
     private async Task SaveDraft()
     {
-        if (Model == null) return;
+        if (Model == null || ReviewForm.PlanningCommitteeMeetingId == Guid.Empty) return;
         await SendToApi(finalize: false, forceDecision: false);
     }
 
     private async Task SubmitImmediate(CommitteeDecision decision)
     {
-        if (Model == null) return;
-
-        // Set the decision on form before build
+        if (Model == null || ReviewForm.PlanningCommitteeMeetingId == Guid.Empty) return;
         ReviewForm.CommitteeDecision = decision;
         await SendToApi(finalize: true, forceDecision: true);
     }
@@ -565,103 +387,49 @@
             if (!forceDecision && request.CommitteeDecision == CommitteeDecision.Pending)
                 request.CommitteeDecision = CommitteeDecision.Pending;
 
-            var resp = await client.PostAsJsonAsync(
-                $"api/BuildingPlans/{Model.Id}/committee-review?finalize={finalize.ToString().ToLower()}",
-                request);
-
+            var resp = await client.PostAsJsonAsync($"api/BuildingPlans/{Model.Id}/committee-review?finalize={finalize.ToString().ToLower()}", request);
             if (!resp.IsSuccessStatusCode)
             {
                 var err = await resp.Content.ReadAsStringAsync();
                 Console.WriteLine($"Committee review {(finalize ? "submit" : "draft")} failed: {err}");
             }
         }
-        finally
-        {
-            IsSubmitting = false;
-            StateHasChanged();
-        }
+        finally { IsSubmitting = false; StateHasChanged(); }
     }
 
-    private PlanningCommitteeReviewRequest BuildRequest() =>
-        new()
-        {
-            ApplicationId = Model!.Id,
-            MeetingDate = ReviewForm.MeetingDate,
-            CommitteeType = ReviewForm.CommitteeType,
-            MeetingReferenceNo = ReviewForm.MeetingReferenceNo,
-            ChairpersonName = ReviewForm.ChairpersonName,
-            MembersPresent = ReviewForm.MembersPresent
-    .Where(m => !string.IsNullOrWhiteSpace(m.Name) &&
-                !string.IsNullOrWhiteSpace(m.Designation))
-    .ToList(),
-            DocumentsReviewed = ReviewForm.DocumentsReviewed,
-            ApplicantRepresented = ReviewForm.ApplicantRepresented,
-            ExternalAgenciesConsulted = ReviewForm.ExternalAgenciesConsulted,
-            CommitteeDiscussionsSummary = ReviewForm.CommitteeDiscussionsSummary,
-            CommitteeDecision = ReviewForm.CommitteeDecision,
-            ConditionsImposed = ReviewForm.ConditionsImposed,
-            ReasonForRejectionOrDeferral = ReviewForm.ReasonForRejectionOrDeferral,
-            RecordedByOfficer = ReviewForm.RecordedByOfficer,
-            DigitalSignatures = DigitalSignaturesText
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .ToList()
-        };
+    private PlanningCommitteeReviewRequest BuildRequest() => new()
+    {
+        ApplicationId = Model!.Id,
+        PlanningCommitteeMeetingId = ReviewForm.PlanningCommitteeMeetingId,
+        DocumentsReviewed = ReviewForm.DocumentsReviewed,
+        InspectionReportsReviewed = ReviewForm.InspectionReportsReviewed,
+        ApplicantRepresented = ReviewForm.ApplicantRepresented,
+        ExternalAgenciesConsulted = ReviewForm.ExternalAgenciesConsulted,
+        CommitteeDiscussionsSummary = ReviewForm.CommitteeDiscussionsSummary,
+        CommitteeDecision = ReviewForm.CommitteeDecision,
+        ConditionsImposed = ReviewForm.ConditionsImposed,
+        ReasonForRejectionOrDeferral = ReviewForm.ReasonForRejectionOrDeferral,
+        RecordedByOfficer = ReviewForm.RecordedByOfficer,
+        DigitalSignatures = DigitalSignaturesText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+    };
 
     private Task HandleValidSubmit() => SaveDraft();
 
-    // Document management methods
-    private void PreviewDocument(DocumentLinkResponse document)
-    {
-        SelectedPreviewDocument = document;
-        IsPreviewDialogVisible = true;
-    }
-
+    private void PreviewDocument(DocumentLinkResponse document) { SelectedPreviewDocument = document; IsPreviewDialogVisible = true; }
     private async Task DownloadDocument(DocumentLinkResponse document)
     {
         try
-        {
-            var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            var downloadUrl = $"api/Documents/{document.DocumentId}/download";
-            
-            // Open download in new tab
-            await JS.InvokeVoidAsync("open", downloadUrl, "_blank");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error downloading document: {ex.Message}");
-        }
+        { var downloadUrl = $"api/Documents/{document.DocumentId}/download"; await JS.InvokeVoidAsync("open", downloadUrl, "_blank"); }
+        catch (Exception ex) { Console.WriteLine($"Error downloading document: {ex.Message}"); }
     }
-
-    private string GetDocumentPreviewUrl(Guid documentId)
-    {
-        return $"api/Documents/{documentId}/preview";
-    }
-
-    private bool IsImageFile(string extension)
-    {
-        var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" };
-        return imageExtensions.Contains(extension.ToLowerInvariant());
-    }
-
-    private bool IsPdfFile(string extension)
-    {
-        return extension.ToLowerInvariant() == ".pdf";
-    }
-
+    private string GetDocumentPreviewUrl(Guid documentId) => $"api/Documents/{documentId}/preview";
+    private bool IsImageFile(string ext) => new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.Contains(ext.ToLowerInvariant());
+    private bool IsPdfFile(string ext) => ext.ToLowerInvariant() == ".pdf";
     private string FormatFileSize(long bytes)
-    {
-        string[] suffixes = { "B", "KB", "MB", "GB" };
-        int counter = 0;
-        decimal number = bytes;
-        while (Math.Round(number / 1024) >= 1)
-        {
-            number = number / 1024;
-            counter++;
-        }
-        return $"{number:n1} {suffixes[counter]}";
-    }
+    { string[] s = {"B","KB","MB","GB"}; int c = 0; decimal n = bytes; while (Math.Round(n/1024) >= 1){ n/=1024; c++; } return $"{n:n1} {s[c]}"; }
 
-    // Helper classes
+    private string GetContactName(Guid id) => OfficerContacts.FirstOrDefault(c => c.Id == id)?.FullName ?? "-";
+
     private class DropdownOption { public object Value { get; set; } = default!; public string DisplayName { get; set; } = default!; }
     private class SelectOption { public string Value { get; set; } = default!; public string Text { get; set; } = default!; }
 }

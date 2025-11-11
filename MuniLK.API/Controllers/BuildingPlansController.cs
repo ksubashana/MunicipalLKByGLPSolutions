@@ -177,24 +177,22 @@ namespace MuniLK.API.Controllers
         {
             if (id != request.ApplicationId) return BadRequest("Route id mismatch.");
             if (request.MeetingDate.Date < DateTime.Today) return BadRequest("Meeting date cannot be in the past.");
-            // Create placeholder PlanningCommitteeReview entity externally via SavePlanningCommitteeReviewCommand with Pending decision
+            if (request.PlanningCommitteeMeetingId == Guid.Empty) return BadRequest("Planning committee meeting id required.");
+
             var placeholder = new PlanningCommitteeReviewRequest
             {
                 ApplicationId = request.ApplicationId,
-                MeetingDate = request.MeetingDate,
-                CommitteeType = request.CommitteeType,
-                MeetingReferenceNo = request.MeetingReferenceNo,
-                ChairpersonName = request.ChairpersonName,
-                MembersPresent = request.MembersPresent,
+                PlanningCommitteeMeetingId = request.PlanningCommitteeMeetingId,
                 RecordedByOfficer = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown-user",
                 CommitteeDecision = CommitteeDecision.Pending
             };
-            // Save placeholder (will create new review if not exists)
+
             var saveResult = await _mediator.Send(new SavePlanningCommitteeReviewCommand { Request = placeholder, UserId = placeholder.RecordedByOfficer });
             if (!saveResult.Succeeded) return BadRequest(saveResult.Error);
-            // Orchestrate workflow status change to AssignToCommittee
+
             var workflowResult = await _mediator.Send(new AssignToCommitteeWorkflowCommand(id, saveResult.Data.Id, request.MeetingDate, request.Remarks, null));
             if (!workflowResult.Succeeded) return BadRequest(workflowResult.Error);
+
             return Ok(new { ReviewId = saveResult.Data.Id });
         }
 
@@ -214,5 +212,5 @@ namespace MuniLK.API.Controllers
     public record AssignInspectionDto(DateTime ScheduledOn, string InspectorUserId, string? Remarks);
     public record CompleteInspectionDto(string Report);
     public record RejectDto(string Reason);
-    public record AssignToCommitteeRequest(Guid ApplicationId, DateTime MeetingDate, CommitteeType CommitteeType, string MeetingReferenceNo, string ChairpersonName, List<CommitteeMember> MembersPresent, string? Remarks);
+    public record AssignToCommitteeRequest(Guid ApplicationId, Guid PlanningCommitteeMeetingId, DateTime MeetingDate, string? Remarks);
 }

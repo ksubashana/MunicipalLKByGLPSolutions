@@ -12,33 +12,7 @@ namespace MuniLK.Application.BuildingAndPlanning.Validators
                 .NotEmpty()
                 .WithMessage("Application ID is required");
 
-            RuleFor(x => x.MeetingDate)
-                .NotEmpty()
-                .WithMessage("Meeting date is required")
-                .Must(BeValidMeetingDate)
-                .WithMessage("Meeting date cannot be in the future");
-
-            RuleFor(x => x.CommitteeType)
-                .NotEmpty()
-                .IsInEnum()
-                .WithMessage("Valid committee type is required");
-
-            RuleFor(x => x.MeetingReferenceNo)
-                .NotEmpty()
-                .MaximumLength(100)
-                .WithMessage("Meeting reference number is required and must be less than 100 characters");
-
-            RuleFor(x => x.ChairpersonName)
-                .NotEmpty()
-                .MaximumLength(200)
-                .WithMessage("Chairperson name is required and must be less than 200 characters");
-
-            RuleFor(x => x.MembersPresent)
-                .NotEmpty()
-                .WithMessage("At least one committee member must be present")
-                .Must(HaveValidMembers)
-                .WithMessage("All committee members must have both name and designation");
-
+      
             RuleFor(x => x.CommitteeDecision)
                 .NotEmpty()
                 .IsInEnum()
@@ -85,14 +59,5 @@ namespace MuniLK.Application.BuildingAndPlanning.Validators
             return meetingDate.Date <= DateTime.Today;
         }
 
-        private bool HaveValidMembers(List<CommitteeMember> members)
-        {
-            if (members == null || members.Count == 0)
-                return false;
-
-            // At least one member must have both name and designation filled
-            return members.Any(m => !string.IsNullOrWhiteSpace(m.Name) && 
-                                   !string.IsNullOrWhiteSpace(m.Designation));
-        }
     }
 }

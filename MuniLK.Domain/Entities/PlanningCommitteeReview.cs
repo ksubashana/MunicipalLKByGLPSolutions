@@ -5,77 +5,49 @@ using System.ComponentModel.DataAnnotations;
 namespace MuniLK.Domain.Entities
 {
     /// <summary>
-    /// Entity for Planning Committee Review in building plan approval workflow
+    /// Planning Committee Review stores only review outcome & context linked to a scheduled meeting.
+    /// Meeting metadata (date, chairperson, members, venue, etc.) lives in PlanningCommitteeMeeting & related member entities.
     /// </summary>
     public class PlanningCommitteeReview : IHasTenant
     {
         public Guid Id { get; set; }
         public Guid? TenantId { get; set; }
 
+        /// <summary>Associated Building Plan Application</summary>
         [Required]
         public Guid ApplicationId { get; set; }
 
-        // 1. Committee Session Metadata
+        /// <summary>Linked committee meeting containing session details</summary>
         [Required]
-        public DateTime MeetingDate { get; set; }
+        public Guid PlanningCommitteeMeetingId { get; set; }
 
-        [Required]
-        public CommitteeType CommitteeType { get; set; }
-
-        [Required]
-        public string MeetingReferenceNo { get; set; } = default!;
-
-        [Required]
-        public string ChairpersonName { get; set; } = default!;
-
-        /// <summary>
-        /// JSON serialized list of committee members with their designations
-        /// </summary>
-        [Required]
-        public string MembersPresent { get; set; } = default!;
-
-        // 2. Review Inputs
-        /// <summary>
-        /// JSON serialized list of inspection report IDs reviewed
-        /// </summary>
+        // Review Inputs (optional contextual data captured at review time)
+        /// <summary>JSON list of inspection report identifiers reviewed</summary>
         public string? InspectionReportsReviewed { get; set; }
-
-        /// <summary>
-        /// JSON serialized list of document types reviewed
-        /// </summary>
+        /// <summary>JSON list of document type codes / IDs reviewed</summary>
         public string? DocumentsReviewed { get; set; }
-
-        public bool ApplicantRepresented { get; set; }
-
-        /// <summary>
-        /// JSON serialized list of external agencies consulted
-        /// </summary>
+        /// <summary>JSON list of external agencies consulted</summary>
         public string? ExternalAgenciesConsulted { get; set; }
-
+        /// <summary>Was applicant or representative present</summary>
+        public bool ApplicantRepresented { get; set; }
+        /// <summary>Free-text summary of committee discussions</summary>
         public string? CommitteeDiscussionsSummary { get; set; }
 
-        // 3. Decision & Recommendations
+        // Decision & Recommendations
         [Required]
         public CommitteeDecision CommitteeDecision { get; set; }
-
+        /// <summary>Conditions imposed when approving with conditions</summary>
         public string? ConditionsImposed { get; set; }
-
+        /// <summary>Reason supplied for rejection or deferral</summary>
         public string? ReasonForRejectionOrDeferral { get; set; }
-
-        /// <summary>
-        /// Path to the uploaded final recommendation document
-        /// </summary>
+        /// <summary>Path / blob reference for final recommendation document</summary>
         public string? FinalRecommendationDocumentPath { get; set; }
 
-        // 4. Audit & Sign-Off
+        // Audit & Sign-Off
         [Required]
-        public string RecordedByOfficer { get; set; } = default!;
-
+        public string RecordedByOfficer { get; set; } = string.Empty;
         public DateTime ApprovalTimestamp { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// JSON serialized list of digital signatures (if available)
-        /// </summary>
+        /// <summary>JSON list of digital signatures</summary>
         public string? DigitalSignatures { get; set; }
 
         // Standard audit fields
@@ -84,7 +56,8 @@ namespace MuniLK.Domain.Entities
         public DateTime? ModifiedDate { get; set; }
         public string? ModifiedBy { get; set; }
 
-        // Navigation Properties
+        // Navigation
         public BuildingPlanApplication? Application { get; set; }
+        public PlanningCommitteeMeeting? PlanningCommitteeMeeting { get; set; }
     }
 }
