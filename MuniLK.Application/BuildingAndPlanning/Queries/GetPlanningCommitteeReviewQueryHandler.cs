@@ -3,6 +3,7 @@ using MuniLK.Application.BuildingAndPlanning.DTOs;
 using MuniLK.Application.BuildingAndPlanning.Interfaces;
 using MuniLK.Application.Generic.Result;
 using System.Text.Json;
+using MuniLK.Domain.Constants; // for LookupCategoryNames
 
 namespace MuniLK.Application.BuildingAndPlanning.Queries
 {
@@ -12,8 +13,14 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
     public class GetPlanningCommitteeReviewQueryHandler : IRequestHandler<GetPlanningCommitteeReviewQuery, Result<PlanningCommitteeReviewResponse?>>
     {
         private readonly IPlanningCommitteeReviewRepository _repository;
+        private readonly IEntityOptionSelectionRepository _optionSelections;
+        private const string CommonEntityType = "PlanningCommittee"; // unified entity type discriminator
 
-        public GetPlanningCommitteeReviewQueryHandler(IPlanningCommitteeReviewRepository repository) => _repository = repository;
+        public GetPlanningCommitteeReviewQueryHandler(IPlanningCommitteeReviewRepository repository, IEntityOptionSelectionRepository optionSelections)
+        {
+            _repository = repository;
+            _optionSelections = optionSelections;
+        }
 
         public async Task<Result<PlanningCommitteeReviewResponse?>> Handle(GetPlanningCommitteeReviewQuery request, CancellationToken cancellationToken)
         {
@@ -22,6 +29,23 @@ namespace MuniLK.Application.BuildingAndPlanning.Queries
                 var review = await _repository.GetByApplicationIdAsync(request.ApplicationId, cancellationToken);
                 if (review == null) return Result<PlanningCommitteeReviewResponse?>.Success(null);
                 var response = MapEntityToResponse(review);
+
+                // Load option selections scoped by ApplicationId + CommonEntityType + ModuleId (moduleId not stored on review; derive from application if needed externally)
+                // We only have ApplicationId here; consumer must supply module id when persisting selections.
+                // Attempt to load all selections for this application under common entity type across any module (simplest approach)
+                var allSelections = await _optionSelections.GetSelectionsAsync(review.ApplicationId, CommonEntityType, review.ApplicationId, cancellationToken);
+                if (allSelections.Any())
+                {
+                    response.InspectionReportOptionItemIds = allSelections
+                        .Where(s => string.Equals(s.LookupCategoryName, LookupCategoryNames.InspectionReports.ToString(), StringComparison.OrdinalIgnoreCase))
+                        .Select(s => s.LookupId).Distinct().ToList();
+                    response.DocumentsReviewedOptionItemIds = allSelections
+                        .Where(s => string.Equals(s.LookupCategoryName, LookupCategoryNames.PlanningReviewDocuments.ToString(), StringComparison.OrdinalIgnoreCase))
+                        .Select(s => s.LookupId).Distinct().ToList();
+                    response.ExternalAgencyOptionItemIds = allSelections
+                        .Where(s => string.Equals(s.LookupCategoryName, LookupCategoryNames.ClearanceTypes.ToString(), StringComparison.OrdinalIgnoreCase))
+                        .Select(s => s.LookupId).Distinct().ToList();
+                }
                 return Result<PlanningCommitteeReviewResponse?>.Success(response);
             }
             catch (Exception ex)

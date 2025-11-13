@@ -271,9 +271,9 @@
 
     // Option selection persistence context
     private Guid ModuleId = Guid.Empty; // building & planning module id
-    private const string EntityTypeInspectionReports = "PCReview_InspectionReports";
-    private const string EntityTypeDocumentsReviewed = "PCReview_DocumentsReviewed";
-    private const string EntityTypeExternalAgencies = "PCReview_ExternalAgencies";
+    private const string EntityTypeInspectionReports = EntityOptionEntityTypes.PlanningCommitteeInspectionReports;
+    private const string EntityTypeDocumentsReviewed = EntityOptionEntityTypes.PlanningCommitteeDocumentsReviewed;
+    private const string EntityTypeExternalAgencies = EntityOptionEntityTypes.PlanningCommitteeExternalAgencies;
 
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;

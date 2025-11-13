@@ -611,14 +611,13 @@
             var resp = await client.PostAsJsonAsync(url, Model);
             if (resp.IsSuccessStatusCode)
             {
-                // Option B: persist clearance selections separately
                 if (Model.ClearanceOptionItemIds != null && Model.ClearanceOptionItemIds.Any() && ModuleId != Guid.Empty)
                 {
                     var saveSelectionsUrl = "api/Lookups/entity-options/selections/save";
                     var saveRequest = new SaveEntityOptionSelectionsRequest
                     {
                         EntityId = ApplicationId,
-                        EntityType = "SiteInspection",
+                        EntityType = EntityOptionEntityTypes.SiteInspection,
                         ModuleId = ModuleId,
                         LookupCategoryName = LookupCategoryNames.ClearanceTypes.ToString(),
                         OptionItemIds = Model.ClearanceOptionItemIds
@@ -851,4 +850,4 @@
         SelectedPreviewDocument = document;
         IsPreviewDialogVisible = true;
     }
-}
+}}

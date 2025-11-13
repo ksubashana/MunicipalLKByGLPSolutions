@@ -207,6 +207,17 @@ namespace MuniLK.API.Controllers
             var result = await _mediator.Send(new SavePlanningCommitteeReviewCommand { Request = request, UserId = userId });
             return result.Succeeded ? Ok(result.Data) : BadRequest(result.Error);
         }
+
+        // GET: /api/building-plans/{id}/committee-review
+        [HttpGet("{id:guid}/committee-review")]
+        [Authorize]
+        public async Task<IActionResult> GetCommitteeReview(Guid id, CancellationToken ct)
+        {
+            var result = await _mediator.Send(new GetPlanningCommitteeReviewQuery { ApplicationId = id }, ct);
+            if (!result.Succeeded) return BadRequest(result.Error);
+            if (result.Data == null) return NotFound();
+            return Ok(result.Data);
+        }
     }
 
     public record AssignInspectionDto(DateTime ScheduledOn, string InspectorUserId, string? Remarks);

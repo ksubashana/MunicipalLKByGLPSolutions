@@ -65,5 +65,10 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public string? CreatedBy { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string? ModifiedBy { get; set; }
+
+        // Option Selection IDs
+        public List<Guid> InspectionReportOptionItemIds { get; set; } = new();
+        public List<Guid> DocumentsReviewedOptionItemIds { get; set; } = new();
+        public List<Guid> ExternalAgencyOptionItemIds { get; set; } = new();
     }
 }
