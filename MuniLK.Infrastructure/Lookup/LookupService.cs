@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MuniLK.Application.BuildingAndPlanning.DTOs;
-using MuniLK.Application.Generic.Interfaces;
+using MuniLK.Application.Generic.Interfaces; // interface location
 using MuniLK.Application.Services.DTOs;
 using MuniLK.Domain.Constants;
 using MuniLK.Domain.Entities;
@@ -85,29 +85,24 @@ namespace MuniLK.Application.Services
             if (category == null)
                 throw new InvalidOperationException($"Lookup category '{request.LookupCategoryId}' not found or inactive.");
 
-            _logger.LogDebug("AddLookupValue: Category resolved as {CategoryName} (Id: {CategoryId})", category.Name, category.Id);
-
             if (request.ParentLookupId.HasValue)
             {
                 var parent = await _context.Lookups.Include(p => p.LookupCategory).FirstOrDefaultAsync(p => p.Id == request.ParentLookupId.Value && p.IsActive);
                 if (parent == null) throw new InvalidOperationException("Parent lookup not found or inactive.");
 
-                _logger.LogDebug("AddLookupValue: Parent lookup category = {ParentCategoryName}", parent.LookupCategory?.Name);
-
                 if (AllowedParentCategoryMappings.TryGetValue(category.Name.Trim(), out var requiredParentCategory))
                 {
-                    _logger.LogDebug("Mapping found for child category {ChildCategory}: required parent category {RequiredParentCategory}", category.Name, requiredParentCategory);
                     if (!string.Equals(parent.LookupCategory?.Name?.Trim(), requiredParentCategory, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException($"Parent lookup must belong to category '{requiredParentCategory}'.");
                 }
                 else if (parent.LookupCategoryId != category.Id)
                 {
-                    _logger.LogDebug("No mapping for category {ChildCategory}; enforcing same-category rule.", category.Name);
                     throw new InvalidOperationException("Parent lookup must belong to the same category.");
                 }
             }
 
-            var exists = await _context.Lookups.AnyAsync(x => x.LookupCategoryId == request.LookupCategoryId && x.Value == request.Value && (request.IsGlobal ? x.TenantId == SystemConstants.SystemTenantId : x.TenantId == tenantId));
+            var tenantScope = request.IsGlobal ? SystemConstants.SystemTenantId : tenantId;
+            var exists = await _context.Lookups.AnyAsync(x => x.LookupCategoryId == request.LookupCategoryId && x.Value == request.Value && x.TenantId == tenantScope);
             if (exists) throw new InvalidOperationException("Lookup value already exists.");
 
             var createdBy = _currentUserService.UserId ?? _currentUserService.UserName ?? tenantId?.ToString();
@@ -119,7 +114,7 @@ namespace MuniLK.Application.Services
                 Value = request.Value,
                 Order = request.Order,
                 ParentLookupId = request.ParentLookupId,
-                TenantId = request.IsGlobal ? SystemConstants.SystemTenantId : tenantId,
+                TenantId = tenantScope,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow,
                 CreatedBy = createdBy
@@ -223,16 +218,43 @@ namespace MuniLK.Application.Services
 
         public async Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId)
         {
-            return await _context.EntityOptionSelections.AsNoTracking().Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId).Select(e => e.LookupId ?? e.OptionItemId).Distinct().ToListAsync();
+            return await _context.EntityOptionSelections.AsNoTracking()
+                .Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId)
+                .Select(e => e.LookupId)
+                .Distinct()
+                .ToListAsync();
+        }
+
+        public async Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, string lookupCategoryName)
+        {
+            return await _context.EntityOptionSelections.AsNoTracking()
+                .Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId && e.LookupCategoryName == lookupCategoryName)
+                .Select(e => e.LookupId)
+                .Distinct()
+                .ToListAsync();
         }
 
         public async Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, List<Guid> optionItemIds)
+            => await SaveEntityOptionSelectionsAsync(entityId, entityType, moduleId, string.Empty, optionItemIds);
+
+        public async Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, string lookupCategoryName, List<Guid> optionItemIds)
         {
             if (entityId == Guid.Empty) throw new ArgumentException("EntityId is required", nameof(entityId));
             if (string.IsNullOrWhiteSpace(entityType)) throw new ArgumentException("EntityType is required", nameof(entityType));
             if (moduleId == Guid.Empty) throw new ArgumentException("ModuleId is required", nameof(moduleId));
+            if (!string.IsNullOrWhiteSpace(lookupCategoryName) && optionItemIds.Any())
+            {
+                var validIds = await _context.Lookups.AsNoTracking()
+                    .Include(l => l.LookupCategory)
+                    .Where(l => l.LookupCategory.Name == lookupCategoryName && optionItemIds.Contains(l.Id))
+                    .Select(l => l.Id)
+                    .ToListAsync();
+                var invalid = optionItemIds.Except(validIds).ToList();
+                if (invalid.Any())
+                    throw new InvalidOperationException($"One or more lookup ids are invalid for category '{lookupCategoryName}': {string.Join(", ", invalid)}");
+            }
             var tenantId = _currentTenantService.GetTenantId();
-            var existing = await _context.EntityOptionSelections.Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId).ToListAsync();
+            var existing = await _context.EntityOptionSelections.Where(e => e.EntityId == entityId && e.EntityType == entityType && e.ModuleId == moduleId && (string.IsNullOrWhiteSpace(lookupCategoryName) || e.LookupCategoryName == lookupCategoryName)).ToListAsync();
             if (existing.Any()) _context.EntityOptionSelections.RemoveRange(existing);
             if (optionItemIds != null && optionItemIds.Any())
             {
@@ -243,13 +265,13 @@ namespace MuniLK.Application.Services
                     EntityType = entityType,
                     ModuleId = moduleId,
                     TenantId = tenantId!.Value,
-                    OptionItemId = id,
-                    LookupId = id
+                    LookupId = id,
+                    LookupCategoryName = lookupCategoryName ?? string.Empty
                 }).ToList();
                 await _context.EntityOptionSelections.AddRangeAsync(rows);
             }
             await _context.SaveChangesAsync();
-            return new EntityOptionSelectionsResponse { EntityId = entityId, EntityType = entityType, ModuleId = moduleId, SelectedOptionItemIds = optionItemIds ?? new List<Guid>(), Success = true, Message = "Selections saved successfully" };
+            return new EntityOptionSelectionsResponse { EntityId = entityId, EntityType = entityType, ModuleId = moduleId, LookupCategoryName = lookupCategoryName ?? string.Empty, SelectedOptionItemIds = optionItemIds ?? new List<Guid>(), Success = true, Message = "Selections saved successfully" };
         }
 
         public async Task DeleteEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId)

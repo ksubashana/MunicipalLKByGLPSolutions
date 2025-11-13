@@ -6,6 +6,7 @@ namespace MuniLK.Domain.Entities
 {
     /// <summary>
     /// Represents a multi-select/checkbox selection for any entity type (e.g., SiteInspection, Permit)
+    /// Stores selected lookup values (LookupId) scoped by Entity + EntityType + Module + LookupCategoryName.
     /// </summary>
     public class EntityOptionSelection : IHasTenant
     {
@@ -19,19 +20,24 @@ namespace MuniLK.Domain.Entities
         [MaxLength(100)]
         public string EntityType { get; set; } = string.Empty;
 
-        [Obsolete("Use LookupId instead")] 
-        public Guid OptionItemId { get; set; }
-
         /// <summary>
-        /// New FK pointing to Lookup.Id replacing OptionItemId
+        /// Programmatic lookup category name this selection belongs to (e.g. ClearanceTypes, InspectionReports).
         /// </summary>
-        public Guid? LookupId { get; set; }
+        [Required]
+        [MaxLength(100)]
+        public string LookupCategoryName { get; set; } = string.Empty;
 
         /// <summary>
-        /// Module context (still required for scoping selections)
+        /// FK pointing to Lookup.Id
+        /// </summary>
+        [Required]
+        public Guid LookupId { get; set; }
+
+        /// <summary>
+        /// Module context (required for scoping selections)
         /// </summary>
         public Guid ModuleId { get; set; }
-        public Guid? TenantId { get; set; }
 
+        public Guid? TenantId { get; set; }
     }
 }

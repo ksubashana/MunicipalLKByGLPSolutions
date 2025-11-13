@@ -11,6 +11,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public Guid EntityId { get; set; }
         public string EntityType { get; set; } = string.Empty;
         public Guid ModuleId { get; set; }
+        public string LookupCategoryName { get; set; } = string.Empty; // new discriminator
         public List<Guid> OptionItemIds { get; set; } = new();
     }
 
@@ -22,6 +23,7 @@ namespace MuniLK.Application.BuildingAndPlanning.DTOs
         public Guid EntityId { get; set; }
         public string EntityType { get; set; } = string.Empty;
         public Guid ModuleId { get; set; }
+        public string LookupCategoryName { get; set; } = string.Empty; // new discriminator
         public List<Guid> SelectedOptionItemIds { get; set; } = new();
         public bool Success { get; set; }
         public string? Message { get; set; }

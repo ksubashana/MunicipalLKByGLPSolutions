@@ -82,10 +82,14 @@ namespace MuniLK.Application.Services
         /// Returns selected option item (lookup) ids for an entity context.
         /// </summary>
         Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId);
+        Task<List<Guid>> GetEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, string lookupCategoryName); // new overload
+
         /// <summary>
         /// Saves (replaces) option item selections for an entity and returns the resulting snapshot.
         /// </summary>
         Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, List<Guid> optionItemIds);
+        Task<EntityOptionSelectionsResponse> SaveEntityOptionSelectionsAsync(Guid entityId, string entityType, Guid moduleId, string lookupCategoryName, List<Guid> optionItemIds); // new overload
+
         /// <summary>
         /// Deletes all option selections for the given entity context.
         /// </summary>

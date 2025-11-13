@@ -22,6 +22,9 @@ namespace MuniLK.Domain.Constants
         Modules,
         ClearanceTypes,
         Districts,
-        Provinces
+        Provinces,
+        // Added for Planning Committee Review lookups
+        InspectionReports,           // e.g. site_inspection_1 etc.
+        PlanningReviewDocuments     // documents reviewed in committee
     }
 }

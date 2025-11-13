@@ -4,6 +4,7 @@
 @using MuniLK.Application.PlanningCommitteeMeetings.DTOs
 @using MuniLK.Domain.Constants
 @using MuniLK.Domain.Constants.Flows
+@using MuniLK.Web.Interfaces
 @using MuniLK.Web.Services
 @using Syncfusion.Blazor.Buttons
 @using Syncfusion.Blazor.DropDowns
@@ -15,6 +16,7 @@
 @inject CustomAuthStateProvider AuthenticationStateProvider
 @inject IJSRuntime JS
 @inject IPermissionService PermissionService
+@inject ILookupService LookupService
 
 <style>
     .pc-form-section + .pc-form-section { margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--bs-border-color); }
@@ -27,7 +29,7 @@
     <div class="row">
         <!-- LEFT SUMMARY -->
         <div class="col-lg-4 mb-4">
-            <div class="card h-100">
+            <div class="card"> <!-- removed h-100 to allow natural height -->
                 <div class="card-header bg-success text-white"><h5 class="mb-0">Application Summary</h5></div>
                 <div class="card-body">
                     <div class="mb-2"><small class="text-muted">Application #</small><div class="fw-bold">@Model?.ApplicationNumber</div></div>
@@ -111,14 +113,14 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Inspection Reports</label>
-                                <SfMultiSelect @bind-Value="ReviewForm.InspectionReportsReviewed" DataSource="AvailableInspectionReports" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
+                                <SfMultiSelect TValue="List<Guid>" TItem="LookupMultiOption" @bind-Value="InspectionReportIds" DataSource="InspectionReportOptions" Placeholder="Select" Mode="VisualMode.CheckBox" ShowSelectAll="true" ClosePopupOnSelect="false">
+                                    <MultiSelectFieldSettings Value="Id" Text="Text" />
                                 </SfMultiSelect>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Documents Reviewed</label>
-                                <SfMultiSelect @bind-Value="ReviewForm.DocumentsReviewed" DataSource="AvailableDocumentTypes" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
+                                <SfMultiSelect TValue="List<Guid>" TItem="LookupMultiOption" @bind-Value="DocumentsReviewedIds" DataSource="DocumentsReviewedOptions" Placeholder="Select" Mode="VisualMode.CheckBox" ShowSelectAll="true" ClosePopupOnSelect="false">
+                                    <MultiSelectFieldSettings Value="Id" Text="Text" />
                                 </SfMultiSelect>
                             </div>
                             <div class="col-md-6 mb-3 d-flex align-items-end">
@@ -126,8 +128,8 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">External Agencies</label>
-                                <SfMultiSelect @bind-Value="ReviewForm.ExternalAgenciesConsulted" DataSource="AvailableExternalAgencies" Placeholder="Select">
-                                    <MultiSelectFieldSettings Value="Value" Text="Text" />
+                                <SfMultiSelect TValue="List<Guid>" TItem="LookupMultiOption" @bind-Value="ExternalAgencyIds" DataSource="ExternalAgencyOptions" Placeholder="Select" Mode="VisualMode.CheckBox" ShowSelectAll="true" ClosePopupOnSelect="false">
+                                    <MultiSelectFieldSettings Value="Id" Text="Text" />
                                 </SfMultiSelect>
                             </div>
                             <div class="col-md-12 mb-3">
@@ -239,7 +241,6 @@
 @code {
     [Parameter] public BuildingPlanApplicationDto? Model { get; set; }
 
-    // Updated Request model (assumes DTO updated to match new entity)
     private PlanningCommitteeReviewRequest ReviewForm = new();
     private bool IsSubmitting;
     private bool CanUserTakeAction;
@@ -249,7 +250,6 @@
     private PlanningCommitteeMeetingResponse? SelectedMeeting;
     private string ChairpersonName => SelectedMeeting == null ? "-" : GetContactName(SelectedMeeting.ChairpersonContactId);
 
-    // Decision options retained
     private List<DropdownOption> CommitteeDecisionOptions = new()
     {
         new() { Value = CommitteeDecision.Approve, DisplayName = "Approve" },
@@ -259,40 +259,25 @@
         new() { Value = CommitteeDecision.Pending, DisplayName = "Pending" }
     };
 
-    private List<SelectOption> AvailableInspectionReports = new()
-    {
-        new() { Value = "site_inspection_1", Text = "Site Inspection Report #1" },
-        new() { Value = "structural_inspection", Text = "Structural Inspection" },
-        new() { Value = "environmental_check", Text = "Environmental Check" }
-    };
-    private List<SelectOption> AvailableDocumentTypes = new()
-    {
-        new() { Value = "site_plan", Text = "Site Plan" },
-        new() { Value = "zoning_clearance", Text = "Zoning Clearance" },
-        new() { Value = "survey_plan", Text = "Survey Plan" },
-        new() { Value = "structural_drawings", Text = "Structural Drawings" },
-        new() { Value = "architectural_drawings", Text = "Architectural Drawings" }
-    };
-    private List<SelectOption> AvailableExternalAgencies = new()
-    {
-        new() { Value = "CEA", Text = "Central Environmental Authority" },
-        new() { Value = "NBRO", Text = "National Building Research Organization" },
-        new() { Value = "CCD", Text = "Coast Conservation Department" },
-        new() { Value = "FIRE_DEPT", Text = "Fire Department" },
-        new() { Value = "UDA", Text = "Urban Development Authority" }
-    };
+    // Dynamic lookup-driven multi-select sources
+    private List<LookupMultiOption> InspectionReportOptions = new();
+    private List<LookupMultiOption> DocumentsReviewedOptions = new();
+    private List<LookupMultiOption> ExternalAgencyOptions = new();
 
-    // Validation helpers adapted
-    private bool BaseFormOk => Model != null && ReviewForm.PlanningCommitteeMeetingId != Guid.Empty && !string.IsNullOrWhiteSpace(ReviewForm.RecordedByOfficer);
-    private bool CanSubmitApprove => BaseFormOk;
-    private bool CanSubmitApproveWithConditions => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ConditionsImposed);
-    private bool CanSubmitClarify => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
-    private bool CanSubmitReject => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
+    // Selected lookup IDs for each multi-select (persisted via EntityOptionSelection table)
+    private List<Guid> InspectionReportIds = new();
+    private List<Guid> DocumentsReviewedIds = new();
+    private List<Guid> ExternalAgencyIds = new();
+
+    // Option selection persistence context
+    private Guid ModuleId = Guid.Empty; // building & planning module id
+    private const string EntityTypeInspectionReports = "PCReview_InspectionReports";
+    private const string EntityTypeDocumentsReviewed = "PCReview_DocumentsReviewed";
+    private const string EntityTypeExternalAgencies = "PCReview_ExternalAgencies";
 
     private List<DocumentLinkResponse> ApplicationDocuments = new();
     private bool IsPreviewDialogVisible = false;
     private DocumentLinkResponse? SelectedPreviewDocument = null;
-    private Guid ModuleId = Guid.Empty;
     private List<ContactResponse> OfficerContacts = new();
 
     protected override async Task OnInitializedAsync()
@@ -308,6 +293,48 @@
 
         ReviewForm.CommitteeDecision = CommitteeDecision.Pending;
         ReviewForm.PlanningCommitteeMeetingId = SelectedMeeting?.Id ?? Guid.Empty;
+
+        // Load lookup-driven options
+        await LoadLookupOptionsAsync();
+        // Load previously saved entity option selections (IDs)
+        await LoadExistingSelectionsAsync();
+    }
+
+    private async Task LoadLookupOptionsAsync()
+    {
+        try
+        {
+            var inspectionLookups = await LookupService.LoadOptionTypesAsync(LookupCategoryNames.InspectionReports.ToString());
+            InspectionReportOptions = inspectionLookups.Select(l => new LookupMultiOption { Id = l.Id, Text = l.Value }).ToList();
+            var docsLookups = await LookupService.LoadOptionTypesAsync(LookupCategoryNames.PlanningReviewDocuments.ToString());
+            DocumentsReviewedOptions = docsLookups.Select(l => new LookupMultiOption { Id = l.Id, Text = l.Value }).ToList();
+            var externalLookups = await LookupService.LoadOptionTypesAsync(LookupCategoryNames.ClearanceTypes.ToString());
+            ExternalAgencyOptions = externalLookups.Select(l => new LookupMultiOption { Id = l.Id, Text = l.Value }).ToList();
+        }
+        catch { }
+    }
+
+    private async Task LoadExistingSelectionsAsync()
+    {
+        if (Model == null || ModuleId == Guid.Empty) return;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("AuthorizedClient");
+            InspectionReportIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeInspectionReports}&moduleId={ModuleId}") ?? new();
+            DocumentsReviewedIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeDocumentsReviewed}&moduleId={ModuleId}") ?? new();
+            ExternalAgencyIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeExternalAgencies}&moduleId={ModuleId}") ?? new();
+        }
+        catch { }
+    }
+
+    private async Task PersistSelectionsAsync()
+    {
+        if (Model == null || ModuleId == Guid.Empty) return;
+        var client = HttpClientFactory.CreateClient("AuthorizedClient");
+        var saveUrl = "api/Lookups/entity-options/selections/save";
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeInspectionReports, ModuleId = ModuleId, OptionItemIds = InspectionReportIds }); } catch { }
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeDocumentsReviewed, ModuleId = ModuleId, OptionItemIds = DocumentsReviewedIds }); } catch { }
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeExternalAgencies, ModuleId = ModuleId, OptionItemIds = ExternalAgencyIds }); } catch { }
     }
 
     private async Task LoadMeetingForApplication(Guid applicationId)
@@ -329,7 +356,6 @@
             var moduleIdResponse = await client.GetStringAsync("api/Modules/id-by-code/BLD_PLAN");
             if (Guid.TryParse(moduleIdResponse.Trim('"'), out var parsedModuleId)) ModuleId = parsedModuleId;
 
-            // Existing review fetch (assumes API updated)
             try
             {
                 var existingReview = await client.GetFromJsonAsync<PlanningCommitteeReviewResponse>($"api/BuildingPlans/{applicationId}/committee-review");
@@ -343,7 +369,6 @@
                 ApplicationDocuments = documents ?? new();
             }
 
-            // Load contacts for chairperson display
             OfficerContacts = await client.GetFromJsonAsync<List<ContactResponse>>($"api/Roles/GetUsersByTenantAndRole?roleName={Roles.Inspector}") ?? new();
         }
         catch { ApplicationDocuments = new(); }
@@ -351,7 +376,7 @@
 
     private void PopulateFormFromExistingReview(PlanningCommitteeReviewResponse review)
     {
-        ReviewForm.PlanningCommitteeMeetingId = review.PlanningCommitteeMeetingId; // assumes field exists in response after DTO update
+        ReviewForm.PlanningCommitteeMeetingId = review.PlanningCommitteeMeetingId;
         ReviewForm.DocumentsReviewed = review.DocumentsReviewed ?? new List<string>();
         ReviewForm.ApplicantRepresented = review.ApplicantRepresented;
         ReviewForm.ExternalAgenciesConsulted = review.ExternalAgenciesConsulted ?? new List<string>();
@@ -366,6 +391,7 @@
     private async Task SaveDraft()
     {
         if (Model == null || ReviewForm.PlanningCommitteeMeetingId == Guid.Empty) return;
+        await PersistSelectionsAsync();
         await SendToApi(finalize: false, forceDecision: false);
     }
 
@@ -373,6 +399,7 @@
     {
         if (Model == null || ReviewForm.PlanningCommitteeMeetingId == Guid.Empty) return;
         ReviewForm.CommitteeDecision = decision;
+        await PersistSelectionsAsync();
         await SendToApi(finalize: true, forceDecision: true);
     }
 
@@ -382,6 +409,11 @@
         IsSubmitting = true;
         try
         {
+            // Map selected lookup IDs back to textual lists for legacy fields (store lookup value text)
+            ReviewForm.InspectionReportsReviewed = InspectionReportOptions.Where(o => InspectionReportIds.Contains(o.Id)).Select(o => o.Text).ToList();
+            ReviewForm.DocumentsReviewed = DocumentsReviewedOptions.Where(o => DocumentsReviewedIds.Contains(o.Id)).Select(o => o.Text).ToList();
+            ReviewForm.ExternalAgenciesConsulted = ExternalAgencyOptions.Where(o => ExternalAgencyIds.Contains(o.Id)).Select(o => o.Text).ToList();
+
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
             var request = BuildRequest();
             if (!forceDecision && request.CommitteeDecision == CommitteeDecision.Pending)
@@ -430,6 +462,13 @@
 
     private string GetContactName(Guid id) => OfficerContacts.FirstOrDefault(c => c.Id == id)?.FullName ?? "-";
 
+    private bool BaseFormOk => Model != null && ReviewForm.PlanningCommitteeMeetingId != Guid.Empty && !string.IsNullOrWhiteSpace(ReviewForm.RecordedByOfficer);
+    private bool CanSubmitApprove => BaseFormOk;
+    private bool CanSubmitApproveWithConditions => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ConditionsImposed);
+    private bool CanSubmitClarify => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
+    private bool CanSubmitReject => BaseFormOk && !string.IsNullOrWhiteSpace(ReviewForm.ReasonForRejectionOrDeferral);
+
     private class DropdownOption { public object Value { get; set; } = default!; public string DisplayName { get; set; } = default!; }
-    private class SelectOption { public string Value { get; set; } = default!; public string Text { get; set; } = default!; }
+    private class LookupMultiOption { public Guid Id { get; set; } public string Text { get; set; } = string.Empty; }
+    private class SaveEntityOptionSelectionsRequest { public Guid EntityId { get; set; } public string EntityType { get; set; } = string.Empty; public Guid ModuleId { get; set; } public List<Guid> OptionItemIds { get; set; } = new(); }
 }
