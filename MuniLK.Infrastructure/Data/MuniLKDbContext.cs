@@ -30,7 +30,6 @@ namespace MuniLK.Infrastructure.Data
         public DbSet<LookupCategory> LookupCategories { get; set; } 
         public DbSet<ClientConfiguration> ClientConfigurations { get; set; }
         public DbSet<MuniLK.Domain.Entities.Document> Documents { get; set; }
-        public DbSet<LicenseDocument> licenseDocuments { get; set; }
         public DbSet<DocumentLink> DocumentLinks { get; set; }
         public DbSet<BuildingPlanApplicationDocument> buildingPlanApplicationDocuments { get; set; }
         public DbSet<Report> Reports { get; set; }
