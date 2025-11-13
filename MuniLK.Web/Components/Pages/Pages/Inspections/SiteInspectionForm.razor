@@ -2,6 +2,7 @@
 @using MuniLK.Application.BuildingAndPlanning.DTOs
 @using MuniLK.Application.Documents.DTOs
 @using MuniLK.Application.Services.DTOs
+@using MuniLK.Domain.Constants
 @using MuniLK.Domain.Constants.Flows
 @using MuniLK.Web.Clients
 @using MuniLK.Web.Components.Pages.Generic.Documents
@@ -616,9 +617,10 @@
                     var saveSelectionsUrl = "api/Lookups/entity-options/selections/save";
                     var saveRequest = new SaveEntityOptionSelectionsRequest
                     {
-                        EntityId = ApplicationId, // key by application for reporting
+                        EntityId = ApplicationId,
                         EntityType = "SiteInspection",
                         ModuleId = ModuleId,
+                        LookupCategoryName = LookupCategoryNames.ClearanceTypes.ToString(),
                         OptionItemIds = Model.ClearanceOptionItemIds
                     };
                     try
@@ -785,6 +787,7 @@
         public Guid EntityId { get; set; }
         public string EntityType { get; set; } = string.Empty;
         public Guid ModuleId { get; set; }
+        public string LookupCategoryName { get; set; } = string.Empty;
         public List<Guid> OptionItemIds { get; set; } = new();
     }
     private void PopulateFormFromExistingInspection(SiteInspectionResponse inspection)

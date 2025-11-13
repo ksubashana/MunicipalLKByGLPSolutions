@@ -320,9 +320,9 @@
         try
         {
             var client = HttpClientFactory.CreateClient("AuthorizedClient");
-            InspectionReportIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeInspectionReports}&moduleId={ModuleId}") ?? new();
-            DocumentsReviewedIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeDocumentsReviewed}&moduleId={ModuleId}") ?? new();
-            ExternalAgencyIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeExternalAgencies}&moduleId={ModuleId}") ?? new();
+            InspectionReportIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeInspectionReports}&moduleId={ModuleId}&lookupCategoryName={LookupCategoryNames.InspectionReports}") ?? new();
+            DocumentsReviewedIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeDocumentsReviewed}&moduleId={ModuleId}&lookupCategoryName={LookupCategoryNames.PlanningReviewDocuments}") ?? new();
+            ExternalAgencyIds = await client.GetFromJsonAsync<List<Guid>>($"api/Lookups/entity-options/selections?entityId={Model.Id}&entityType={EntityTypeExternalAgencies}&moduleId={ModuleId}&lookupCategoryName={LookupCategoryNames.ClearanceTypes}") ?? new();
         }
         catch { }
     }
@@ -332,9 +332,9 @@
         if (Model == null || ModuleId == Guid.Empty) return;
         var client = HttpClientFactory.CreateClient("AuthorizedClient");
         var saveUrl = "api/Lookups/entity-options/selections/save";
-        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeInspectionReports, ModuleId = ModuleId, OptionItemIds = InspectionReportIds }); } catch { }
-        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeDocumentsReviewed, ModuleId = ModuleId, OptionItemIds = DocumentsReviewedIds }); } catch { }
-        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeExternalAgencies, ModuleId = ModuleId, OptionItemIds = ExternalAgencyIds }); } catch { }
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeInspectionReports, ModuleId = ModuleId, LookupCategoryName = LookupCategoryNames.InspectionReports.ToString(), OptionItemIds = InspectionReportIds }); } catch { }
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeDocumentsReviewed, ModuleId = ModuleId, LookupCategoryName = LookupCategoryNames.PlanningReviewDocuments.ToString(), OptionItemIds = DocumentsReviewedIds }); } catch { }
+        try { await client.PostAsJsonAsync(saveUrl, new SaveEntityOptionSelectionsRequest { EntityId = Model.Id, EntityType = EntityTypeExternalAgencies, ModuleId = ModuleId, LookupCategoryName = LookupCategoryNames.ClearanceTypes.ToString(), OptionItemIds = ExternalAgencyIds }); } catch { }
     }
 
     private async Task LoadMeetingForApplication(Guid applicationId)
@@ -470,5 +470,5 @@
 
     private class DropdownOption { public object Value { get; set; } = default!; public string DisplayName { get; set; } = default!; }
     private class LookupMultiOption { public Guid Id { get; set; } public string Text { get; set; } = string.Empty; }
-    private class SaveEntityOptionSelectionsRequest { public Guid EntityId { get; set; } public string EntityType { get; set; } = string.Empty; public Guid ModuleId { get; set; } public List<Guid> OptionItemIds { get; set; } = new(); }
+    private class SaveEntityOptionSelectionsRequest { public Guid EntityId { get; set; } public string EntityType { get; set; } = string.Empty; public Guid ModuleId { get; set; } public string LookupCategoryName { get; set; } = string.Empty; public List<Guid> OptionItemIds { get; set; } = new(); }
 }

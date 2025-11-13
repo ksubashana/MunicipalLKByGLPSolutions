@@ -300,12 +300,16 @@ namespace MuniLK.API.Controllers
         [HttpGet("entity-options/selections")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<List<Guid>>> GetEntityOptionSelections([FromQuery] Guid entityId, [FromQuery] string entityType, [FromQuery] Guid moduleId)
+        public async Task<ActionResult<List<Guid>>> GetEntityOptionSelections([FromQuery] Guid entityId, [FromQuery] string entityType, [FromQuery] Guid moduleId, [FromQuery] string? lookupCategoryName = null)
         {
             if (entityId == Guid.Empty || string.IsNullOrWhiteSpace(entityType) || moduleId == Guid.Empty)
                 return BadRequest("entityId, entityType and moduleId are required.");
 
-            var ids = await _lookupService.GetEntityOptionSelectionsAsync(entityId, entityType, moduleId);
+            List<Guid> ids;
+            if (!string.IsNullOrWhiteSpace(lookupCategoryName))
+                ids = await _lookupService.GetEntityOptionSelectionsAsync(entityId, entityType, moduleId, lookupCategoryName);
+            else
+                ids = await _lookupService.GetEntityOptionSelectionsAsync(entityId, entityType, moduleId);
             return Ok(ids);
         }
 
@@ -329,7 +333,12 @@ namespace MuniLK.API.Controllers
             if (request == null || request.EntityId == Guid.Empty || string.IsNullOrWhiteSpace(request.EntityType) || request.ModuleId == Guid.Empty)
                 return BadRequest("EntityId, EntityType and ModuleId are required.");
 
-            var response = await _lookupService.SaveEntityOptionSelectionsAsync(request.EntityId, request.EntityType, request.ModuleId, request.OptionItemIds ?? new List<Guid>());
+            var response = await _lookupService.SaveEntityOptionSelectionsAsync(
+                request.EntityId,
+                request.EntityType,
+                request.ModuleId,
+                request.LookupCategoryName ?? string.Empty,
+                request.OptionItemIds ?? new List<Guid>());
             return Ok(response);
         }
 

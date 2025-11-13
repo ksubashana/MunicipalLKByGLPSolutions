@@ -17,10 +17,6 @@ namespace MuniLK.Infrastructure.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(100);
 
-            // New LookupId (nullable during transition)
-            builder.Property(eos => eos.LookupId)
-                .IsRequired(false);
-
             builder.Property(eos => eos.ModuleId)
                 .IsRequired();
 
