@@ -8,7 +8,7 @@ using MuniLK.Infrastructure.Data;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
+namespace MuniLK.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationIdentityDbContext))]
     partial class ApplicationIdentityDbContextModelSnapshot : ModelSnapshot

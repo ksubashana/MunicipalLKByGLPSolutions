@@ -9,10 +9,10 @@ using MuniLK.Infrastructure.Data;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
+namespace MuniLK.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationIdentityDbContext))]
-    [Migration("20251017042626_InitialIdentityMigration")]
+    [Migration("20251113062500_InitialIdentityMigration")]
     partial class InitialIdentityMigration
     {
         /// <inheritdoc />

@@ -120,6 +120,24 @@ INSERT [dbo].[LookupCategories] ([Id], [Name], [DisplayName], [Description], [Or
 GO
 INSERT [dbo].[LookupCategories] ([Id], [Name], [DisplayName], [Description], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy]) VALUES (N'5530d4d3-10e0-419a-b88c-f467fdd8307e', N'GSDivision', N'GS Division', N'GS Division', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:09:45.0236693' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea')
 GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'0df153fe-081b-4392-9844-2923e01d292f', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Uva Province (ඌව පළාත)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8402483' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'd3933cce-2b0b-4130-b752-f7f29f8c2781', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Sabaragamuwa Province (සබරගමුව පළාත)', 9, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8440136' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'eacbecec-a691-4fe4-8ded-eb02b6d5f292', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'North Central Province (උතුරු මැද පළාත)', 7, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8265404' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'ed251350-6517-47de-a73d-b79bf6fdd8ee', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'North Western Province (වයඹ පළාත)', 6, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8233003' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'953a193e-9d2a-438d-b850-665b35cf559c', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Southern Province (දකුණු පළාත)', 3, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8129178' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'43d88d52-1084-4429-a1c3-6c6c94db69f1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Central Province (මධ්‍යම පළාත)', 2, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8075054' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'20c2f0cc-f29b-4010-b21a-3dd383a2f574', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Eastern Province (නැගෙනහිර පළාත)', 5, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8201444' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'e82aabed-8ac3-42ad-94d8-5db181fb14d1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Northern Province (උතුරු පළාත)', 4, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8162937' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
+INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'57c9b612-6060-491b-9d9c-62c890a0e4f1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Western Province (බස්නාහිර පළාත)', 1, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.7593140' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
+GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'5539b6b5-928c-4fbf-a52f-0238c9d4bccd', N'57a9c82e-dd1b-4cdc-9522-2953bf2644bb', N'Zoning Clearance (කලාප අනුමැතිය)', 3, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-11-13T02:23:56.3312993' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'0228f9a4-c3b9-4953-aff2-0240d2394fcf', N'57a9c82e-dd1b-4cdc-9522-2953bf2644bb', N'Completion Certificate (නිමාව සහතිකය)', 14, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-11-13T02:23:56.3644495' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
@@ -172,8 +190,6 @@ INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], 
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'd59d08b2-e31a-48c4-9bdb-28b5f86a213b', N'a6258045-6e56-42e6-9fbb-4d56ebfb5c21', N'Kandy District (මහනුවර දිස්ත්‍රික්කය)', 4, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-31T07:43:07.6562909' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', N'43d88d52-1084-4429-a1c3-6c6c94db69f1')
 GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'0df153fe-081b-4392-9844-2923e01d292f', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Uva Province (ඌව පළාත)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8402483' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'9411ecaf-64b2-4070-b835-29d09b12a440', N'a6258045-6e56-42e6-9fbb-4d56ebfb5c21', N'Mullaitivu District (මුලතිව් දිස්ත්‍රික්කය)', 14, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-31T07:43:07.7114101' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', N'e82aabed-8ac3-42ad-94d8-5db181fb14d1')
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'df48af89-ec13-48b9-9db8-29d7c93f3adc', N'a6258045-6e56-42e6-9fbb-4d56ebfb5c21', N'Matale District (මාතලේ දිස්ත්‍රික්කය)', 5, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-31T07:43:07.6621807' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', N'43d88d52-1084-4429-a1c3-6c6c94db69f1')
@@ -209,8 +225,6 @@ GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'b3c48917-efa8-4eae-a68f-3cf570579e2d', N'690ef4fe-c11a-495a-b4d5-9b919634f285', N'Maho (මහෝ)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:29:12.7104533' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'9fcb3a00-20cc-41a8-a91f-3d64c6604fe0', N'9217155c-b165-4165-80ce-a4df50622035', N'Square Yard (වර්ග යාඩ්)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:23:48.1502986' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
-GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'20c2f0cc-f29b-4010-b21a-3dd383a2f574', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Eastern Province (නැගෙනහිර පළාත)', 5, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8201444' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'24c644c4-80cd-42fb-afad-3df1527d532d', N'5ebfc638-cd78-4b54-b6eb-3f3c52d7cfab', N'Commercial – Shop / Retail (වාණිජ – වෙළඳසල / සිල්ලර)', 11, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:33:03.8557133' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
@@ -256,8 +270,6 @@ INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], 
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'c91e188e-3006-4158-99df-5c40cf04c7b7', N'690ef4fe-c11a-495a-b4d5-9b919634f285', N'Polgahawela (පොල්ගහවෙල)', 2, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:29:12.6920754' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'e82aabed-8ac3-42ad-94d8-5db181fb14d1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Northern Province (උතුරු පළාත)', 4, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8162937' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'a72fbb73-f2dc-4280-b381-5ea7cdfd5d29', N'bdca3424-c6a9-4306-a3ab-8225c5cad49e', N'Secondary Road (දෙවන මාර්ගය)', 2, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:29:43.1165479' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'4b9400b0-853b-4448-9344-5f41a369ce1b', N'57a9c82e-dd1b-4cdc-9522-2953bf2644bb', N'Structural Drawings (සංරචනාත්මක රේඛාचित्र)', 5, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-11-13T02:23:56.3372569' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
@@ -265,8 +277,6 @@ GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'df021336-b008-43d7-a6e3-6064ab05cc20', N'5ebfc638-cd78-4b54-b6eb-3f3c52d7cfab', N'Tourism – Guest House / Resort ( සංචාරක – ගෙස්ට් හවුස් / රිසෝර්ට්)', 18, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:33:03.8916654' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'034e64e7-e960-40cc-9f14-62a1bddb9a30', N'a6258045-6e56-42e6-9fbb-4d56ebfb5c21', N'Matara District (මාතර දිස්ත්‍රික්කය)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-31T07:43:07.6827146' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', N'953a193e-9d2a-438d-b850-665b35cf559c')
-GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'57c9b612-6060-491b-9d9c-62c890a0e4f1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Western Province (බස්නාහිර පළාත)', 1, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.7593140' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'c27ea844-596c-446c-9bc7-634b70fb86d0', N'57a9c82e-dd1b-4cdc-9522-2953bf2644bb', N'Architectural Drawings (නිර්මාණාත්මක රේඛාचित्र)', 4, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-11-13T02:23:56.3342417' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
@@ -276,11 +286,7 @@ INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], 
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'b1ab7e71-ec96-497d-8259-655985905ea4', N'9a22cf2d-2d09-488f-a12f-c2a8c72da1a1', N'Residential – High Density (ඉහළ සංග්‍රහිත නිවාස කලාපය)', 1, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:22:44.9563033' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'953a193e-9d2a-438d-b850-665b35cf559c', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Southern Province (දකුණු පළාත)', 3, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8129178' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'56e3e920-6d98-4785-90cf-68da632b5a11', N'57a9c82e-dd1b-4cdc-9522-2953bf2644bb', N'Approval Letters from External Agencies (බාහිර ආයතන වල අනුමැතිය ලිපි)', 12, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-11-13T02:23:56.3586816' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'43d88d52-1084-4429-a1c3-6c6c94db69f1', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Central Province (මධ්‍යම පළාත)', 2, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8075054' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'fd308189-3ec0-4634-a59a-6f96db92d1d0', N'bdca3424-c6a9-4306-a3ab-8225c5cad49e', N'Service Road (සේවා මාර්ගය)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:29:43.1339421' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
@@ -366,8 +372,6 @@ INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], 
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'42945388-83c1-4385-9826-b5926eb1363c', N'731ad210-b4f4-40bb-9f84-0a80d400fcfc', N'Central Environmental Authority (මධ්‍යම පරිසර අධිකාරිය - CEA)', 2, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-23T03:25:44.9953223' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'ed251350-6517-47de-a73d-b79bf6fdd8ee', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'North Western Province (වයඹ පළාත)', 6, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8233003' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'b34e3edc-c6be-47e6-a98e-b7ed7ff39c48', N'731ad210-b4f4-40bb-9f84-0a80d400fcfc', N'Forest Department (වනාන්තර දෙපාර්තමේන්තුව)', 10, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-23T03:25:45.0268600' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'b64853d9-e365-4176-af21-b924d2b87c4f', N'9a22cf2d-2d09-488f-a12f-c2a8c72da1a1', N'Special Development Zone (විශේෂ සංවර්ධන කලාපය)', 12, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:22:44.9936180' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
@@ -434,8 +438,6 @@ INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], 
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'81ca5721-a25d-44b2-94ba-eab15080cc4c', N'2e5c2a9d-4600-47dc-b7a0-d35334ae830a', N'Other Construction Type (වෙනත් ගොඩනැගිල්ල වර්ග)', 10, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:21:30.7845085' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'eacbecec-a691-4fe4-8ded-eb02b6d5f292', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'North Central Province (උතුරු මැද පළාත)', 7, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8265404' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
-GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'cfce95aa-596e-4cbf-81b7-eb4cf8cff622', N'2e5c2a9d-4600-47dc-b7a0-d35334ae830a', N'Renovation / Extension (නවීකරණය / දිගුව)', 9, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:21:30.7814482' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'6f595168-8d55-4d84-aab4-eb614a360b39', N'5530d4d3-10e0-419a-b88c-f467fdd8307e', N'Nikaweratiya (නිකවෙරටිය)', 3, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:19:03.0319348' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
@@ -455,8 +457,6 @@ GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'e7ea427b-78cf-4fff-9596-f5eae3cd5eba', N'9a22cf2d-2d09-488f-a12f-c2a8c72da1a1', N'Recreational / Park (විනෝදාත්මක / උද්‍යානය)', 9, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:22:44.9841389' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'7c464fe2-d6fc-4f5f-90e6-f728aebb173d', N'2adc9b4a-a290-4df2-a935-78df48ac316a', N'Community / Village Land (ප්‍රජා / ගම් භූමිය)', 8, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-18T05:31:36.9018223' AS DateTime2), N'0fedac8f-6db9-4852-b2d8-9181c94f3bea', NULL)
-GO
-INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'd3933cce-2b0b-4130-b752-f7f29f8c2781', N'8aa6aa1d-878a-42db-81eb-1e9e906cfc78', N'Sabaragamuwa Province (සබරගමුව පළාත)', 9, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-30T09:27:58.8440136' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', NULL)
 GO
 INSERT [dbo].[Lookups] ([Id], [LookupCategoryId], [Value], [Order], [TenantId], [IsActive], [CreatedDate], [CreatedBy], [ParentLookupId]) VALUES (N'8570019c-654f-4bae-83b0-fa0851a7bfcd', N'a6258045-6e56-42e6-9fbb-4d56ebfb5c21', N'Polonnaruwa District (පොළොන්නරුව දිස්ත්‍රික්කය)', 21, N'00000000-0000-0000-0000-000000000001', 1, CAST(N'2025-10-31T07:43:07.7473256' AS DateTime2), N'df084cc7-9aa1-436c-b8ba-768a22b2dbcb', N'eacbecec-a691-4fe4-8ded-eb02b6d5f292')
 GO

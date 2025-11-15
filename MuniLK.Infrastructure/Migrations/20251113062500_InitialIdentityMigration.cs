@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Migrations.ApplicationIdentityDb
+namespace MuniLK.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class InitialIdentityMigration : Migration

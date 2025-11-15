@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace MuniLK.Infrastructure.Migrations
+namespace MuniLK.Infrastructure.Migrations.MuniLKDb
 {
     /// <inheritdoc />
     public partial class InitialMigration : Migration
@@ -166,37 +166,46 @@ namespace MuniLK.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlanningCommitteeReviews",
+                name: "PlanningCommitteeMeetings",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    ApplicationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    MeetingDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CommitteeType = table.Column<int>(type: "int", nullable: false),
-                    MeetingReferenceNo = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ChairpersonName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    MembersPresent = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: false),
-                    InspectionReportsReviewed = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    DocumentsReviewed = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    ApplicantRepresented = table.Column<bool>(type: "bit", nullable: false),
-                    ExternalAgenciesConsulted = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    CommitteeDiscussionsSummary = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
-                    CommitteeDecision = table.Column<int>(type: "int", nullable: false),
-                    ConditionsImposed = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
-                    ReasonForRejectionOrDeferral = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
-                    FinalRecommendationDocumentPath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RecordedByOfficer = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ApprovalTimestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    DigitalSignatures = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    Subject = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Agenda = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Venue = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ChairpersonContactId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UpdatedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "varbinary(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PlanningCommitteeReviews", x => x.Id);
+                    table.PrimaryKey("PK_PlanningCommitteeMeetings", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RefreshTokens",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TokenHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevokedUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReplacedByTokenId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RefreshTokens", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -295,6 +304,7 @@ namespace MuniLK.Infrastructure.Migrations
                     LookupCategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Value = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Order = table.Column<int>(type: "int", nullable: false),
+                    ParentLookupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -307,6 +317,12 @@ namespace MuniLK.Infrastructure.Migrations
                         name: "FK_Lookups_LookupCategories_LookupCategoryId",
                         column: x => x.LookupCategoryId,
                         principalTable: "LookupCategories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Lookups_Lookups_ParentLookupId",
+                        column: x => x.ParentLookupId,
+                        principalTable: "Lookups",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -331,6 +347,53 @@ namespace MuniLK.Infrastructure.Migrations
                         name: "FK_Reports_Modules_ModuleId",
                         column: x => x.ModuleId,
                         principalTable: "Modules",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlanningCommitteeMeetingApplications",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    PlanningCommitteeMeetingId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    BuildingPlanApplicationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IsPrimaryDiscussion = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlanningCommitteeMeetingApplications", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlanningCommitteeMeetingApplications_PlanningCommitteeMeetings_PlanningCommitteeMeetingId",
+                        column: x => x.PlanningCommitteeMeetingId,
+                        principalTable: "PlanningCommitteeMeetings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PlanningCommitteeMeetingMembers",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    PlanningCommitteeMeetingId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ContactId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    IsChair = table.Column<bool>(type: "bit", nullable: false),
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    InvitationStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AttendanceStatus = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlanningCommitteeMeetingMembers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlanningCommitteeMeetingMembers_PlanningCommitteeMeetings_PlanningCommitteeMeetingId",
+                        column: x => x.PlanningCommitteeMeetingId,
+                        principalTable: "PlanningCommitteeMeetings",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -427,8 +490,8 @@ namespace MuniLK.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     EntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     EntityType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    OptionItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LookupId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    LookupCategoryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    LookupId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ModuleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     SiteInspectionId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
@@ -525,36 +588,6 @@ namespace MuniLK.Infrastructure.Migrations
                         column: x => x.ZoneId,
                         principalTable: "Lookups",
                         principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
-                name: "licenseDocuments",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LicenseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LinkContext = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: false),
-                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    LinkedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    LinkedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_licenseDocuments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_licenseDocuments_Documents_DocumentId",
-                        column: x => x.DocumentId,
-                        principalTable: "Documents",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_licenseDocuments_Licenses_LicenseId",
-                        column: x => x.LicenseId,
-                        principalTable: "Licenses",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -663,12 +696,6 @@ namespace MuniLK.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_buildingPlanApplications_PlanningCommitteeReviews_PlanningCommitteeReviewId",
-                        column: x => x.PlanningCommitteeReviewId,
-                        principalTable: "PlanningCommitteeReviews",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_buildingPlanApplications_Properties_PropertyId",
                         column: x => x.PropertyId,
                         principalTable: "Properties",
@@ -751,6 +778,48 @@ namespace MuniLK.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PlanningCommitteeReviews",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TenantId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ApplicationId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PlanningCommitteeMeetingId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    InspectionReportsReviewed = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    DocumentsReviewed = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    ExternalAgenciesConsulted = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    ApplicantRepresented = table.Column<bool>(type: "bit", nullable: false),
+                    CommitteeDiscussionsSummary = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    CommitteeDecision = table.Column<int>(type: "int", nullable: false),
+                    ConditionsImposed = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    ReasonForRejectionOrDeferral = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    FinalRecommendationDocumentPath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RecordedByOfficer = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    ApprovalTimestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    DigitalSignatures = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ModifiedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlanningCommitteeReviews", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PlanningCommitteeReviews_PlanningCommitteeMeetings_PlanningCommitteeMeetingId",
+                        column: x => x.PlanningCommitteeMeetingId,
+                        principalTable: "PlanningCommitteeMeetings",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PlanningCommitteeReviews_buildingPlanApplications_ApplicationId",
+                        column: x => x.ApplicationId,
+                        principalTable: "buildingPlanApplications",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkflowLogs",
                 columns: table => new
                 {
@@ -809,13 +878,6 @@ namespace MuniLK.Infrastructure.Migrations
                 column: "AssignmentId",
                 unique: true,
                 filter: "[AssignmentId] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_buildingPlanApplications_PlanningCommitteeReviewId",
-                table: "buildingPlanApplications",
-                column: "PlanningCommitteeReviewId",
-                unique: true,
-                filter: "[PlanningCommitteeReviewId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_buildingPlanApplications_PropertyId",
@@ -895,16 +957,6 @@ namespace MuniLK.Infrastructure.Migrations
                 column: "SiteInspectionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_licenseDocuments_DocumentId",
-                table: "licenseDocuments",
-                column: "DocumentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_licenseDocuments_LicenseId",
-                table: "licenseDocuments",
-                column: "LicenseId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_LookupCategories_Name_TenantId",
                 table: "LookupCategories",
                 columns: new[] { "Name", "TenantId" },
@@ -919,6 +971,11 @@ namespace MuniLK.Infrastructure.Migrations
                 filter: "[TenantId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Lookups_ParentLookupId",
+                table: "Lookups",
+                column: "ParentLookupId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Modules_Code",
                 table: "Modules",
                 column: "Code",
@@ -928,6 +985,27 @@ namespace MuniLK.Infrastructure.Migrations
                 name: "IX_Modules_ParentModuleId",
                 table: "Modules",
                 column: "ParentModuleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlanningCommitteeMeetingApplications_PlanningCommitteeMeetingId_IsDeleted",
+                table: "PlanningCommitteeMeetingApplications",
+                columns: new[] { "PlanningCommitteeMeetingId", "IsDeleted" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlanningCommitteeMeetingMembers_PlanningCommitteeMeetingId_IsDeleted",
+                table: "PlanningCommitteeMeetingMembers",
+                columns: new[] { "PlanningCommitteeMeetingId", "IsDeleted" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlanningCommitteeReviews_ApplicationId",
+                table: "PlanningCommitteeReviews",
+                column: "ApplicationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlanningCommitteeReviews_PlanningCommitteeMeetingId",
+                table: "PlanningCommitteeReviews",
+                column: "PlanningCommitteeMeetingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Properties_ConstructionTypeId",
@@ -1050,13 +1128,25 @@ namespace MuniLK.Infrastructure.Migrations
                 name: "FeatureIdAudit");
 
             migrationBuilder.DropTable(
-                name: "licenseDocuments");
+                name: "Licenses");
 
             migrationBuilder.DropTable(
                 name: "LogEntries");
 
             migrationBuilder.DropTable(
+                name: "PlanningCommitteeMeetingApplications");
+
+            migrationBuilder.DropTable(
+                name: "PlanningCommitteeMeetingMembers");
+
+            migrationBuilder.DropTable(
+                name: "PlanningCommitteeReviews");
+
+            migrationBuilder.DropTable(
                 name: "PropertyOwners");
+
+            migrationBuilder.DropTable(
+                name: "RefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "Reports");
@@ -1074,7 +1164,7 @@ namespace MuniLK.Infrastructure.Migrations
                 name: "Documents");
 
             migrationBuilder.DropTable(
-                name: "Licenses");
+                name: "PlanningCommitteeMeetings");
 
             migrationBuilder.DropTable(
                 name: "Users");
@@ -1090,9 +1180,6 @@ namespace MuniLK.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Contacts");
-
-            migrationBuilder.DropTable(
-                name: "PlanningCommitteeReviews");
 
             migrationBuilder.DropTable(
                 name: "Properties");
